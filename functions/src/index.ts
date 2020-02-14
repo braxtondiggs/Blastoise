@@ -12,7 +12,7 @@ app.post('/', (req, res) => {
     const { address, location, name, type } = req.body;
     if (address && location && name && type && type === 'brewery') {
         return exists(name).then((result) => {
-            const path = result ? `location/${result.id}` : `location/${createID()}`;
+            const path = result ? `locations/${result.id}` : `locations/${createID()}`;
             const data = result ? result : req.body;
             return db.doc(path).set(formatData(data, path)).then(() => res.status(200).send('Success'))
         }).catch(() => res.status(200).send('Duplicate Entry'));
@@ -56,7 +56,7 @@ function formatData(data: any, path: string): Location {
 }
 
 function createID(): string {
-    const ref = db.collection('location').doc();
+    const ref = db.collection('locations').doc();
     return ref.id;
 }
 
