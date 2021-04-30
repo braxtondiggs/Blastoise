@@ -42,6 +42,6 @@ export async function importBackLogTimeline() {
 }
 
 function latlng(point: number | string) {
-  point = point.toString().split('-').join('');
-  return parseFloat(`${point.slice(0, 2)}.${point.slice(2)}`);
+  const p = point.toString().split('-').join('');
+  return parseFloat(`${p.slice(0, 2)}.${p.slice(2)}`);
 }
