@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as cors from 'cors';
+import * as dayjs from 'dayjs';
 import * as express from 'express';
 import axios from 'axios';
 import { PlaceSearch } from './interface';
@@ -49,11 +50,15 @@ app.post('/import', async (request: any, response: any) => {
                 const timeline = await db.doc(`brewery-timeline/${candidate.place_id}`).get();
                 const data = timeline.data();
                 if (!data) return;
-                data[size(data)] = { start: new Date() };
+                const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'day'));
+                if (isSameDay.length) return;
+                data[size(data)] = { start: admin.firestore.FieldValue.serverTimestamp() };
                 await db.doc(`brewery-timeline/${candidate.place_id}`).set(data);
             } else {
+                const reviewSnap = await db.doc(`brewery-review/${candidate.place_id}`).get();
+                if (reviewSnap.exists) return;
                 await db.doc(`brewery-review/${candidate.place_id}`).set({
-                    start: new Date(),
+                    start: admin.firestore.FieldValue.serverTimestamp(),
                     place_id: candidate.place_id,
                     address: candidate.formatted_address,
                     name: candidate.name,
