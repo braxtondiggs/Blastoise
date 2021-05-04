@@ -19,10 +19,14 @@ app.use(cors({ origin: true }));
 
 app.post('/import', async (request: any, response: any) => {
   const template = await config.getTemplate()
-  const API = template.parameters.GOOGLEAPI;
+  const API = (template.parameters.GOOGLEAPI.defaultValue as any).value;
+  if (!API) response.json({ success: false, msg: 'invalid API token' });
   if (request.body['address'] && request.body['location']) {
-    const lastCall = await getLastCall();
-    if (lastCall) return;
+    const lastCallSnap = await db.doc('brewery-review/last-call').get();
+    const lastCall = lastCallSnap.data();
+    if (lastCall) {
+      if (dayjs().isBefore(dayjs(lastCall.time._seconds * 1000).add(30, 'minute'))) return response.json({ success: false, msg: 'Hasn\'t been enough time' });
+    }
 
     const location = request.body['location'].split(',');
     const { data: query }: { data: PlaceSearch } = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
@@ -45,7 +49,7 @@ app.post('/import', async (request: any, response: any) => {
     });
 
     query.candidates = query.candidates.filter((candidate) => convertDistance(candidate.distance, 'ft') <= 150);
-    if (!query.candidates.length) return;
+    if (!query.candidates.length) response.json({ success: false, msg: 'no valid candidates' });
 
     query.candidates.forEach(async (candidate) => {
       const snapshot = await db.doc(`breweries/${candidate.place_id}`).get();
@@ -54,10 +58,12 @@ app.post('/import', async (request: any, response: any) => {
         const data = timeline.data();
         if (!data) return;
         const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'day'));
+        let index = size(data);
         if (isSameDay.length) {
-          data[size(data) - 1] = { end: admin.firestore.FieldValue.serverTimestamp() };
+          index--;
+          data[index] = { ...data[index], end: admin.firestore.FieldValue.serverTimestamp() };
         } else {
-          data[size(data)] = { start: admin.firestore.FieldValue.serverTimestamp() };
+          data[index] = { start: admin.firestore.FieldValue.serverTimestamp() };
         }
         await db.doc(`brewery-timeline/${candidate.place_id}`).update(data);
       } else {
@@ -77,15 +83,11 @@ app.post('/import', async (request: any, response: any) => {
         }
       }
     });
+    await db.doc('brewery-review/last-call').set({ time: admin.firestore.FieldValue.serverTimestamp() });
     response.json({ success: true, candidates: query.candidates });
+  } else {
+    response.json({ success: false, msg: 'invalid params' });
   }
 });
-
-async function getLastCall(): Promise<boolean> {
-  const lastCallSnap = await db.doc('brewery-review/last-call').get();
-  const lastCall = lastCallSnap.data();
-  if (!lastCall) return false;
-  return dayjs().isBefore(dayjs(lastCall.time._secounds).add(30, 'minute'));
-}
 
 exports.endpoints = functions.https.onRequest(app);
