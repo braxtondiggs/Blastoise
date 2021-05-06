@@ -4,7 +4,7 @@ import * as cors from 'cors';
 import * as dayjs from 'dayjs';
 import * as express from 'express';
 import axios from 'axios';
-import { PlaceSearch } from './interface';
+import { Candidate, PlaceSearch } from './interface';
 import { convertDistance, getDistance } from 'geolib';
 import { size } from 'lodash';
 
@@ -50,45 +50,58 @@ app.post('/import', async (request: any, response: any) => {
 
     await axios.get('https://hc-ping.com/a25899e2-fdb1-4be8-aa1b-b27af4ab6664');
     query.candidates = query.candidates.filter((candidate) => convertDistance(candidate.distance, 'ft') <= 150);
-    if (!query.candidates.length) response.json({ success: false, msg: 'no valid candidates' });
+    if (!query.candidates.length) {
+      if (lastCall && lastCall.place_id) updateBreweryInfo([{ place_id: lastCall.place_id }] as any);
 
-    query.candidates.forEach(async (candidate) => {
-      const snapshot = await db.doc(`breweries/${candidate.place_id}`).get();
-      if (snapshot.exists) {
-        const timeline = await db.doc(`brewery-timeline/${candidate.place_id}`).get();
-        const data = timeline.data();
-        if (!data) return;
-        const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'day'));
-        let index = size(data);
-        if (isSameDay.length) {
-          index--;
-          data[index] = { ...data[index], end: admin.firestore.FieldValue.serverTimestamp() };
-        } else {
-          data[index] = { start: admin.firestore.FieldValue.serverTimestamp() };
-        }
-        await db.doc(`brewery-timeline/${candidate.place_id}`).update(data);
-      } else {
-        const reviewSnap = await db.doc(`brewery-review/${candidate.place_id}`).get();
-        if (reviewSnap.exists) {
-          await db.doc(`brewery-review/${candidate.place_id}`).update({
-            end: admin.firestore.FieldValue.serverTimestamp()
-          });
-        } else {
-          await db.doc(`brewery-review/${candidate.place_id}`).set({
-            start: admin.firestore.FieldValue.serverTimestamp(),
-            place_id: candidate.place_id,
-            address: candidate.formatted_address,
-            name: candidate.name,
-            location: new admin.firestore.GeoPoint(parseFloat(candidate.geometry.location.lat), parseFloat(candidate.geometry.location.lng))
-          });
-        }
-      }
+      response.json({ success: false, msg: 'no valid candidates' });
+    }
+    updateBreweryInfo(query.candidates);
+
+    await db.doc('brewery-review/last-call').set({
+      time: admin.firestore.FieldValue.serverTimestamp(),
+      place_id: query.candidates.length ? query.candidates[0].place_id : null
     });
-    await db.doc('brewery-review/last-call').set({ time: admin.firestore.FieldValue.serverTimestamp() });
+
     response.json({ success: true, candidates: query.candidates });
   } else {
     response.json({ success: false, msg: 'invalid params' });
   }
 });
+
+
+function updateBreweryInfo(candidates: Candidate[]) {
+  candidates.forEach(async (candidate) => {
+    const snapshot = await db.doc(`breweries/${candidate.place_id}`).get();
+    if (snapshot.exists) {
+      const timeline = await db.doc(`brewery-timeline/${candidate.place_id}`).get();
+      const data = timeline.data();
+      if (!data) return;
+      const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'day'));
+      let index = size(data);
+      if (isSameDay.length) {
+        index--;
+        data[index] = { ...data[index], end: admin.firestore.FieldValue.serverTimestamp() };
+      } else {
+        data[index] = { start: admin.firestore.FieldValue.serverTimestamp() };
+      }
+      await db.doc(`brewery-timeline/${candidate.place_id}`).update(data);
+    } else {
+      const reviewSnap = await db.doc(`brewery-review/${candidate.place_id}`).get();
+      if (reviewSnap.exists) {
+        await db.doc(`brewery-review/${candidate.place_id}`).update({
+          end: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        await db.doc(`brewery-review/${candidate.place_id}`).set({
+          start: admin.firestore.FieldValue.serverTimestamp(),
+          place_id: candidate.place_id,
+          address: candidate.formatted_address,
+          name: candidate.name,
+          location: new admin.firestore.GeoPoint(parseFloat(candidate.geometry.location.lat), parseFloat(candidate.geometry.location.lng))
+        });
+      }
+    }
+  });
+}
 
 exports.endpoints = functions.https.onRequest(app);
