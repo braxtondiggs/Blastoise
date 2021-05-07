@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "blastoise-5d78e"
+  },
+  "targets": {
+    "blastoise-5d78e": {
+      "hosting": {
+        "beer": [
+          "blastoise-5d78e"
+        ]
+      }
+    }
   }
 }
