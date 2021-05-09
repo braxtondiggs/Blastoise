@@ -20,7 +20,7 @@ app.use(cors({ origin: true }));
 app.post('/import', async (request: any, response: any) => {
   const template = await config.getTemplate()
   const API = (template.parameters.GOOGLEAPI.defaultValue as any).value;
-  if (!API) response.json({ success: false, msg: 'invalid API token' });
+  if (!API) return response.json({ success: false, msg: 'invalid API token' });
   if (request.body['address'] && request.body['location']) {
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
@@ -53,7 +53,7 @@ app.post('/import', async (request: any, response: any) => {
     if (!query.candidates.length) {
       if (lastCall && lastCall.place_id) updateBreweryInfo([{ place_id: lastCall.place_id }] as any);
 
-      response.json({ success: false, msg: 'no valid candidates' });
+      return response.json({ success: false, msg: 'no valid candidates' });
     }
     updateBreweryInfo(query.candidates);
 
@@ -62,9 +62,9 @@ app.post('/import', async (request: any, response: any) => {
       place_id: query.candidates.length ? query.candidates[0].place_id : null
     });
 
-    response.json({ success: true, candidates: query.candidates });
+    return response.json({ success: true, candidates: query.candidates });
   } else {
-    response.json({ success: false, msg: 'invalid params' });
+    return response.json({ success: false, msg: 'invalid params' });
   }
 });
 
