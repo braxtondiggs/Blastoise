@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { Title } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -6,10 +8,12 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit {
-  title = 'beer';
-  constructor() { }
+  constructor(
+    private title: Title,
+    private route: ActivatedRoute) { }
 
   ngOnInit(): void {
+    this.title.setTitle(this.route.snapshot.data['title']);
   }
 
 }
