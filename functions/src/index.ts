@@ -25,7 +25,10 @@ app.post('/import', async (request: any, response: any) => {
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
     if (lastCall) {
-      if (dayjs().isBefore(dayjs(lastCall.time._seconds * 1000).add(30, 'minute'))) return response.json({ success: false, msg: 'Hasn\'t been enough time' });
+      if (dayjs().isBefore(dayjs(lastCall.time.toDate().getTime()).add(30, 'minute'))) {
+        functions.logger.warn('Hasn\'t been enough time');
+        return  response.json({ success: false, msg: 'Hasn\'t been enough time' });
+      }
     }
 
     const location = request.body['location'].split(',');
@@ -53,6 +56,7 @@ app.post('/import', async (request: any, response: any) => {
     if (!query.candidates.length) {
       if (lastCall && lastCall.place_id) updateBreweryInfo([{ place_id: lastCall.place_id }] as any);
 
+      functions.logger.info('candidates: None Found');
       return response.json({ success: false, msg: 'no valid candidates' });
     }
     updateBreweryInfo(query.candidates);
@@ -62,9 +66,11 @@ app.post('/import', async (request: any, response: any) => {
       place_id: query.candidates.length ? query.candidates[0].place_id : null
     });
 
+    functions.logger.info('candidates:', query.candidates);
     return response.json({ success: true, candidates: query.candidates });
   } else {
-    return response.json({ success: false, msg: 'invalid params' });
+    functions.logger.error('invalid params');
+    return response.status(500).json({ success: true, msg: 'invalid params' });
   }
 });
 
@@ -76,7 +82,7 @@ function updateBreweryInfo(candidates: Candidate[]) {
       const timeline = await db.doc(`brewery-timeline/${candidate.place_id}`).get();
       const data = timeline.data();
       if (!data) return;
-      const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'day'));
+      const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'week'));
       let index = size(data);
       if (isSameDay.length) {
         index--;
