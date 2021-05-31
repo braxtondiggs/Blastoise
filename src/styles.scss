@@ -6,9 +6,14 @@ $primary: mat-palette($mat-purple);
 $accent:  mat-palette($mat-green);
 $warn:    mat-palette($mat-red);
 
-$theme: mat-light-theme($primary, $accent, $warn);
+$dark-primary: mat-palette($mat-purple, 700, 500, 900);
+$dark-accent:  mat-palette($mat-green, A200, A100, A400);
+$dark-warn:    mat-palette($mat-red);
 
-@include angular-material-theme($theme);
+$theme: mat-light-theme($primary, $accent, $warn);
+$dark-theme: mat-dark-theme($dark-primary, $dark-accent, $dark-warn);
+
+@include angular-material-theme($dark-theme);
 
 html,
 body {
@@ -20,22 +25,45 @@ body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
-app-root {
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  display: block;
-}
-
 app-home,
-app-admin {
+app-admin,
+app-root {
   display: block;
-  min-height: 100%;
   height: 100%;
 }
 
 app-admin {
   background-color: #303030;
+  display: flex;
+  flex-direction: column;
 }
 
+.mat-input-element {
+  color: white !important;
+}
+
+.container {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (min-width: 768px) {
+  .container {
+    width: 750px;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    width: 970px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: 1170px;
+  }
+}
 
