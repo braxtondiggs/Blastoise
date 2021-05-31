@@ -15,7 +15,7 @@ tr.detail-row {
 
 .table-container {
   margin-top: 10px;
-  max-height: calc(100vh - 250px);
+  max-height: calc(100vh - 275px);
   overflow: auto;
 }
 
@@ -26,6 +26,10 @@ tr.detail-row {
 .row:hover {
   cursor: pointer;
   position: relative;
+}
+
+.mat-toolbar-row img {
+  width: 50px;
 }
 
 .brewery-timeline {

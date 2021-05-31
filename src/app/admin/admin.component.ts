@@ -12,6 +12,9 @@ import { map } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
 import * as duration from 'dayjs/plugin/duration';
 import * as relativeTime from 'dayjs/plugin/relativeTime';
+import { AuthService } from '../core/services';
+import { MatDialog } from '@angular/material/dialog';
+import { AuthDialogComponent } from './auth/auth-dialog.component';
 
 @Component({
   selector: 'app-admin',
@@ -31,23 +34,32 @@ export class AdminComponent implements OnInit {
   public timeline$?: Observable<BreweryTimeline[]> = of([]);
   public columns: string[] = ['name', 'date'];
   public expandedElement?: Brewery | null;
-
+  public isLoggedIn = false;
   @ViewChild(MatSort) sort?: Sort;
   @ViewChild(MatPaginator) paginator?: MatPaginator;
   constructor(
+    private auth: AuthService,
     private afs: AngularFirestore,
+    private dialog: MatDialog,
     private titleService: Title,
-    private route: ActivatedRoute) { }
+    private route: ActivatedRoute) {
+      dayjs.extend(duration);
+      dayjs.extend(relativeTime);
+      this.titleService.setTitle(this.title);
+    }
 
-  ngOnInit(): void {
-    dayjs.extend(duration);
-    dayjs.extend(relativeTime);
-    this.titleService.setTitle(this.title);
-    this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { // , (ref) => ref.limit(15)
-      this.dataSource = new MatTableDataSource(data);
-      this.dataSource.paginator = this.paginator as any;
-      this.dataSource.sort = this.sort as any;
-    });
+  async ngOnInit() {
+    const uid = await this.auth.uid();
+    this.isLoggedIn = !!uid;
+    if (this.isLoggedIn) {
+      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { // , (ref) => ref.limit(15)
+        this.dataSource = new MatTableDataSource(data);
+        this.dataSource.paginator = this.paginator as any;
+        this.dataSource.sort = this.sort as any;
+      });
+    } else {
+      this.getAuth();
+    }
   }
 
   applyFilter(event: Event) {
@@ -78,5 +90,18 @@ export class AdminComponent implements OnInit {
       }).reverse()
     ));
     if (this.timeline$) this.timeline$.subscribe(console.log);
+  }
+
+  private getAuth() {
+    const dialogRef = this.dialog.open(AuthDialogComponent, {
+      backdropClass: 'auth-backdrop',
+      autoFocus: true,
+      disableClose: true,
+      panelClass: 'auth-dialog',
+      minWidth: 320,
+      maxWidth: 480
+    });
+
+    dialogRef.afterClosed().subscribe(() => this.ngOnInit());
   }
 }

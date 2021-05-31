@@ -1,0 +1,24 @@
+<form (ngSubmit)="login()" [formGroup]="form">
+  <h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <img src="/assets/icons/icon-72x72.png" />
+    <span>Admin Login</span>
+  </h2>
+  <mat-dialog-content>
+    <div fxLayout="column" fxLayoutGap="12px">
+      <mat-form-field appearance="outline">
+        <mat-label>Email Address</mat-label>
+        <input matInput formControlName="email" />
+        <mat-error *ngIf="form.controls.email.errors?.required">Email is required</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" type="password" />
+        <mat-error *ngIf="form.controls.password.errors?.required">Password is required</mat-error>
+      </mat-form-field>
+    </div>
+    <mat-error *ngIf="error">{{error}}</mat-error>
+  </mat-dialog-content>
+  <div align="end" mat-dialog-actions>
+    <button mat-button mat-raised-button color="accent" type="submit">Login</button>
+  </div>
+</form>
