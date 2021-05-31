@@ -1,0 +1,31 @@
+
+  <h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <img src="/assets/icons/icon-72x72.png" />
+    <span>Under Review</span>
+  </h2>
+  <mat-dialog-content>
+    <mat-list role="list" *ngIf="data.reviews.length > 0;else empty_review">
+      <mat-list-item role="listitem" *ngFor="let item of data.reviews">
+        <div fxLayout="row" fxLayoutAlign="space-between center" fxFlex>
+          <div fxLayout="column" fxFlex>
+            <h3>{{item.name}}</h3>
+            <caption>{{item.display.caption}}</caption>
+          </div>
+          <div fxLayout="row">
+            <button  mat-icon-button (click)="vote(true, item)">
+              <mat-icon color="accent">thumb_up</mat-icon>
+            </button>
+            <button  mat-icon-button (click)="vote(false, item)">
+              <mat-icon color="warn">thumb_down</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-list-item>
+    </mat-list>
+    <ng-template #empty_review>
+      <h3 class="center">Great Work!<br /> Nothing is needed to review.</h3>
+    </ng-template>
+  </mat-dialog-content>
+  <div align="start" mat-dialog-actions>
+    <button mat-button mat-raised-button mat-dialog-close color="accent">Close</button>
+  </div>

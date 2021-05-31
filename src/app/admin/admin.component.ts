@@ -2,12 +2,12 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { AngularFirestore } from '@angular/fire/firestore';
-import { Brewery, BreweryTimeline } from '../core/interfaces';
+import { Brewery, BreweryReview, BreweryTimeline } from '../core/interfaces';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
 import * as duration from 'dayjs/plugin/duration';
@@ -15,6 +15,7 @@ import * as relativeTime from 'dayjs/plugin/relativeTime';
 import { AuthService } from '../core/services';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthDialogComponent } from './auth/auth-dialog.component';
+import { ReviewsDialogComponent } from './reviews/reviews-dialog.component';
 
 @Component({
   selector: 'app-admin',
@@ -31,7 +32,8 @@ import { AuthDialogComponent } from './auth/auth-dialog.component';
 export class AdminComponent implements OnInit {
   public title: string = this.route.snapshot.data['title'];
   public dataSource?: MatTableDataSource<Brewery> | any;
-  public timeline$?: Observable<BreweryTimeline[]> = of([]);
+  public timeline$?: Observable<BreweryTimeline[]>;
+  public reviews$?: Observable<BreweryReview[]>;
   public columns: string[] = ['name', 'date'];
   public expandedElement?: Brewery | null;
   public isLoggedIn = false;
@@ -52,11 +54,12 @@ export class AdminComponent implements OnInit {
     const uid = await this.auth.uid();
     this.isLoggedIn = !!uid;
     if (this.isLoggedIn) {
-      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { // , (ref) => ref.limit(15)
+      this.afs.collection<Brewery>('breweries', (ref) => ref.limit(15)).valueChanges().subscribe(data => {
         this.dataSource = new MatTableDataSource(data);
         this.dataSource.paginator = this.paginator as any;
         this.dataSource.sort = this.sort as any;
       });
+      this.reviews$ = this.afs.collection<BreweryReview>('brewery-review', (ref) => ref.orderBy('start', 'desc')).valueChanges();
     } else {
       this.getAuth();
     }
@@ -92,12 +95,20 @@ export class AdminComponent implements OnInit {
     if (this.timeline$) this.timeline$.subscribe(console.log);
   }
 
+  openReviews(reviews: BreweryReview[]) {
+    this.dialog.open(ReviewsDialogComponent, {
+      autoFocus: true,
+      minWidth: 320,
+      maxWidth: 480,
+      data: { reviews }
+    });
+  }
+
   private getAuth() {
     const dialogRef = this.dialog.open(AuthDialogComponent, {
       backdropClass: 'auth-backdrop',
       autoFocus: true,
       disableClose: true,
-      panelClass: 'auth-dialog',
       minWidth: 320,
       maxWidth: 480
     });

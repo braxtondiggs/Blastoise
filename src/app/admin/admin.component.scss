@@ -19,6 +19,10 @@ tr.detail-row {
   overflow: auto;
 }
 
+.spacer {
+  flex: 1 1 auto;
+}
+
 .row td {
   border-bottom-width: 0;
 }
