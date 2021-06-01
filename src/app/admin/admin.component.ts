@@ -16,6 +16,9 @@ import { AuthService } from '../core/services';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthDialogComponent } from './auth/auth-dialog.component';
 import { ReviewsDialogComponent } from './reviews/reviews-dialog.component';
+import { AlertDialogComponent } from './alert/alert-dialog.component';
+import { HttpClient } from '@angular/common/http';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-admin',
@@ -37,12 +40,15 @@ export class AdminComponent implements OnInit {
   public columns: string[] = ['name', 'date'];
   public expandedElement?: Brewery | null;
   public isLoggedIn = false;
+  public isLoading = false;
   @ViewChild(MatSort) sort?: Sort;
   @ViewChild(MatPaginator) paginator?: MatPaginator;
   constructor(
     private auth: AuthService,
     private afs: AngularFirestore,
     private dialog: MatDialog,
+    private http: HttpClient,
+    private toast: MatSnackBar,
     private titleService: Title,
     private route: ActivatedRoute) {
       dayjs.extend(duration);
@@ -101,6 +107,36 @@ export class AdminComponent implements OnInit {
       minWidth: 320,
       maxWidth: 480,
       data: { reviews }
+    });
+  }
+
+  refresh() {
+    const dialogRef = this.dialog.open(AlertDialogComponent, {
+      autoFocus: true,
+      minWidth: 320,
+      maxWidth: 480
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        try {
+          this.isLoading = true;
+          navigator.geolocation.getCurrentPosition(async position => {
+            const { address } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/geocodio', {
+              location: `${position.coords.latitude},${position.coords.longitude}`
+            }).toPromise() as any;
+            const {msg, status, candidates} = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/import', {
+              address,
+              location: `${position.coords.latitude},${position.coords.longitude}`
+            }).toPromise() as any;
+            const response = status ? candidates[0].name : msg;
+            this.toast.open(response, undefined, { duration: 2000 });
+          });
+        } catch(e) {
+          this.isLoading = false;
+          this.toast.open(e.msg, undefined, { duration: 2000 });
+        }
+      }
     });
   }
 

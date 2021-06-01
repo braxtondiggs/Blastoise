@@ -39,7 +39,6 @@ export class ReviewsDialogComponent {
           timeline = timeline ?? {};
           const index = Object.keys(timeline).length;
           timeline[index] = { start: item.start, end: item.end } as BreweryTimeline;
-          console.log(timeline);
           await this.afs.doc<BreweryTimeline>(`brewery-timeline/${item.place_id}`).set(timeline, { merge: true });
         });
       }

@@ -1,12 +1,12 @@
 .container {
-  margin-top: 2rem;
   display: flex;
   flex-direction: column;
+  margin-top: 2rem;
 }
 
 .mat-table {
-  width:100%;
   max-width: 100%;
+  width:100%;
 }
 
 tr.detail-row {
@@ -17,10 +17,6 @@ tr.detail-row {
   margin-top: 10px;
   max-height: calc(100vh - 275px);
   overflow: auto;
-}
-
-.spacer {
-  flex: 1 1 auto;
 }
 
 .row td {
@@ -37,22 +33,22 @@ tr.detail-row {
 }
 
 .brewery-timeline {
-  overflow: hidden;
   display: flex;
+  overflow: hidden;
   position: relative;
   .timeline-title {
-    margin-bottom: 4px;
     border-bottom: 1px solid white;
     display: inline-block;
+    margin-bottom: 4px;
   }
   &:before {
-    content: '';
-    width: 15px;
     background-color: grey;
+    bottom: 10px;
+    content: '';
+    left: 12px;
     position: absolute;
     top: 38px;
-    left: 12px;
-    bottom: 10px;
+    width: 15px;
   }
 }
 
@@ -68,5 +64,22 @@ thead {
   }
   p {
     color: lighten(grey, 25%);
+  }
+}
+
+.loading-spinner {
+  background-color: rgba(black, 0.6);
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 100;
+
+  .mat-spinner {
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%,-50%);
   }
 }

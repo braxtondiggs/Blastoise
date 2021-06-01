@@ -12,8 +12,12 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { ReviewsDialogComponent } from './reviews/reviews-dialog.component';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { AlertDialogComponent } from './alert/alert-dialog.component';
+import { HttpClientModule } from '@angular/common/http';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
 @NgModule({
-  declarations: [AdminComponent, AuthDialogComponent, ReviewsDialogComponent],
+  declarations: [AdminComponent, AuthDialogComponent, ReviewsDialogComponent, AlertDialogComponent],
   imports: [
     AdminRoutingModule,
     MatTableModule,
@@ -23,6 +27,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     MatBadgeModule,
     MatListModule,
     MatSnackBarModule,
+    HttpClientModule,
+    MatProgressSpinnerModule,
     SharedModule
   ]
 })
