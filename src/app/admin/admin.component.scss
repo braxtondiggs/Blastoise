@@ -6,7 +6,7 @@
 
 .mat-table {
   max-width: 100%;
-  width:100%;
+  width: 100%;
 }
 
 tr.detail-row {
@@ -44,7 +44,7 @@ tr.detail-row {
   &:before {
     background-color: grey;
     bottom: 10px;
-    content: '';
+    content: "";
     left: 12px;
     position: absolute;
     top: 38px;
@@ -56,7 +56,6 @@ thead {
   position: absolute;
   top: 0;
 }
-
 
 .timeline {
   h4 {
@@ -80,6 +79,6 @@ thead {
     left: 50%;
     position: absolute;
     top: 50%;
-    transform: translate(-50%,-50%);
+    transform: translate(-50%, -50%);
   }
 }

@@ -1,14 +1,14 @@
-@import '~@angular/material/theming';
-@import 'variables.scss';
+@import "~@angular/material/theming";
+@import "variables.scss";
 @include mat-core();
 
 $primary: mat-palette($mat-purple);
-$accent:  mat-palette($mat-green);
-$warn:    mat-palette($mat-red);
+$accent: mat-palette($mat-green);
+$warn: mat-palette($mat-red);
 
 $dark-primary: mat-palette($mat-purple, 700, 500, 900);
-$dark-accent:  mat-palette($mat-green, A200, A100, A400);
-$dark-warn:    mat-palette($mat-red);
+$dark-accent: mat-palette($mat-green, A200, A100, A400);
+$dark-warn: mat-palette($mat-red);
 
 $theme: mat-light-theme($primary, $accent, $warn);
 $dark-theme: mat-dark-theme($dark-primary, $dark-accent, $dark-warn);
@@ -83,4 +83,3 @@ app-reviews-dialog .mat-list-item-content {
     width: 1170px;
   }
 }
-

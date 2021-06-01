@@ -6,5 +6,4 @@ import { Component } from '@angular/core';
   styles: [`h2 img { height:50px }`],
 })
 
-export class AlertDialogComponent {}
-
+export class AlertDialogComponent { }

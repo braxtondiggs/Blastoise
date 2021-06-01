@@ -26,8 +26,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./admin.component.scss'],
   animations: [
     trigger('detailExpand', [
-      state('collapsed', style({height: '0px', minHeight: '0'})),
-      state('expanded', style({height: '*'})),
+      state('collapsed', style({ height: '0px', minHeight: '0' })),
+      state('expanded', style({ height: '*' })),
       transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
     ]),
   ],
@@ -51,10 +51,10 @@ export class AdminComponent implements OnInit {
     private toast: MatSnackBar,
     private titleService: Title,
     private route: ActivatedRoute) {
-      dayjs.extend(duration);
-      dayjs.extend(relativeTime);
-      this.titleService.setTitle(this.title);
-    }
+    dayjs.extend(duration);
+    dayjs.extend(relativeTime);
+    this.titleService.setTitle(this.title);
+  }
 
   async ngOnInit() {
     const uid = await this.auth.uid();
@@ -125,14 +125,14 @@ export class AdminComponent implements OnInit {
             const { address } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/geocodio', {
               location: `${position.coords.latitude},${position.coords.longitude}`
             }).toPromise() as any;
-            const {msg, status, candidates} = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/import', {
+            const { msg, status, candidates } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/import', {
               address,
               location: `${position.coords.latitude},${position.coords.longitude}`
             }).toPromise() as any;
             const response = status ? candidates[0].name : msg;
             this.toast.open(response, undefined, { duration: 2000 });
           });
-        } catch(e) {
+        } catch (e) {
           this.isLoading = false;
           this.toast.open(e.msg, undefined, { duration: 2000 });
         }

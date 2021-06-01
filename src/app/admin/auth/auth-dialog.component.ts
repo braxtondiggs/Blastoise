@@ -16,8 +16,7 @@ export class AuthDialogComponent {
     password: new FormControl('', [Validators.required])
   });
 
-  constructor(public auth: AngularFireAuth,
-    private dialogRef: MatDialogRef<AuthDialogComponent>) {}
+  constructor(public auth: AngularFireAuth, private dialogRef: MatDialogRef<AuthDialogComponent>) { }
 
   async login() {
     if (this.form.valid) {
