@@ -4,6 +4,7 @@ import * as cors from 'cors';
 import * as dayjs from 'dayjs';
 import * as express from 'express';
 import axios from 'axios';
+const Geocodio = require('geocodio-library-node');
 import { Candidate, PlaceSearch } from './interface';
 import { convertDistance, getDistance } from 'geolib';
 import { size } from 'lodash';
@@ -109,5 +110,23 @@ function updateBreweryInfo(candidates: Candidate[]) {
     }
   });
 }
+
+app.post('/geocodio', async (request: any, response: any) => {
+  const template = await config.getTemplate()
+  const API = (template.parameters.GEOCODIO.defaultValue as any).value;
+  if (!API) return response.json({ success: false, msg: 'invalid API token' });
+  if (request.body['location']) {
+    const geocoder = new Geocodio(API);
+    try {
+      const { results } = await geocoder.reverse(request.body['location']);
+      return response.json({ address: results[0].formatted_address });
+    } catch(e) {
+      return response.status(500).json(e);
+    }
+  } else {
+    functions.logger.error('invalid params');
+    return response.status(500).json({ success: true, msg: 'invalid params' });
+  }
+});
 
 exports.endpoints = functions.https.onRequest(app);

@@ -54,7 +54,7 @@ export class AdminComponent implements OnInit {
     const uid = await this.auth.uid();
     this.isLoggedIn = !!uid;
     if (this.isLoggedIn) {
-      this.afs.collection<Brewery>('breweries', (ref) => ref.limit(15)).valueChanges().subscribe(data => {
+      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { //, (ref) => ref.limit(15)
         this.dataSource = new MatTableDataSource(data);
         this.dataSource.paginator = this.paginator as any;
         this.dataSource.sort = this.sort as any;
