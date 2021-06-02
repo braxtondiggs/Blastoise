@@ -1,0 +1,51 @@
+<form (ngSubmit)="save()" [formGroup]="form">
+  <h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <img src="/assets/icons/icon-72x72.png" />
+    <span>{{data.brewery.name}}</span>
+  </h2>
+  <mat-dialog-content>
+    <div fxLayout="column">
+      <div fxLayout="row" fxLayoutGap="8px">
+        <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
+          <mat-label>Start Date</mat-label>
+          <input matInput [matDatepicker]="pickerStart" formControlName="start" />
+          <mat-error *ngIf="form.controls.start.errors?.required">Start Date is required</mat-error>
+          <mat-datepicker #pickerStart></mat-datepicker>
+          <mat-datepicker-toggle matSuffix [for]="pickerStart"></mat-datepicker-toggle>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
+          <mat-label>End Date</mat-label>
+          <input matInput [matDatepicker]="pickerEnd" formControlName="end" />
+          <mat-error *ngIf="form.controls.end.errors?.required">Start Date is required</mat-error>
+          <mat-datepicker #pickerEnd></mat-datepicker>
+          <mat-datepicker-toggle matSuffix [for]="pickerEnd"></mat-datepicker-toggle>
+        </mat-form-field>
+      </div>
+      <div fxLayout="row" fxLayoutGap="8px">
+        <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
+          <mat-label>Start Time</mat-label>
+          <input matInput [ngxTimepicker]="startTime" formControlName="startTime" readonly />
+          <button matSuffix mat-icon-button type="button" (click)="startTime.open()">
+            <mat-icon>schedule</mat-icon>
+          </button>
+          <mat-error *ngIf="form.controls.startTime.errors?.required">Start Time is required</mat-error>
+          <ngx-material-timepicker #startTime [theme]="theme"></ngx-material-timepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
+          <mat-label>End Time</mat-label>
+          <input matInput [ngxTimepicker]="endTime" formControlName="endTime" readonly />
+          <button matSuffix mat-icon-button type="button" (click)="endTime.open()">
+            <mat-icon>schedule</mat-icon>
+          </button>
+          <mat-error *ngIf="form.controls.endTime.errors?.required">End Time is required</mat-error>
+          <ngx-material-timepicker #endTime [theme]="theme"></ngx-material-timepicker>
+        </mat-form-field>
+      </div>
+    </div>
+  </mat-dialog-content>
+  <div align="end" mat-dialog-actions>
+    <button mat-button mat-raised-button mat-dialog-close color="primary">Cancel</button>
+    <div class="spacer"></div>
+    <button mat-button mat-raised-button color="accent">Save</button>
+  </div>
+</form>

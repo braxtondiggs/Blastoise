@@ -22,7 +22,6 @@ export class AuthDialogComponent {
     if (this.form.valid) {
       try {
         const response = await this.auth.signInWithEmailAndPassword(this.form.value.email, this.form.value.password);
-        console.log(response);
         if (response) this.dialogRef.close();
       } catch (e) {
         this.error = e.message

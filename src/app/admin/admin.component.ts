@@ -19,6 +19,7 @@ import { ReviewsDialogComponent } from './reviews/reviews-dialog.component';
 import { AlertDialogComponent } from './alert/alert-dialog.component';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
 
 @Component({
   selector: 'app-admin',
@@ -39,6 +40,7 @@ export class AdminComponent implements OnInit {
   public reviews$?: Observable<BreweryReview[]>;
   public columns: string[] = ['name', 'date'];
   public expandedElement?: Brewery | null;
+  public timelineDisplay: any[] = [];
   public isLoggedIn = false;
   public isLoading = false;
   @ViewChild(MatSort) sort?: Sort;
@@ -84,21 +86,17 @@ export class AdminComponent implements OnInit {
   getExpandedElement(brewery: Brewery) {
     this.expandedElement = this.expandedElement === brewery ? null : brewery;
     this.timeline$ = this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).valueChanges().pipe(map((data: any) =>
-      Object.values(data).map((item: any) => {
+      Object.values(data).map((item: any, key: number) => {
         const start = dayjs(item.start.toDate().getTime());
         const end = dayjs(item.end.toDate().getTime());
-        return ({
-          ...item,
-          display: {
-            title: start.format('dddd MMM D, YYYY').toString(),
-            start: start.format('h:mm A').toString(),
-            end: end.format('h:mm A').toString(),
-            duration: dayjs.duration(end.diff(start)).humanize()
-          }
-        })
-      }).reverse()
-    ));
-    if (this.timeline$) this.timeline$.subscribe(console.log);
+        this.timelineDisplay[key] = {
+          title: start.format('dddd MMM D, YYYY').toString(),
+          start: start.format('h:mm A').toString(),
+          end: end.format('h:mm A').toString(),
+          duration: dayjs.duration(end.diff(start)).humanize()
+        };
+        return item;
+      }))); // TODO: need to sort by date
   }
 
   openReviews(reviews: BreweryReview[]) {
@@ -114,28 +112,55 @@ export class AdminComponent implements OnInit {
     const dialogRef = this.dialog.open(AlertDialogComponent, {
       autoFocus: true,
       minWidth: 320,
-      maxWidth: 480
+      maxWidth: 480,
+      data: { msg: 'You are about to force the brewery app to to register your location?' }
     });
 
     dialogRef.afterClosed().subscribe((result) => {
+      if (result) this.importLocation();
+    });
+  }
+
+  modifyTimeline(brewery: Brewery, item: BreweryTimeline, timeline: BreweryTimeline[]) {
+    const dialogRef = this.dialog.open(TimelineDialogComponent, {
+      autoFocus: true,
+      disableClose: true,
+      minWidth: 320,
+      maxWidth: 480,
+      data: { brewery, timeline: item }
+    });
+
+    dialogRef.afterClosed().subscribe(async (result) => {
       if (result) {
-        try {
-          this.isLoading = true;
-          navigator.geolocation.getCurrentPosition(async position => {
-            const { address } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/geocodio', {
-              location: `${position.coords.latitude},${position.coords.longitude}`
-            }).toPromise() as any;
-            const { msg, status, candidates } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/import', {
-              address,
-              location: `${position.coords.latitude},${position.coords.longitude}`
-            }).toPromise() as any;
-            const response = status ? candidates[0].name : msg;
-            this.toast.open(response, undefined, { duration: 2000 });
-          });
-        } catch (e) {
-          this.isLoading = false;
-          this.toast.open(e.msg, undefined, { duration: 2000 });
-        }
+        const index = timeline.map((o) => o.start.toString()).indexOf(item.start.toString());
+        const start = dayjs(result.start).format('MM/DD/YYYY').toString();
+        const end = dayjs(result.end).format('MM/DD/YYYY').toString();
+        const _timeline = { ...timeline };
+        _timeline[index] = {
+          start: dayjs(`${start} ${result.startTime}`).toDate(),
+          end: dayjs(`${end} ${result.endTime}`).toDate()
+        };
+        await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(_timeline as any);
+      }
+    });
+  }
+
+  removeTimeline(brewery: Brewery, item: BreweryTimeline, timeline: BreweryTimeline[]) {
+    const dialogRef = this.dialog.open(AlertDialogComponent, {
+      autoFocus: true,
+      minWidth: 320,
+      maxWidth: 480,
+      data: { msg: `You are about delete timeline information from ${brewery.name}, this is permanent!` }
+    });
+
+    dialogRef.afterClosed().subscribe(async (result) => {
+      if (result) {
+        const data: any = {};
+        const index = timeline.map((o) => o.start.toString()).indexOf(item.start.toString());
+        timeline.splice(index, 1);
+        Object.entries(timeline).forEach(([key, value]) => data[key] = value);
+        await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(data);
+        this.toast.open('Timeline item remove successfully', undefined, { duration: 2000 });
       }
     });
   }
@@ -150,5 +175,25 @@ export class AdminComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(() => this.ngOnInit());
+  }
+
+  private importLocation() {
+    try {
+      this.isLoading = true;
+      navigator.geolocation.getCurrentPosition(async position => {
+        const { address } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/geocodio', {
+          location: `${position.coords.latitude},${position.coords.longitude}`
+        }).toPromise() as any;
+        const { msg, status, candidates } = await this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/import', {
+          address,
+          location: `${position.coords.latitude},${position.coords.longitude}`
+        }).toPromise() as any;
+        const response = status ? candidates[0].name : msg;
+        this.toast.open(response, undefined, { duration: 2000 });
+      });
+    } catch (e) {
+      this.isLoading = false;
+      this.toast.open(e.msg, undefined, { duration: 2000 });
+    }
   }
 }

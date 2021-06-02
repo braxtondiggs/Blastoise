@@ -15,9 +15,14 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { AlertDialogComponent } from './alert/alert-dialog.component';
 import { HttpClientModule } from '@angular/common/http';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
+import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 
 @NgModule({
-  declarations: [AdminComponent, AuthDialogComponent, ReviewsDialogComponent, AlertDialogComponent],
+  declarations: [AdminComponent, AuthDialogComponent, ReviewsDialogComponent, AlertDialogComponent, TimelineDialogComponent],
   imports: [
     AdminRoutingModule,
     MatTableModule,
@@ -29,6 +34,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatSnackBarModule,
     HttpClientModule,
     MatProgressSpinnerModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    NgxMaterialTimepickerModule,
+    MatMenuModule,
     SharedModule
   ]
 })
