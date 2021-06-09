@@ -62,10 +62,11 @@ export class AdminComponent implements OnInit {
     const uid = await this.auth.uid();
     this.isLoggedIn = !!uid;
     if (this.isLoggedIn) {
-      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { //, (ref) => ref.limit(15)
+      this.afs.collection<Brewery>('breweries', (ref) => ref.limit(15)).valueChanges().subscribe(data => { //, (ref) => ref.limit(15)
         this.dataSource = new MatTableDataSource(data);
         this.dataSource.paginator = this.paginator as any;
         this.dataSource.sort = this.sort as any;
+        this.addTimeline();
       });
       this.reviews$ = this.afs.collection<BreweryReview>('brewery-review', (ref) => ref.orderBy('start', 'desc')).valueChanges();
     } else {
@@ -86,7 +87,7 @@ export class AdminComponent implements OnInit {
   getExpandedElement(brewery: Brewery) {
     this.expandedElement = this.expandedElement === brewery ? null : brewery;
     this.timeline$ = this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).valueChanges().pipe(map((data: any) =>
-      Object.values(data).map((item: any, key: number) => {
+      Object.values(data).sort((a: any, b: any) => b.start.toDate() - a.start.toDate()).map((item: any, key: number) => {
         const start = dayjs(item.start.toDate().getTime());
         const end = dayjs(item.end.toDate().getTime());
         this.timelineDisplay[key] = {
@@ -96,12 +97,11 @@ export class AdminComponent implements OnInit {
           duration: dayjs.duration(end.diff(start)).humanize()
         };
         return item;
-      }))); // TODO: need to sort by date
+      })));
   }
 
   openReviews(reviews: BreweryReview[]) {
     this.dialog.open(ReviewsDialogComponent, {
-      autoFocus: true,
       minWidth: 320,
       maxWidth: 480,
       data: { reviews }
@@ -110,7 +110,6 @@ export class AdminComponent implements OnInit {
 
   refresh() {
     const dialogRef = this.dialog.open(AlertDialogComponent, {
-      autoFocus: true,
       minWidth: 320,
       maxWidth: 480,
       data: { msg: 'You are about to force the brewery app to to register your location?' }
@@ -123,8 +122,6 @@ export class AdminComponent implements OnInit {
 
   modifyTimeline(brewery: Brewery, item: BreweryTimeline, timeline: BreweryTimeline[]) {
     const dialogRef = this.dialog.open(TimelineDialogComponent, {
-      autoFocus: true,
-      disableClose: true,
       minWidth: 320,
       maxWidth: 480,
       data: { brewery, timeline: item }
@@ -145,9 +142,22 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  addTimeline() {
+    const dialogRef = this.dialog.open(TimelineDialogComponent, {
+      autoFocus: false,
+      minWidth: 320,
+      maxWidth: 480,
+      data: { breweries: this.dataSource._data._value }
+    });
+
+    dialogRef.afterClosed().subscribe(async (result) => {
+      if (result) {
+      }
+    });
+  }
+
   removeTimeline(brewery: Brewery, item: BreweryTimeline, timeline: BreweryTimeline[]) {
     const dialogRef = this.dialog.open(AlertDialogComponent, {
-      autoFocus: true,
       minWidth: 320,
       maxWidth: 480,
       data: { msg: `You are about delete timeline information from ${brewery.name}, this is permanent!` }
@@ -168,7 +178,6 @@ export class AdminComponent implements OnInit {
   private getAuth() {
     const dialogRef = this.dialog.open(AuthDialogComponent, {
       backdropClass: 'auth-backdrop',
-      autoFocus: true,
       disableClose: true,
       minWidth: 320,
       maxWidth: 480

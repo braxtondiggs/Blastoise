@@ -1,10 +1,22 @@
 <form (ngSubmit)="save()" [formGroup]="form">
   <h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
     <img src="/assets/icons/icon-72x72.png" />
-    <span>{{data.brewery.name}}</span>
+    <span *ngIf="data.brewery">{{data.brewery.name}}</span>
+    <span *ngIf="data.breweries">Add To Brewery Tiimeline</span>
   </h2>
   <mat-dialog-content>
-    <div fxLayout="column">
+    <div fxLayout="column" fxLayoutGap="8px">
+        <mat-form-field style="padding-bottom:8px">
+          <mat-label>Brewery</mat-label>
+          <input type="text" matInput formControlName="brewery" [matAutocomplete]="auto">
+          <mat-error *ngIf="form.controls.brewery.errors?.required">Brewery is required</mat-error>
+          <mat-error *ngIf="form.controls.brewery.errors?.match && !form.controls.brewery.errors?.required">Must choose brewery from list</mat-error>
+          <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn">
+            <mat-option *ngFor="let brewery of filtered | async" [value]="brewery">
+              {{brewery.name}}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
       <div fxLayout="row" fxLayoutGap="8px">
         <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
           <mat-label>Start Date</mat-label>

@@ -73,6 +73,16 @@
     </table>
   </div>
   <mat-paginator [pageSizeOptions]="[15, 25, 50, 100]"></mat-paginator>
+  <eco-fab-speed-dial>
+    <eco-fab-speed-dial-trigger [spin]="true">
+      <button mat-fab><mat-icon class="spin180">add</mat-icon></button>
+    </eco-fab-speed-dial-trigger>
+
+    <eco-fab-speed-dial-actions>
+      <button mat-mini-fab (click)="addTimeline()"><mat-icon>timeline</mat-icon></button>
+      <button mat-mini-fab><mat-icon>add_business</mat-icon></button>
+    </eco-fab-speed-dial-actions>
+  </eco-fab-speed-dial>
   <div class="loading-spinner" *ngIf="isLoading">
     <mat-spinner color="accent"></mat-spinner>
   </div>

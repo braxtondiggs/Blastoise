@@ -25,11 +25,10 @@ app.post('/import', async (request: any, response: any) => {
   if (request.body['address'] && request.body['location']) {
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
-    if (lastCall) {
-      if (dayjs().isBefore(dayjs(lastCall.time.toDate().getTime()).add(30, 'minute'))) {
-        functions.logger.warn('Hasn\'t been enough time');
-        return  response.json({ success: false, msg: 'Hasn\'t been enough time' });
-      }
+    functions.logger.info(`${dayjs().toString()} - ${dayjs(lastCall?.time).add(30, 'minute')} = ${dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute').toString()}`);
+    if (dayjs().isBefore(dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute'))) {
+      functions.logger.warn('Hasn\'t been enough time');
+      return response.json({ success: false, msg: 'Hasn\'t been enough time' });
     }
 
     const location = request.body['location'].split(',');
@@ -40,6 +39,11 @@ app.post('/import', async (request: any, response: any) => {
         inputtype: 'textquery',
         fields: 'formatted_address,name,geometry,place_id'
       }
+    });
+
+    await db.doc('brewery-review/last-call').set({
+      time: admin.firestore.FieldValue.serverTimestamp(),
+      place_id: query.candidates.length ? query.candidates[0].place_id : null
     });
 
     query.candidates.forEach((candidate) => {
@@ -60,12 +64,8 @@ app.post('/import', async (request: any, response: any) => {
       functions.logger.info('candidates: None Found');
       return response.json({ success: false, msg: 'no valid candidates' });
     }
-    updateBreweryInfo(query.candidates);
 
-    await db.doc('brewery-review/last-call').set({
-      time: admin.firestore.FieldValue.serverTimestamp(),
-      place_id: query.candidates.length ? query.candidates[0].place_id : null
-    });
+    updateBreweryInfo(query.candidates);
 
     functions.logger.info('candidates:', query.candidates);
     return response.json({ success: true, candidates: query.candidates });

@@ -17,7 +17,7 @@ export class ReviewsDialogComponent {
     private afs: AngularFirestore,
     private toast: MatSnackBar) {
     data.reviews = data.reviews.map((item) => {
-      const caption = item.start ? dayjs(item.end.toDate().getTime()).format('dddd MMM D, YYYY - h:mm A').toString() : null;
+      const caption = item.start ? dayjs(item.start.toDate().getTime()).format('dddd MMM D, YYYY - h:mm A').toString() : null;
       return ({
         ...item,
         display: { caption }
