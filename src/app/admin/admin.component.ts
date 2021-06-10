@@ -7,8 +7,9 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, take } from 'rxjs/operators';
+import { Timestamp } from '@firebase/firestore-types';
 import * as dayjs from 'dayjs';
 import * as duration from 'dayjs/plugin/duration';
 import * as relativeTime from 'dayjs/plugin/relativeTime';
@@ -62,11 +63,14 @@ export class AdminComponent implements OnInit {
     const uid = await this.auth.uid();
     this.isLoggedIn = !!uid;
     if (this.isLoggedIn) {
-      this.afs.collection<Brewery>('breweries', (ref) => ref.limit(15)).valueChanges().subscribe(data => { //, (ref) => ref.limit(15)
+      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { //, (ref) => ref.limit(15)
+        data = data.map(o => ({
+          ...o,
+          updated: o.lastUpdated ? dayjs((o.lastUpdated as Timestamp).toDate()).format('MM/DD/YY h:mm A').toString() : ''
+        }));
         this.dataSource = new MatTableDataSource(data);
         this.dataSource.paginator = this.paginator as any;
         this.dataSource.sort = this.sort as any;
-        this.addTimeline();
       });
       this.reviews$ = this.afs.collection<BreweryReview>('brewery-review', (ref) => ref.orderBy('start', 'desc')).valueChanges();
     } else {
@@ -137,21 +141,40 @@ export class AdminComponent implements OnInit {
           start: dayjs(`${start} ${result.startTime}`).toDate(),
           end: dayjs(`${end} ${result.endTime}`).toDate()
         };
+        const [first] = Object.values(_timeline)
+          .map((o: any) => ({ start: (o.start instanceof Date) ? o.start : o.start.toDate() }))
+          .sort((a: any, b: any) => b.start - a.start);
+        if (first) await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
         await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(_timeline as any);
       }
     });
   }
 
-  addTimeline() {
+  addTimeline(brewery?: Brewery) {
     const dialogRef = this.dialog.open(TimelineDialogComponent, {
       autoFocus: false,
       minWidth: 320,
       maxWidth: 480,
-      data: { breweries: this.dataSource._data._value }
+      data: { breweries: this.dataSource._data._value, brewery }
     });
 
-    dialogRef.afterClosed().subscribe(async (result) => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
+        let { brewery, start, startTime, end, endTime } = result;
+        this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).valueChanges().pipe(take(1)).subscribe(async (timeline: any) => {
+          const index = Object.values(timeline).length;
+          start = dayjs(start).format('MM/DD/YYYY').toString();
+          end = dayjs(end).format('MM/DD/YYYY').toString();
+          timeline[index] = {
+            start: dayjs(`${start} ${startTime}`).toDate(),
+            end: dayjs(`${end} ${endTime}`).toDate()
+          };
+          const [first] = Object.values(timeline)
+            .map((o: any) => ({ start: (o.start instanceof Date) ? o.start : o.start.toDate() }))
+            .sort((a: any, b: any) => b.start - a.start);
+          await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(timeline);
+          if (first) await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
+        });
       }
     });
   }
@@ -168,8 +191,12 @@ export class AdminComponent implements OnInit {
         const data: any = {};
         const index = timeline.map((o) => o.start.toString()).indexOf(item.start.toString());
         timeline.splice(index, 1);
+        const [first] = Object.values(timeline)
+          .map((o: any) => ({ start: (o.start instanceof Date) ? o.start : o.start.toDate() }))
+          .sort((a: any, b: any) => b.start - a.start);
         Object.entries(timeline).forEach(([key, value]) => data[key] = value);
         await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(data);
+        if (first) await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
         this.toast.open('Timeline item remove successfully', undefined, { duration: 2000 });
       }
     });

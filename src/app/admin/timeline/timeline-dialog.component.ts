@@ -17,13 +17,12 @@ import * as dayjs from 'dayjs';
 export class TimelineDialogComponent implements OnInit {
   filtered?: Observable<Brewery[]>;
   form = new FormGroup({
-    brewery: new FormControl('', [Validators.required, RequireMatch]),
     start: new FormControl('', [Validators.required]),
     startTime: new FormControl('', [Validators.required]),
     end: new FormControl('', [Validators.required]),
     endTime: new FormControl('', [Validators.required])
   });
-
+  defaultTime: string = dayjs().format('hh:mm A').toString();
   theme: NgxMaterialTimepickerTheme = {
     container: {
       bodyBackgroundColor: '#303030',
@@ -43,6 +42,10 @@ export class TimelineDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<TimelineDialogComponent>) { }
 
   ngOnInit() {
+    if (this.data.breweries) {
+      this.form.addControl('brewery', new FormControl('', [Validators.required, RequireMatch]));
+      if (this.data.brewery) this.form.controls['brewery'].patchValue(this.data.brewery);
+    }
     if (this.data.timeline) {
       const start = dayjs((this.data.timeline.start as Timestamp).toDate());
       const end = dayjs((this.data.timeline.end as Timestamp).toDate());

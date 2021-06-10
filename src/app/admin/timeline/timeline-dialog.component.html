@@ -1,12 +1,12 @@
 <form (ngSubmit)="save()" [formGroup]="form">
   <h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
     <img src="/assets/icons/icon-72x72.png" />
-    <span *ngIf="data.brewery">{{data.brewery.name}}</span>
+    <span *ngIf="!data.breweries">{{data.brewery.name}}</span>
     <span *ngIf="data.breweries">Add To Brewery Tiimeline</span>
   </h2>
   <mat-dialog-content>
     <div fxLayout="column" fxLayoutGap="8px">
-        <mat-form-field style="padding-bottom:8px">
+        <mat-form-field style="padding-bottom:8px" *ngIf="data.breweries">
           <mat-label>Brewery</mat-label>
           <input type="text" matInput formControlName="brewery" [matAutocomplete]="auto">
           <mat-error *ngIf="form.controls.brewery.errors?.required">Brewery is required</mat-error>
@@ -41,7 +41,7 @@
             <mat-icon>schedule</mat-icon>
           </button>
           <mat-error *ngIf="form.controls.startTime.errors?.required">Start Time is required</mat-error>
-          <ngx-material-timepicker #startTime [theme]="theme"></ngx-material-timepicker>
+          <ngx-material-timepicker #startTime [theme]="theme" [defaultTime]="defaultTime"></ngx-material-timepicker>
         </mat-form-field>
         <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
           <mat-label>End Time</mat-label>
@@ -50,7 +50,7 @@
             <mat-icon>schedule</mat-icon>
           </button>
           <mat-error *ngIf="form.controls.endTime.errors?.required">End Time is required</mat-error>
-          <ngx-material-timepicker #endTime [theme]="theme"></ngx-material-timepicker>
+          <ngx-material-timepicker #endTime [theme]="theme" [defaultTime]="defaultTime"></ngx-material-timepicker>
         </mat-form-field>
       </div>
     </div>
