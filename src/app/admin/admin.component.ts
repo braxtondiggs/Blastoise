@@ -71,7 +71,13 @@ export class AdminComponent implements OnInit {
         }));
         this.dataSource = new MatTableDataSource(data);
         this.dataSource.paginator = this.paginator as any;
-        this.dataSource.sort = this.sort as any;
+        this.dataSource.sort = this.sort;
+        this.dataSource.sortingDataAccessor = (item: any, property: string) => {
+          switch (property) {
+            case 'date': return new Date(item.lastUpdated.toDate());
+            default: return item[property];
+          }
+        }
       });
       this.reviews$ = this.afs.collection<BreweryReview>('brewery-review', (ref) => ref.orderBy('start', 'desc')).valueChanges();
     } else {
@@ -91,8 +97,9 @@ export class AdminComponent implements OnInit {
 
   getExpandedElement(brewery: Brewery) {
     this.expandedElement = this.expandedElement === brewery ? null : brewery;
-    this.timeline$ = this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).valueChanges().pipe(map((data: any) =>
-      Object.values(data).sort((a: any, b: any) => b.start.toDate() - a.start.toDate()).map((item: any, key: number) => {
+    this.timeline$ = this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).valueChanges().pipe(map((data: any) => {
+      if (!data) return data;
+      return Object.values(data).sort((a: any, b: any) => b.start.toDate() - a.start.toDate()).map((item: any, key: number) => {
         const start = dayjs(item.start.toDate().getTime());
         const end = dayjs(item.end.toDate().getTime());
         this.timelineDisplay[key] = {
@@ -102,7 +109,8 @@ export class AdminComponent implements OnInit {
           duration: dayjs.duration(end.diff(start)).humanize()
         };
         return item;
-      })));
+      })
+    }));
   }
 
   openReviews(reviews: BreweryReview[]) {
@@ -147,6 +155,7 @@ export class AdminComponent implements OnInit {
           .sort((a: any, b: any) => b.start - a.start);
         if (first) await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
         await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(_timeline as any);
+        this.toast.open('Timeline updated successfully', undefined, { duration: 2000 });
       }
     });
   }
@@ -163,6 +172,7 @@ export class AdminComponent implements OnInit {
       if (result) {
         let { brewery, start, startTime, end, endTime } = result;
         this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).valueChanges().pipe(take(1)).subscribe(async (timeline: any) => {
+          timeline = timeline ?? {};
           const index = Object.values(timeline).length;
           start = dayjs(start).format('MM/DD/YYYY').toString();
           end = dayjs(end).format('MM/DD/YYYY').toString();
@@ -175,6 +185,7 @@ export class AdminComponent implements OnInit {
             .sort((a: any, b: any) => b.start - a.start);
           await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(timeline);
           if (first) await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
+          this.toast.open('Timeline updated successfully', undefined, { duration: 2000 });
         });
       }
     });
@@ -212,8 +223,7 @@ export class AdminComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(async (result) => {
       if (result && result.length) {
-        const promise: any = [];
-        result.map(((o: any) => promise.push(this.afs.doc<Brewery>(`breweries/${o.placeId}`).update(o))));
+        const promise = result.map(((o: any) => this.afs.doc<Brewery>(`breweries/${o.placeId}`).set(o, { merge: true })));
         await Promise.all(promise);
         this.toast.open('Brewery added successfully', undefined, { duration: 2000 });
       }

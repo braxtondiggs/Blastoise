@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 @Component({
   selector: 'app-brewery-dialog',
   templateUrl: './brewery-dialog.component.html',
-  styles: [`h2 img { height:50px }`],
+  styles: [`h2 img { height:50px } .mat-selection-list { min-height: 80px }`],
 })
 export class BreweryDialogComponent {
   @ViewChild('list') list?: MatSelectionList;
@@ -34,6 +34,5 @@ export class BreweryDialogComponent {
     this.$brewery = this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/brewery', {
       brewery: this.form.value.name
     });
-    this.$brewery.subscribe(console.log);
   }
 }

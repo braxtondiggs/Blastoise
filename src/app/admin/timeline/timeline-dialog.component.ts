@@ -22,7 +22,8 @@ export class TimelineDialogComponent implements OnInit {
     end: new FormControl('', [Validators.required]),
     endTime: new FormControl('', [Validators.required])
   });
-  defaultTime: string = dayjs().format('hh:mm A').toString();
+  defaultTimeStart: string = dayjs().format('hh:mm A').toString();
+  defaultTimeEnd = this.defaultTimeStart;
   theme: NgxMaterialTimepickerTheme = {
     container: {
       bodyBackgroundColor: '#303030',
@@ -49,11 +50,13 @@ export class TimelineDialogComponent implements OnInit {
     if (this.data.timeline) {
       const start = dayjs((this.data.timeline.start as Timestamp).toDate());
       const end = dayjs((this.data.timeline.end as Timestamp).toDate());
+      this.defaultTimeEnd = end.format('hh:mm a').toString();
+      this.defaultTimeStart = start.format('hh:mm a').toString();
       this.form.patchValue({
         start: start.toDate(),
-        startTime: start.format('hh:mm a').toString(),
+        startTime: this.defaultTimeStart,
         end: end.toDate(),
-        endTime: end.format('hh:mm a').toString(),
+        endTime: this.defaultTimeEnd
       })
     } else {
       this.filtered = this.form.controls.brewery.valueChanges.pipe(startWith(''), map(value => this.filter(value)));

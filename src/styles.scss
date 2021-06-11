@@ -74,6 +74,15 @@ app-reviews-dialog .mat-list-item-content {
   z-index: 1000 !important;
 }
 
+.mat-paginator-container {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.mat-paginator-range-label {
+  margin-right: 8px !important;
+}
+
 @media (min-width: 768px) {
   .container {
     width: 750px;
