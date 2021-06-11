@@ -93,6 +93,7 @@ function updateBreweryInfo(candidates: Candidate[]) {
         data[index] = { start: admin.firestore.FieldValue.serverTimestamp() };
       }
       await db.doc(`brewery-timeline/${candidate.place_id}`).update(data);
+      await db.doc(`breweries/${candidate.place_id}`).update({ lastUpdated: admin.firestore.FieldValue.serverTimestamp() });
     } else {
       const reviewSnap = await db.doc(`brewery-review/${candidate.place_id}`).get();
       if (reviewSnap.exists) {
@@ -121,7 +122,7 @@ app.post('/geocodio', async (request: any, response: any) => {
     try {
       const { results } = await geocoder.reverse(request.body['location']);
       return response.json({ address: results[0].formatted_address });
-    } catch(e) {
+    } catch (e) {
       return response.status(500).json(e);
     }
   } else {
@@ -144,4 +145,22 @@ app.post('/brewery', async (request: any, response: any) => {
   return response.json(query.candidates);
 });
 
-exports.endpoints = functions.https.onRequest(app);
+app.get('/last-updated', async (request: any, response: any) => {
+  const snapshot = await db.collection('breweries').get();
+  const breweries: any = [];
+  snapshot.forEach(async (doc) => {
+    const brewery = doc.data();
+    breweries.push(brewery);
+  });
+
+  for await (const brewery of breweries) {
+    const timelineSnapshot = await db.doc(`brewery-timeline/${brewery.placeId}`).get();
+    const timeline: any = timelineSnapshot.data();
+    const [first]: any = Object.values(timeline).sort((a: any, b: any) => b.start.toDate() - a.start.toDate());
+    await db.doc(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
+    // console.log(brewery.placeId, JSON.stringify(first));
+  }
+  return response.json({});
+});
+
+exports.endpoints = functions.runWith({ timeoutSeconds: 540 }).https.onRequest(app);
