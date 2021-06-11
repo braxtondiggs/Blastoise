@@ -1,0 +1,27 @@
+<form (ngSubmit)="save()" [formGroup]="form">
+  <h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <img src="/assets/icons/icon-72x72.png" />
+    <span>Add A Brewery</span>
+  </h2>
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" style="width: 100%">
+      <mat-label>Brewery Name</mat-label>
+      <input matInput formControlName="name" />
+      <button matSuffix mat-icon-button type="button" (click)="search()">
+        <mat-icon>search</mat-icon>
+      </button>
+      <mat-error *ngIf="form.controls.name.errors?.required">Name is required</mat-error>
+    </mat-form-field>
+    <mat-selection-list #list>
+      <mat-list-option *ngFor="let item of $brewery | async" [value]="item">
+        <div mat-line>{{item.name}}</div>
+        <div mat-line style="font-size: 12px">{{item.formatted_address}}</div>
+      </mat-list-option>
+    </mat-selection-list>
+  </mat-dialog-content>
+  <div align="end" mat-dialog-actions>
+    <button mat-button mat-raised-button mat-dialog-close color="primary">Cancel</button>
+    <div class="spacer"></div>
+    <button mat-button mat-raised-button color="accent">Add</button>
+  </div>
+</form>

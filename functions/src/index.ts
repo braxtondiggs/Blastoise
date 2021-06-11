@@ -47,6 +47,7 @@ app.post('/import', async (request: any, response: any) => {
     });
 
     query.candidates.forEach((candidate) => {
+      if (!candidate.geometry.location) return response.json({ success: false, msg: 'Location Error' });
       candidate.distance = getDistance({
         latitude: candidate.geometry.location.lat,
         longitude: candidate.geometry.location.lng
@@ -127,6 +128,20 @@ app.post('/geocodio', async (request: any, response: any) => {
     functions.logger.error('invalid params');
     return response.status(500).json({ success: true, msg: 'invalid params' });
   }
+});
+
+app.post('/brewery', async (request: any, response: any) => {
+  const template = await config.getTemplate();
+  const API = (template.parameters.GOOGLEAPI.defaultValue as any).value;
+  const { data: query }: { data: PlaceSearch } = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
+    params: {
+      input: request.body['brewery'],
+      key: API,
+      inputtype: 'textquery',
+      fields: 'formatted_address,name,geometry,place_id'
+    }
+  });
+  return response.json(query.candidates);
 });
 
 exports.endpoints = functions.https.onRequest(app);

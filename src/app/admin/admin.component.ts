@@ -21,6 +21,7 @@ import { AlertDialogComponent } from './alert/alert-dialog.component';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
+import { BreweryDialogComponent } from './brewery/brewery-dialog.component';
 
 @Component({
   selector: 'app-admin',
@@ -198,6 +199,23 @@ export class AdminComponent implements OnInit {
         await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(data);
         if (first) await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
         this.toast.open('Timeline item remove successfully', undefined, { duration: 2000 });
+      }
+    });
+  }
+
+  addBrewery() {
+    const dialogRef = this.dialog.open(BreweryDialogComponent, {
+      autoFocus: false,
+      minWidth: 320,
+      maxWidth: 480
+    });
+
+    dialogRef.afterClosed().subscribe(async (result) => {
+      if (result && result.length) {
+        const promise: any = [];
+        result.map(((o: any) => promise.push(this.afs.doc<Brewery>(`breweries/${o.placeId}`).update(o))));
+        await Promise.all(promise);
+        this.toast.open('Brewery added successfully', undefined, { duration: 2000 });
       }
     });
   }

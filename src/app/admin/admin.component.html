@@ -86,7 +86,7 @@
 
     <eco-fab-speed-dial-actions>
       <button mat-mini-fab (click)="addTimeline()"><mat-icon>timeline</mat-icon></button>
-      <button mat-mini-fab><mat-icon>add_business</mat-icon></button>
+      <button mat-mini-fab (click)="addBrewery()"><mat-icon>add_business</mat-icon></button>
     </eco-fab-speed-dial-actions>
   </eco-fab-speed-dial>
   <div class="loading-spinner" *ngIf="isLoading">

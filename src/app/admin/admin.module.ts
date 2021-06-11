@@ -22,9 +22,10 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import { EcoFabSpeedDialModule } from '@ecodev/fab-speed-dial';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { BreweryDialogComponent } from './brewery/brewery-dialog.component';
 
 @NgModule({
-  declarations: [AdminComponent, AuthDialogComponent, ReviewsDialogComponent, AlertDialogComponent, TimelineDialogComponent],
+  declarations: [AdminComponent, AuthDialogComponent, ReviewsDialogComponent, AlertDialogComponent, TimelineDialogComponent, BreweryDialogComponent],
   imports: [
     AdminRoutingModule,
     MatTableModule,
