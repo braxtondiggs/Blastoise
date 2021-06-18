@@ -4,10 +4,10 @@ import { Title } from '@angular/platform-browser';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { Brewery, BreweryReview, BreweryTimeline } from '../core/interfaces';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort, Sort } from '@angular/material/sort';
+import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { Timestamp } from '@firebase/firestore-types';
 import * as dayjs from 'dayjs';
@@ -45,7 +45,7 @@ export class AdminComponent implements OnInit {
   public timelineDisplay: any[] = [];
   public isLoggedIn = false;
   public isLoading = false;
-  @ViewChild(MatSort) sort?: Sort;
+  @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatPaginator) paginator?: MatPaginator;
   constructor(
     private auth: AuthService,
@@ -70,7 +70,7 @@ export class AdminComponent implements OnInit {
           updated: o.lastUpdated ? dayjs((o.lastUpdated as Timestamp).toDate()).format('MM/DD/YY h:mm A').toString() : ''
         }));
         this.dataSource = new MatTableDataSource(data);
-        this.dataSource.paginator = this.paginator as any;
+        this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (item: any, property: string) => {
           switch (property) {
@@ -78,6 +78,8 @@ export class AdminComponent implements OnInit {
             default: return item[property];
           }
         }
+
+        if (this.sort) this.sort.sortChange.emit(this.sort);
       });
       this.reviews$ = this.afs.collection<BreweryReview>('brewery-review', (ref) => ref.orderBy('start', 'desc')).valueChanges();
     } else {

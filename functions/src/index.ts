@@ -25,7 +25,7 @@ app.post('/import', async (request: any, response: any) => {
   if (request.body['address'] && request.body['location']) {
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
-    functions.logger.info(`${dayjs().toString()} - ${dayjs(lastCall?.time).add(30, 'minute')} = ${dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute').toString()}`);
+    functions.logger.info(`${dayjs().toString()} - ${dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute').toString()}`);
     if (dayjs().isBefore(dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute'))) {
       functions.logger.warn('Hasn\'t been enough time');
       return response.json({ success: false, msg: 'Hasn\'t been enough time' });
@@ -47,7 +47,7 @@ app.post('/import', async (request: any, response: any) => {
     });
 
     query.candidates.forEach((candidate) => {
-      if (!candidate.geometry.location) return response.json({ success: false, msg: 'Location Error' });
+      if (!candidate.geometry || !candidate.geometry?.location) return response.json({ success: false, msg: 'Location Error' });
       candidate.distance = getDistance({
         latitude: candidate.geometry.location.lat,
         longitude: candidate.geometry.location.lng
@@ -101,6 +101,7 @@ function updateBreweryInfo(candidates: Candidate[]) {
           end: admin.firestore.FieldValue.serverTimestamp()
         });
       } else {
+        if (!candidate.geometry || !candidate.geometry?.location) return;
         await db.doc(`brewery-review/${candidate.place_id}`).set({
           start: admin.firestore.FieldValue.serverTimestamp(),
           place_id: candidate.place_id,
