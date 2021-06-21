@@ -11,7 +11,7 @@ import * as dayjs from 'dayjs';
 @Component({
   selector: 'app-timeline-dialog',
   templateUrl: './timeline-dialog.component.html',
-  styles: [`h2 img { height:50px }`],
+  styles: [`h2 img { height:50px } caption { font-size: 12px; line-height: 14px; } h3 { font-size: 16px; margin: 0; line-height: 18px; }`],
 })
 
 export class TimelineDialogComponent implements OnInit {

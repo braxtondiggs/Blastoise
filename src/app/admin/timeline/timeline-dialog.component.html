@@ -13,7 +13,8 @@
           <mat-error *ngIf="form.controls.brewery.errors?.match && !form.controls.brewery.errors?.required">Must choose brewery from list</mat-error>
           <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn">
             <mat-option *ngFor="let brewery of filtered | async" [value]="brewery">
-              {{brewery.name}}
+              <h3>{{brewery.name}}</h3>
+              <caption>{{brewery.address}}</caption>
             </mat-option>
           </mat-autocomplete>
         </mat-form-field>

@@ -34,7 +34,7 @@ app.post('/import', async (request: any, response: any) => {
     const location = request.body['location'].split(',');
     const { data: query }: { data: PlaceSearch } = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
       params: {
-        input: `brewery%20near%20${request.body['address']}`,
+        input: decodeURIComponent(`brewery%20near%20${request.body['address']}`),
         key: API,
         inputtype: 'textquery',
         fields: 'formatted_address,name,geometry,place_id'
@@ -137,7 +137,7 @@ app.post('/brewery', async (request: any, response: any) => {
   const API = (template.parameters.GOOGLEAPI.defaultValue as any).value;
   const { data: query }: { data: PlaceSearch } = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
     params: {
-      input: request.body['brewery'],
+      input: decodeURIComponent(request.body['brewery']),
       key: API,
       inputtype: 'textquery',
       fields: 'formatted_address,name,geometry,place_id'

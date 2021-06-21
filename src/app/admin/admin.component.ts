@@ -74,7 +74,7 @@ export class AdminComponent implements OnInit {
         this.dataSource.sort = this.sort;
         this.dataSource.sortingDataAccessor = (item: any, property: string) => {
           switch (property) {
-            case 'date': return new Date(item.lastUpdated.toDate());
+            case 'date': return new Date(item.lastUpdated?.toDate());
             default: return item[property];
           }
         }
