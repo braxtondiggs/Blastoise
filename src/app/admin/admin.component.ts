@@ -103,12 +103,12 @@ export class AdminComponent implements OnInit {
       if (!data) return data;
       return Object.values(data).sort((a: any, b: any) => b.start.toDate() - a.start.toDate()).map((item: any, key: number) => {
         const start = dayjs(item.start.toDate().getTime());
-        const end = dayjs(item.end.toDate().getTime());
+        const end = item.end ? dayjs(item.end.toDate().getTime()) : null;
         this.timelineDisplay[key] = {
           title: start.format('dddd MMM D, YYYY').toString(),
           start: start.format('h:mm A').toString(),
-          end: end.format('h:mm A').toString(),
-          duration: dayjs.duration(end.diff(start)).humanize()
+          end: end ? end.format('h:mm A').toString() : null,
+          duration: end? dayjs.duration(end.diff(start)).humanize() : null
         };
         return item;
       })

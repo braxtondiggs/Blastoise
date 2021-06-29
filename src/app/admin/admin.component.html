@@ -44,7 +44,8 @@
                 </button>
                 <div fxLayout="column" fxFlex>
                   <h4>{{timelineDisplay[i].title}}</h4>
-                  <p>{{timelineDisplay[i].start}} - {{timelineDisplay[i].end}} &bull; {{timelineDisplay[i].duration}}</p>
+                  <p *ngIf="timelineDisplay[i].end">{{timelineDisplay[i].start}} - {{timelineDisplay[i].end}} &bull; {{timelineDisplay[i].duration}}</p>
+                  <p *ngIf="!timelineDisplay[i].end">{{timelineDisplay[i].start}}</p>
                 </div>
                 <div>
                   <button mat-icon-button [matMenuTriggerFor]="menu">
