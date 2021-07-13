@@ -64,7 +64,7 @@ export class AdminComponent implements OnInit {
     const uid = await this.auth.uid();
     this.isLoggedIn = !!uid;
     if (this.isLoggedIn) {
-      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => { //, (ref) => ref.limit(15)
+      this.afs.collection<Brewery>('breweries').valueChanges().subscribe(data => {
         data = data.map(o => ({
           ...o,
           updated: o.lastUpdated ? dayjs((o.lastUpdated as Timestamp).toDate()).format('MM/DD/YY h:mm A').toString() : ''

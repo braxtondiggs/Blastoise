@@ -54,7 +54,7 @@ app.post('/import', async (request: any, response: any) => {
     });
 
     await axios.get('https://hc-ping.com/a25899e2-fdb1-4be8-aa1b-b27af4ab6664');
-    query.candidates = query.candidates.filter((candidate) => convertDistance(candidate.distance, 'ft') <= 100);
+    query.candidates = query.candidates.filter((candidate) => convertDistance(candidate.distance, 'ft') <= 250);
 
     const hasCandidates = query.candidates.length > 0;
     await db.doc('brewery-review/last-call').set({

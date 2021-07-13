@@ -21,7 +21,7 @@
       <div fxLayout="row" fxLayoutGap="8px">
         <mat-form-field appearance="outline" fxFlex="calc(50% - 4px)">
           <mat-label>Start Date</mat-label>
-          <input matInput [matDatepicker]="pickerStart" formControlName="start" />
+          <input matInput [matDatepicker]="pickerStart" formControlName="start" (dateChange)="onStartChange()" />
           <mat-error *ngIf="form.controls.start.errors?.required">Start Date is required</mat-error>
           <mat-datepicker #pickerStart></mat-datepicker>
           <mat-datepicker-toggle matSuffix [for]="pickerStart"></mat-datepicker-toggle>

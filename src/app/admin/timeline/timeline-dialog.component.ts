@@ -72,6 +72,10 @@ export class TimelineDialogComponent implements OnInit {
     this.dialogRef.close(this.form.value);
   }
 
+  onStartChange() {
+    this.form.controls.end.patchValue(this.form.value.start);
+  }
+
   private filter(value: string | Brewery): Brewery[] {
     if (!value || typeof value === 'object') return [];
     const filterValue = value.toLowerCase();
