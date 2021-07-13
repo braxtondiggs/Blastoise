@@ -14,6 +14,7 @@ admin.initializeApp();
 const db = admin.firestore();
 const app = express();
 const config = admin.remoteConfig();
+db.settings({ ignoreUndefinedProperties: true });
 
 // Automatically allow cross-origin requestsd
 app.use(cors({ origin: true }));
@@ -26,7 +27,7 @@ app.post('/import', async (request: any, response: any) => {
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
     functions.logger.info(`${dayjs().toString()} - ${dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute').toString()}`);
-    if (dayjs().isBefore(dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute'))) {
+    if (dayjs().isBefore(dayjs(lastCall?.time.toDate().getTime()).add(15, 'minute'))) {
       functions.logger.warn('Hasn\'t been enough time');
       return response.json({ success: false, msg: 'Hasn\'t been enough time' });
     }
@@ -39,11 +40,6 @@ app.post('/import', async (request: any, response: any) => {
         inputtype: 'textquery',
         fields: 'formatted_address,name,geometry,place_id'
       }
-    });
-
-    await db.doc('brewery-review/last-call').set({
-      time: admin.firestore.FieldValue.serverTimestamp(),
-      place_id: query.candidates.length ? query.candidates[0].place_id : null
     });
 
     query.candidates.forEach((candidate) => {
@@ -59,8 +55,15 @@ app.post('/import', async (request: any, response: any) => {
 
     await axios.get('https://hc-ping.com/a25899e2-fdb1-4be8-aa1b-b27af4ab6664');
     query.candidates = query.candidates.filter((candidate) => convertDistance(candidate.distance, 'ft') <= 100);
-    if (!query.candidates.length) {
-      if (lastCall && lastCall.place_id) updateBreweryInfo([{ place_id: lastCall.place_id }] as any);
+
+    const hasCandidates = query.candidates.length > 0;
+    await db.doc('brewery-review/last-call').set({
+      time: admin.firestore.FieldValue.serverTimestamp(),
+      place_id: hasCandidates ? query.candidates[0].place_id : undefined
+    });
+
+    if (!hasCandidates) {
+      if (lastCall && lastCall.place_id) updateBreweryInfo([{ place_id: query.candidates[0].place_id }] as any);
 
       functions.logger.info('candidates: None Found');
       return response.json({ success: false, msg: 'no valid candidates' });
@@ -69,7 +72,7 @@ app.post('/import', async (request: any, response: any) => {
     updateBreweryInfo(query.candidates);
 
     functions.logger.info('candidates:', query.candidates);
-    return response.json({ success: true, candidates: query.candidates });
+    return response.json({ success: true, candidates: JSON.stringify(query.candidates) });
   } else {
     functions.logger.error('invalid params');
     return response.status(500).json({ success: true, msg: 'invalid params' });
@@ -84,7 +87,7 @@ function updateBreweryInfo(candidates: Candidate[]) {
       const timeline = await db.doc(`brewery-timeline/${candidate.place_id}`).get();
       const data = timeline.data();
       if (!data) return;
-      const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start._seconds * 1000), 'week'));
+      const isSameDay = Object.entries(data).filter((o) => dayjs().isSame(dayjs(o[1].start.toDate().getTime()), 'week'));
       let index = size(data);
       if (isSameDay.length) {
         index--;
