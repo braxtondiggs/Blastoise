@@ -1,7 +1,7 @@
 <mat-toolbar color="transparent">
   <mat-toolbar-row>
     <span class="spacer"></span>
-    <a mat-icon-button href="admin">
+    <a mat-icon-button href="admin" style="opacity: 0.1;">
       <mat-icon>person</mat-icon>
     </a>
   </mat-toolbar-row>
@@ -25,3 +25,6 @@
     </div>
   </div>
 </div>
+<button mat-mini-fab color="primary" (click)="listenToNotifications()" *ngIf="!hasNotifications">
+  <mat-icon>notifications_none</mat-icon>
+</button>

@@ -94,6 +94,7 @@ function updateBreweryInfo(candidates: Candidate[]) {
         data[index] = { ...data[index], end: admin.firestore.FieldValue.serverTimestamp() };
       } else {
         data[index] = { start: admin.firestore.FieldValue.serverTimestamp() };
+        sendNotifications(candidate);
       }
       await db.doc(`brewery-timeline/${candidate.place_id}`).update(data);
       await db.doc(`breweries/${candidate.place_id}`).update({ lastUpdated: admin.firestore.FieldValue.serverTimestamp() });
@@ -115,6 +116,24 @@ function updateBreweryInfo(candidates: Candidate[]) {
       }
     }
   });
+}
+
+async function sendNotifications(brewery: Candidate) {
+  const snap = await db.collection(`notifications`).get();
+  const tokens: string[] = [];
+  snap.forEach(doc => {
+    const data = doc.data();
+    tokens.push(data.token);
+  });
+
+  const payload = {
+    notification: {
+      title: `Braxton is at ${brewery.name}`,
+      body: `Click to find out more info!`,
+      icon: 'https://braxton.beer/assets/icons/icon-128x128.png'
+    }
+  };
+  await admin.messaging().sendToDevice(tokens, payload);
 }
 
 app.post('/geocodio', async (request: any, response: any) => {

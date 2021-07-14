@@ -14,12 +14,14 @@ import * as dayjs from 'dayjs';
 })
 export class HomeComponent implements OnInit {
   isLoading = true;
+  token = localStorage.getItem('token');
+  hasNotifications= (this.token !== null && this.token.length > 0);
   brewery$?: Observable<any>;
   constructor(private afs: AngularFirestore,
     private afMessaging: AngularFireMessaging) { }
 
   ngOnInit(): void {
-    this.requestNotificationPermission();
+    if (this.hasNotifications) this.listenToNotifications();
     this.brewery$ = combineLatest<any[]>([
       this.afs.collection<Brewery>('breweries', ref => ref.orderBy('lastUpdated', 'desc').limit(1)).valueChanges(),
       this.afs.collection<BreweryReview>('brewery-review', ref => ref.orderBy('start', 'desc').limit(1)).valueChanges()
@@ -37,21 +39,21 @@ export class HomeComponent implements OnInit {
     return humanizer.humanize(dayjs().diff(dayjs(date.toDate().getTime()), 'millisecond'), { units: ['d', 'h', 'm'], conjunction: ", ", serialComma: false, round: true });
   }
 
+  listenToNotifications() {
+    if (!this.hasNotifications) this.afMessaging.requestToken.subscribe(async (token) => {
+      if (!token) return;
+      await this.afs.collection('notifications').add({ token });
+      localStorage.setItem('token', token.toString());
+      this.hasNotifications = true;
+    });
+    this.afMessaging.messages.subscribe();
+  }
+
   private isAtBrewery(breweries: any) {
     setTimeout(() => this.isLoading = false, 1000);
     return breweries.filter((brewery: any) => {
       const time = brewery.lastUpdated ?? brewery.start;
       if (dayjs().isBefore(dayjs(time.toDate().getTime()).add(2, 'hour'))) return brewery;
     });
-  }
-
-  private requestNotificationPermission() {
-    this.afMessaging.requestToken
-      .subscribe(
-        (token) => { console.log('Permission granted! Save to the server!', token); },
-        (error) => { console.error(error); },
-      );
-    this.afMessaging.messages
-      .subscribe((message) => { console.log(message); });
   }
 }
