@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import * as cors from 'cors';
 import * as dayjs from 'dayjs';
 import * as express from 'express';
+import * as cheerio from 'cheerio';
 import axios from 'axios';
 const Geocodio = require('geocodio-library-node');
 import { Candidate, PlaceSearch } from './interface';
@@ -79,7 +80,6 @@ app.post('/import', async (request: any, response: any) => {
   }
 });
 
-
 function updateBreweryInfo(candidates: Candidate[]) {
   candidates.forEach(async (candidate) => {
     const snapshot = await db.doc(`breweries/${candidate.place_id}`).get();
@@ -113,6 +113,10 @@ function updateBreweryInfo(candidates: Candidate[]) {
           name: candidate.name,
           location: new admin.firestore.GeoPoint(parseFloat(candidate.geometry.location.lat), parseFloat(candidate.geometry.location.lng))
         });
+        const snap = await db.doc(`brewery-review/${candidate.place_id}`).get();
+        const brewery = snap.data();
+        const approval = await checkForApproval(brewery);
+        if (approval) await instantApproveUnderReview(brewery);
       }
     }
   });
@@ -134,6 +138,34 @@ async function sendNotifications(brewery: Candidate) {
     }
   };
   await admin.messaging().sendToDevice(tokens, payload);
+}
+
+async function checkForApproval(brewery: any) {
+  let approval = false;
+  const response = await axios.get(`http://www.google.com/search?q=${encodeURIComponent(brewery.name)}%20${encodeURIComponent(brewery.formatted_address)}`);
+  if (response.status === 200) {
+    const $ = cheerio.load(response.data);
+    const text = $.text().toLowerCase();
+    if (text.includes('brew') || text.includes('distill')) approval = true;
+  }
+  return approval;
+}
+
+async function instantApproveUnderReview(brewery: any) {
+  await db.doc(`breweries/${brewery.place_id}`).set({
+    address: brewery.address,
+    location: brewery.location,
+    name: brewery.name,
+    placeId: brewery.place_id,
+    lastUpdated: brewery.start
+  }, { merge: true });
+  const snap = await db.doc(`brewery-timeline/${brewery.place_id}`).get();
+  let timeline = snap.data();
+  timeline = timeline ?? {};
+  const index = Object.keys(timeline).length;
+  timeline[index] = { start: brewery.start, end: brewery.end };
+  await db.doc(`brewery-timeline/${brewery.place_id}`).set(timeline, { merge: true });
+  await db.doc(`brewery-review/${brewery.place_id}`).delete();
 }
 
 app.post('/geocodio', async (request: any, response: any) => {

@@ -14,7 +14,7 @@
           <h2>Braxton's <span class="underline">is</span> at {{brewery[0].name}}! 🍻</h2>
           <p>{{brewery[0].address}}</p>
           <a href="https://www.google.com/maps/search/?api=1&query={{brewery[0].name}} {{brewery[0].address}}" target="_blank">
-            <img src="https://maps.googleapis.com/maps/api/staticmap?center={{brewery[0].location._lat}},{{brewery[0].location._long}}&zoom=18&size=600x300&maptype=roadmap&markers=color:red%7Clabel:C%7C{{brewery[0].location._lat}},{{brewery[0].location._long}}&key=AIzaSyDgiyC2qlZIZy7rPNWTMcUj44g48rIbWtk" />
+            <img src="https://maps.googleapis.com/maps/api/staticmap?center={{brewery[0].location._lat}},{{brewery[0].location._long}}&zoom=18&size=600x300&maptype=roadmap&markers=color:red%7Clabel:C%7C{{brewery[0].location._lat}},{{brewery[0].location._long}}&key=AIzaSyDgiyC2qlZIZy7rPNWTMcUj44g48rIbWtk"  class="gmap-image" />
           </a>
           <p class="lastUpdated">About {{getLastUpdated(brewery[0])}} Ago</p>
         </mat-card-content>

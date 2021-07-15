@@ -1,10 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { AngularFireMessaging } from '@angular/fire/messaging';
-import { combineLatest, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HumanizeDuration, HumanizeDurationLanguage } from 'humanize-duration-ts';
 import { map } from 'rxjs/operators';
-import { Brewery, BreweryReview } from '../core/interfaces';
+import { Brewery } from '../core/interfaces';
 import * as dayjs from 'dayjs';
 
 @Component({
@@ -22,11 +22,7 @@ export class HomeComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.hasNotifications) this.listenToNotifications();
-    this.brewery$ = combineLatest<any[]>([
-      this.afs.collection<Brewery>('breweries', ref => ref.orderBy('lastUpdated', 'desc').limit(1)).valueChanges(),
-      this.afs.collection<BreweryReview>('brewery-review', ref => ref.orderBy('start', 'desc').limit(1)).valueChanges()
-    ]).pipe(
-      map(arr => arr.reduce((acc, cur) => acc.concat(cur))),
+    this.brewery$ = this.afs.collection<Brewery>('breweries', ref => ref.orderBy('lastUpdated', 'desc').limit(1)).valueChanges().pipe(
       map(brewery => this.isAtBrewery(brewery))
     );
   }
@@ -35,7 +31,6 @@ export class HomeComponent implements OnInit {
     const langService = new HumanizeDurationLanguage();
     const humanizer = new HumanizeDuration(langService);
     const date = brewery.lastUpdated ?? brewery.start;
-    console.log(date);
     return humanizer.humanize(dayjs().diff(dayjs(date.toDate().getTime()), 'millisecond'), { units: ['d', 'h', 'm'], conjunction: ", ", serialComma: false, round: true });
   }
 
