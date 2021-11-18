@@ -1,6 +1,6 @@
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { AngularFirestore } from '@angular/fire/firestore';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Brewery, BreweryReview, BreweryTimeline } from 'src/app/core/interfaces';
 import * as dayjs from 'dayjs';
@@ -46,7 +46,7 @@ export class ReviewsDialogComponent {
       const index = this.data.reviews.map((o) => o.place_id).indexOf(item.place_id);
       this.data.reviews.splice(index, 1);
       this.toast.open('Update Successful', undefined, { duration: 2000 });
-    } catch (e) {
+    } catch (e: any) {
       this.toast.open(e.message, undefined, { duration: 2000 });
     }
   }

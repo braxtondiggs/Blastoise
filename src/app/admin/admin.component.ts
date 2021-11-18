@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { AngularFirestore } from '@angular/fire/firestore';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { Brewery, BreweryReview, BreweryTimeline } from '../core/interfaces';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
@@ -257,7 +257,7 @@ export class AdminComponent implements OnInit {
         const response = status ? candidates[0].name : msg;
         this.toast.open(response, undefined, { duration: 2000 });
       });
-    } catch (e) {
+    } catch (e: any) {
       this.isLoading = false;
       this.toast.open(e.msg, undefined, { duration: 2000 });
     }

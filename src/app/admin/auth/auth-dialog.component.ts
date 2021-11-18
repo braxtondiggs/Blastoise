@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/auth';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 
@@ -23,7 +23,7 @@ export class AuthDialogComponent {
       try {
         const response = await this.auth.signInWithEmailAndPassword(this.form.value.email, this.form.value.password);
         if (response) this.dialogRef.close();
-      } catch (e) {
+      } catch (e: any) {
         this.error = e.message
       }
     }

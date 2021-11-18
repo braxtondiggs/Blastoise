@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
-import { AngularFireMessaging } from '@angular/fire/messaging';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { AngularFireMessaging } from '@angular/fire/compat/messaging';
 import { Observable } from 'rxjs';
 import { HumanizeDuration, HumanizeDurationLanguage } from 'humanize-duration-ts';
 import { map } from 'rxjs/operators';
