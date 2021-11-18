@@ -32,6 +32,15 @@
           <span *ngIf="element.updated">{{ element.updated }}</span>
         </td>
       </ng-container>
+      <!-- Delete Column -->
+      <ng-container matColumnDef="delete">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let element" style="width: 20px;">
+          <button mat-icon-button (click)="removeBrewery(element.placeId)" *ngIf="element.timeline === 0">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
       <ng-container matColumnDef="expandedDetail">
         <td mat-cell *matCellDef="let element" [attr.colspan]="columns.length">
           <div class="brewery-timeline" [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'" fxLayout="column" *ngIf="(timeline$ | async) as timeline">

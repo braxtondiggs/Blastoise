@@ -40,7 +40,7 @@ export class AdminComponent implements OnInit {
   public dataSource?: MatTableDataSource<Brewery> | any;
   public timeline$?: Observable<BreweryTimeline[]>;
   public reviews$?: Observable<BreweryReview[]>;
-  public columns: string[] = ['name', 'date'];
+  public columns: string[] = ['name', 'date', 'delete'];
   public expandedElement?: Brewery | null;
   public timelineDisplay: any[] = [];
   public isLoggedIn = false;
@@ -230,6 +230,11 @@ export class AdminComponent implements OnInit {
         this.toast.open('Brewery added successfully', undefined, { duration: 2000 });
       }
     });
+  }
+
+  async removeBrewery(id: string) {
+    await this.afs.doc<Brewery>(`breweries/${id}`).delete();
+    this.toast.open('Brewery removed successfully', undefined, { duration: 2000 });
   }
 
   private getAuth() {

@@ -1,3 +1,4 @@
+import db from './db';
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as cors from 'cors';
@@ -8,11 +9,9 @@ import axios from 'axios';
 const Geocodio = require('geocodio-library-node');
 import { Candidate, PlaceSearch } from './interface';
 import { convertDistance, getDistance } from 'geolib';
+import { onTimelineChange } from './watch';
 import { size } from 'lodash';
 
-admin.initializeApp();
-
-const db = admin.firestore();
 const app = express();
 const config = admin.remoteConfig();
 db.settings({ ignoreUndefinedProperties: true });
@@ -200,7 +199,7 @@ app.post('/brewery', async (request: any, response: any) => {
   return response.json(query.candidates);
 });
 
-app.get('/last-updated', async (request: any, response: any) => {
+app.get('/last-updated', async (_request: any, response: any) => {
   const snapshot = await db.collection('breweries').get();
   const breweries: any = [];
   snapshot.forEach(async (doc) => {
@@ -219,3 +218,4 @@ app.get('/last-updated', async (request: any, response: any) => {
 });
 
 exports.endpoints = functions.runWith({ timeoutSeconds: 540 }).https.onRequest(app);
+export const onTimelineCreate = functions.firestore.document('brewery-timeline/{id}').onWrite(onTimelineChange);

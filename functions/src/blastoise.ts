@@ -1,9 +1,8 @@
 import * as admin from 'firebase-admin';
 import * as _ from 'lodash';
+import db from './db';
 import * as fs from 'fs';
 import { MasterBreweryData } from './interface';
-
-const db = admin.firestore();
 
 export async function importBackLog() {
   const rawdata = fs.readFileSync('searched.json');
@@ -37,7 +36,7 @@ export async function importBackLogTimeline() {
 
   const promise: any[] = [];
   data.forEach((location: any) => {
-    promise.push(db.doc(`brewery-timeline/${location.placeId}`).set(_.mapKeys(location.visits, (_, key) => key)));
+    promise.push(db.doc(`brewery-timeline/${location.placeId}`).set(_.mapKeys(location.visits, (__, key) => key)));
   });
   Promise.all(promise).then(() => console.log('done'));
 }

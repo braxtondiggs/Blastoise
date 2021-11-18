@@ -61,7 +61,7 @@ export class TimelineDialogComponent implements OnInit {
 
       if (endDate) {
         const end = dayjs(endDate.toDate());
-        this.defaultTimeStart = end.format('hh:mm a').toString();
+        this.defaultTimeEnd = end.format('hh:mm a').toString();
         data.end = end.toDate();
         data.endTime = this.defaultTimeEnd;
       }

@@ -25,7 +25,8 @@ export class BreweryDialogComponent {
       address: o.formatted_address,
       location: [o.geometry.location.lat, o.geometry.location.lng],
       name: o.name,
-      placeId: o.place_id
+      placeId: o.place_id,
+      timeline: 0
     })));
   }
 
