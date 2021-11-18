@@ -48,16 +48,24 @@ export class TimelineDialogComponent implements OnInit {
       if (this.data.brewery) this.form.controls['brewery'].patchValue(this.data.brewery);
     }
     if (this.data.timeline) {
-      const start = dayjs((this.data.timeline.start as Timestamp).toDate());
-      const end = dayjs((this.data.timeline.end as Timestamp).toDate());
-      this.defaultTimeEnd = end.format('hh:mm a').toString();
-      this.defaultTimeStart = start.format('hh:mm a').toString();
-      this.form.patchValue({
-        start: start.toDate(),
-        startTime: this.defaultTimeStart,
-        end: end.toDate(),
-        endTime: this.defaultTimeEnd
-      })
+      const startDate = this.data.timeline.start as Timestamp;
+      const endDate = this.data.timeline.end as Timestamp;
+
+      let data: any = {};
+      if (startDate) {
+        const start = dayjs(startDate.toDate());
+        this.defaultTimeStart = start.format('hh:mm a').toString();
+        data.start = start.toDate();
+        data.startTime = this.defaultTimeStart;
+      }
+
+      if (endDate) {
+        const end = dayjs(endDate.toDate());
+        this.defaultTimeStart = end.format('hh:mm a').toString();
+        data.end = end.toDate();
+        data.endTime = this.defaultTimeEnd;
+      }
+      this.form.patchValue(data);
     } else {
       this.filtered = this.form.controls.brewery.valueChanges.pipe(startWith(''), map(value => this.filter(value)));
     }
