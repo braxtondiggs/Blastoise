@@ -254,6 +254,7 @@ export class AdminComponent implements OnInit {
           address,
           location: `${position.coords.latitude},${position.coords.longitude}`
         }).toPromise() as any;
+        this.isLoading = false;
         const response = status ? candidates[0].name : msg;
         this.toast.open(response, undefined, { duration: 2000 });
       });
