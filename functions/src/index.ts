@@ -26,8 +26,8 @@ app.post('/import', async (request: any, response: any) => {
   if (request.body['address'] && request.body['location']) {
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
-    functions.logger.info(`${dayjs().toString()} - ${dayjs(lastCall?.time.toDate().getTime()).add(30, 'minute').toString()}`);
-    if (dayjs().isBefore(dayjs(lastCall?.time.toDate().getTime()).add(15, 'minute'))) {
+    functions.logger.info(`${dayjs().toString()} - ${dayjs(lastCall?.time.toDate().getTime()).add(5, 'minute').toString()}`);
+    if (dayjs().isBefore(dayjs(lastCall?.time.toDate().getTime()).add(5, 'minute'))) {
       functions.logger.warn('Hasn\'t been enough time');
       return response.json({ success: false, msg: 'Hasn\'t been enough time' });
     }

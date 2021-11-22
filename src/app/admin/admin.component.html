@@ -1,7 +1,9 @@
 <mat-toolbar color="primary" *ngIf="isLoggedIn">
   <mat-toolbar-row>
-    <img src="/assets/icons/icon-72x72.png" />
-    <span>{{title}}</span>
+    <a [routerLink]="['/']" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+      <img src="/assets/icons/icon-72x72.png" />
+      <span>{{title}}</span>
+    </a>
     <span class="spacer"></span>
     <button mat-icon-button *ngIf="(reviews$ | async) as reviews" (click)="openReviews(reviews)">
       <mat-icon [matBadge]="reviews.length" [matBadgeHidden]="reviews.length == 0" matBadgeColor="warn">notifications_none</mat-icon>
