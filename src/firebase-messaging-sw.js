@@ -11,3 +11,8 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow('https://braxton.beer'));
+});
