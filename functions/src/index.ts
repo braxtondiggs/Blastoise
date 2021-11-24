@@ -165,6 +165,7 @@ async function instantApproveUnderReview(brewery: any) {
   timeline[index] = { start: brewery.start, end: brewery.end };
   await db.doc(`brewery-timeline/${brewery.place_id}`).set(timeline, { merge: true });
   await db.doc(`brewery-review/${brewery.place_id}`).delete();
+  sendNotifications(brewery);
 }
 
 app.post('/geocodio', async (request: any, response: any) => {
@@ -214,6 +215,12 @@ app.get('/last-updated', async (_request: any, response: any) => {
     await db.doc(`breweries/${brewery.placeId}`).update({ lastUpdated: first.start });
     // console.log(brewery.placeId, JSON.stringify(first));
   }
+  return response.json({});
+});
+
+app.post('/notification', async (request: any, response: any) => {
+  if (!request.body['brewery']) return;
+  sendNotifications({ name: decodeURIComponent(request.body['brewery']) } as any);
   return response.json({});
 });
 
