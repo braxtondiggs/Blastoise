@@ -74,8 +74,8 @@ app.post('/import', async (request: any, response: any) => {
     functions.logger.info('candidates:', query.candidates);
     return response.json({ success: true, candidates: JSON.stringify(query.candidates) });
   } else {
-    functions.logger.error('invalid params');
-    return response.status(500).json({ success: true, msg: 'invalid params' });
+    functions.logger.error(`invalid params: ${JSON.stringify(request.body)}`);
+    return response.status(500).json({ success: true, msg: `invalid params: ${JSON.stringify(request.body)}` });
   }
 });
 
