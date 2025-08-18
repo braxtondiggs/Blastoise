@@ -1,16 +1,16 @@
-<h2 mat-dialog-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+<h2 mat-dialog-title class="flex-row flex-align-start-center flex-gap-8">
   <img src="/assets/icons/icon-72x72.png" />
   <span>Under Review</span>
 </h2>
 <mat-dialog-content>
   <mat-list role="list" *ngIf="data.reviews.length > 0;else empty_review">
     <mat-list-item role="listitem" *ngFor="let item of data.reviews">
-      <div fxLayout="row" fxLayoutAlign="space-between center" fxFlex>
-        <div fxLayout="column" fxFlex>
+      <div class="flex-row flex-align-space-between-center flex-1">
+        <div class="flex-column flex-1">
           <h3>{{item.name}}</h3>
           <caption>{{item.display.caption}}</caption>
         </div>
-        <div fxLayout="row">
+        <div class="flex-row">
           <button mat-icon-button (click)="vote(true, item)">
             <mat-icon color="accent">thumb_up</mat-icon>
           </button>

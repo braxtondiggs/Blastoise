@@ -47,6 +47,56 @@ app-home {
   flex: 1 1 auto;
 }
 
+/* Flex layout utility classes to replace @angular/flex-layout */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-align-start-center {
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.flex-align-center-center {
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-align-space-between-center {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-auto {
+  flex: 1 1 auto;
+}
+
+.flex-gap-8 {
+  gap: 8px;
+}
+
+.flex-gap-12 {
+  gap: 12px;
+}
+
+.flex-gap-16 {
+  gap: 16px;
+}
+
+.flex-calc-50 {
+  flex: 0 0 calc(50% - 4px);
+}
+
 .container {
   padding-right: 15px;
   padding-left: 15px;

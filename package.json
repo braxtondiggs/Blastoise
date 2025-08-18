@@ -5,7 +5,6 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"
   },
@@ -17,7 +16,7 @@
     "@angular/compiler": "^14.3.0",
     "@angular/core": "^14.3.0",
     "@angular/fire": "^7.6.1",
-    "@angular/flex-layout": "^14.0.0-beta.39",
+
     "@angular/forms": "^14.3.0",
     "@angular/material": "^14.2.7",
     "@angular/platform-browser": "^14.3.0",
@@ -38,24 +37,13 @@
     "@angular-devkit/build-angular": "^14.2.13",
     "@angular/cli": "^14.2.13",
     "@angular/compiler-cli": "^14.3.0",
-    "@types/jasmine": "~3.6.0",
     "@types/node": "^12.11.1",
-    "codelyzer": "^6.0.0",
     "firebase-tools": "^9.12.1",
     "fuzzy": "^0.1.3",
     "inquirer": "^6.2.2",
     "inquirer-autocomplete-prompt": "^1.0.1",
-    "jasmine-core": "~3.8.0",
-    "jasmine-spec-reporter": "~5.0.0",
-    "karma": "~6.3.9",
-    "karma-chrome-launcher": "~3.1.0",
-    "karma-coverage": "~2.0.3",
-    "karma-jasmine": "~4.0.0",
-    "karma-jasmine-html-reporter": "^1.7.0",
     "open": "^7.0.3",
-    "protractor": "~7.0.0",
     "ts-node": "~8.3.0",
-    "tslint": "~6.1.0",
     "typescript": "~4.6.4"
   }
 }
