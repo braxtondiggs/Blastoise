@@ -33,7 +33,7 @@ export class BreweryDialogComponent {
   search() {
     if (!this.form.valid) return;
     this.$brewery = this.http.post('https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/brewery', {
-      brewery: encodeURIComponent(this.form.value.name)
+      brewery: encodeURIComponent(this.form.value.name || '')
     });
   }
 }

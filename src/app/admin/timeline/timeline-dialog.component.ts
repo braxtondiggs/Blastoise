@@ -21,7 +21,7 @@ export class TimelineDialogComponent implements OnInit {
     startTime: new FormControl('', [Validators.required]),
     end: new FormControl('', [Validators.required]),
     endTime: new FormControl('', [Validators.required])
-  });
+  } as any); // Allow dynamic addition of controls
   defaultTimeStart: string = dayjs().format('hh:mm A').toString();
   defaultTimeEnd = this.defaultTimeStart;
   theme: NgxMaterialTimepickerTheme = {
@@ -45,7 +45,7 @@ export class TimelineDialogComponent implements OnInit {
   ngOnInit() {
     if (this.data.breweries) {
       this.form.addControl('brewery', new FormControl('', [Validators.required, RequireMatch]));
-      if (this.data.brewery) this.form.controls['brewery'].patchValue(this.data.brewery);
+      if (this.data.brewery) this.form.get('brewery')?.patchValue(this.data.brewery);
     }
     if (this.data.timeline) {
       const startDate = this.data.timeline.start as Timestamp;
@@ -67,7 +67,7 @@ export class TimelineDialogComponent implements OnInit {
       }
       this.form.patchValue(data);
     } else {
-      this.filtered = this.form.controls.brewery.valueChanges.pipe(startWith(''), map(value => this.filter(value)));
+      this.filtered = this.form.get('brewery')?.valueChanges.pipe(startWith(''), map(value => this.filter(value as string | Brewery)));
     }
   }
 
@@ -81,7 +81,7 @@ export class TimelineDialogComponent implements OnInit {
   }
 
   onStartChange() {
-    this.form.controls.end.patchValue(this.form.value.start);
+    this.form.controls.end.patchValue(this.form.value.start || null);
   }
 
   private filter(value: string | Brewery): Brewery[] {
