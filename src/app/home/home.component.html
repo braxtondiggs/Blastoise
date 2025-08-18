@@ -6,7 +6,7 @@
     </a>
   </mat-toolbar-row>
 </mat-toolbar>
-<div fxFlex *ngIf="brewery$ | async as brewery" fxLayoutAlign="center center">
+<div class="flex-1 flex-column flex-align-center-center" *ngIf="brewery$ | async as brewery">
   <div [ngClass]="{'loaded': !isLoading}" class="brewery-container">
     <div *ngIf="brewery.length">
       <mat-card>

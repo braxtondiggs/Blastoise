@@ -1,6 +1,6 @@
 <mat-toolbar color="primary" *ngIf="isLoggedIn">
   <mat-toolbar-row>
-    <a [routerLink]="['/']" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <a [routerLink]="['/']" class="flex-row flex-align-start-center flex-gap-8">
       <img src="/assets/icons/icon-72x72.png" />
       <span>{{title}}</span>
     </a>
@@ -11,8 +11,8 @@
   </mat-toolbar-row>
 </mat-toolbar>
 <div class="container" *ngIf="isLoggedIn">
-  <div class="action-container" fxLayout="row" fxLayoutGap="16px">
-    <mat-form-field fxFlex>
+  <div class="action-container flex-row flex-gap-16">
+    <mat-form-field class="flex-1">
       <mat-label>Filter</mat-label>
       <input matInput (keyup)="applyFilter($event)" placeholder="Ex. Braxton Brewery" #input>
     </mat-form-field>
@@ -45,14 +45,14 @@
       </ng-container>
       <ng-container matColumnDef="expandedDetail">
         <td mat-cell *matCellDef="let element" [attr.colspan]="columns.length">
-          <div class="brewery-timeline" [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'" fxLayout="column" *ngIf="(timeline$ | async) as timeline">
+          <div class="brewery-timeline flex-column" [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'" *ngIf="(timeline$ | async) as timeline">
             <span><h4 class="timeline-title">Your Visits</h4></span>
             <div *ngFor="let item of timeline; let i = index">
-              <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="16px" class="timeline">
+              <div class="timeline flex-row flex-align-start-center flex-gap-16">
                 <button mat-mini-fab color="accent">
                   <mat-icon>event</mat-icon>
                 </button>
-                <div fxLayout="column" fxFlex>
+                <div class="flex-column flex-1">
                   <h4>{{timelineDisplay[i].title}}</h4>
                   <p *ngIf="timelineDisplay[i].end">{{timelineDisplay[i].start}} - {{timelineDisplay[i].end}} &bull; {{timelineDisplay[i].duration}}</p>
                   <p *ngIf="!timelineDisplay[i].end">{{timelineDisplay[i].start}}</p>
