@@ -10,8 +10,20 @@ $dark-primary: mat-palette($mat-purple, 700, 500, 900);
 $dark-accent: mat-palette($mat-green, A200, A100, A400);
 $dark-warn: mat-palette($mat-red);
 
-$theme: mat-light-theme($primary, $accent, $warn);
-$dark-theme: mat-dark-theme($dark-primary, $dark-accent, $dark-warn);
+$theme: mat-light-theme((
+  color: (
+    primary: $primary,
+    accent: $accent,
+    warn: $warn,
+  )
+));
+$dark-theme: mat-dark-theme((
+  color: (
+    primary: $dark-primary,
+    accent: $dark-accent,
+    warn: $dark-warn,
+  )
+));
 
 @include angular-material-theme($dark-theme);
 
