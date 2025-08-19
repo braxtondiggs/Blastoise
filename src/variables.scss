@@ -1,2 +1,4 @@
-$app-primary: mat-palette($mat-deep-purple);
-$app-background: mat-palette($mat-grey, A200);
+@use "@angular/material" as mat;
+
+$app-primary: mat.define-palette(mat.$deep-purple-palette);
+$app-background: mat.define-palette(mat.$gray-palette, A200);

@@ -87,10 +87,10 @@
           },
           "configurations": {
             "production": {
-              "browserTarget": "beer:build:production"
+              "buildTarget": "beer:build:production"
             },
             "development": {
-              "browserTarget": "beer:build:development"
+              "buildTarget": "beer:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -98,7 +98,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "beer:build"
+            "buildTarget": "beer:build"
           }
         },
         "lint": {
