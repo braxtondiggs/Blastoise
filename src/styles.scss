@@ -27,10 +27,26 @@ $dark-theme: mat-dark-theme((
 
 @include angular-material-theme($dark-theme);
 
+// Global responsive fixes to prevent horizontal overflow
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
 html,
 body {
   min-height: 100%;
   height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 body {
   margin: 0;

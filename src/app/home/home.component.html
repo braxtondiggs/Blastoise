@@ -1,30 +1,125 @@
-<mat-toolbar color="transparent">
+<!-- Header Toolbar -->
+<mat-toolbar color="transparent" role="banner">
   <mat-toolbar-row>
     <span class="spacer"></span>
-    <a mat-icon-button href="admin" style="opacity: 0.1;">
+    <a
+      mat-icon-button
+      href="admin"
+      class="admin-link"
+      aria-label="Access admin panel"
+      title="Admin Panel">
       <mat-icon>person</mat-icon>
     </a>
   </mat-toolbar-row>
 </mat-toolbar>
-<div class="flex-1 flex-column flex-align-center-center" *ngIf="brewery$ | async as brewery">
-  <div [ngClass]="{'loaded': !isLoading}" class="brewery-container">
-    <div *ngIf="brewery.length">
-      <mat-card>
-        <mat-card-content>
-          <h2>Braxton's <span class="underline">is</span> at {{brewery[0].name}}! 🍻</h2>
-          <p>{{brewery[0].address}}</p>
-          <a href="https://www.google.com/maps/search/?api=1&query={{brewery[0].name}} {{brewery[0].address}}" target="_blank">
-            <img src="https://maps.googleapis.com/maps/api/staticmap?center={{brewery[0].location._lat}},{{brewery[0].location._long}}&zoom=18&size=600x300&maptype=roadmap&markers=color:red%7Clabel:C%7C{{brewery[0].location._lat}},{{brewery[0].location._long}}&key=AIzaSyDgiyC2qlZIZy7rPNWTMcUj44g48rIbWtk"  class="gmap-image" />
-          </a>
-          <p class="lastUpdated">About {{getLastUpdated(brewery[0])}} Ago</p>
-        </mat-card-content>
-      </mat-card>
-    </div>
-    <div *ngIf="!brewery.length">
-      <h2>Braxton's <span class="underline">not</span> at a brewery! 😱</h2>
-    </div>
+
+<!-- Main Content Area -->
+<main class="flex-1 flex-column flex-align-center-center" role="main">
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading()" aria-live="polite">
+    <mat-spinner diameter="50" color="primary"></mat-spinner>
+    <p class="loading-text">Checking brewery status...</p>
   </div>
-</div>
-<button mat-mini-fab color="primary" (click)="listenToNotifications()" *ngIf="!hasNotifications">
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="hasError()" aria-live="polite">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <h2>Unable to load brewery status</h2>
+    <p>{{ errorMessage() || 'Please check your connection and try again.' }}</p>
+    <button mat-raised-button color="primary" (click)="retryLoad()">
+      <mat-icon>refresh</mat-icon>
+      Retry
+    </button>
+  </div>
+
+  <!-- Brewery Status Content -->
+  <section class="brewery-content" *ngIf="!isLoading() && !hasError()" aria-live="polite">
+    <div [ngClass]="{'loaded': !isLoading()}" class="brewery-container">
+
+      <!-- At Brewery State -->
+      <article *ngIf="isAtBrewery() && currentBrewery() as brewery" class="brewery-card-wrapper">
+        <mat-card elevation="0">
+          <mat-card-header class="visually-hidden">
+            <mat-card-title>Current Brewery Location</mat-card-title>
+          </mat-card-header>
+
+          <mat-card-content>
+            <header class="brewery-header">
+              <h1 class="brewery-status">
+                Braxton's <span class="underline">is</span> at
+                <span class="brewery-name">{{ brewery.name }}</span>!
+                <span class="beer-emoji" role="img" aria-label="beer mug">🍻</span>
+              </h1>
+            </header>
+
+            <div class="brewery-details">
+              <address class="brewery-address">
+                <mat-icon class="location-icon" aria-hidden="true">place</mat-icon>
+                {{ brewery.address }}
+              </address>
+
+              <div class="map-container">
+                <a
+                  [href]="getGoogleMapsUrl(brewery)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="map-link"
+                  [attr.aria-label]="'View ' + brewery.name + ' on Google Maps'">
+
+                  <img
+                    [src]="getStaticMapUrl(brewery)"
+                    [alt]="'Map showing location of ' + brewery.name + ' at ' + brewery.address"
+                    class="gmap-image"
+                    loading="lazy"
+                    (error)="onImageError($event)" />
+
+                  <div class="map-overlay">
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>View on Google Maps</span>
+                  </div>
+                </a>
+              </div>
+
+              <footer class="brewery-footer">
+                <time class="lastUpdated" [attr.datetime]="brewery.lastUpdated ? brewery.lastUpdated.toDate().toISOString() : ''">
+                  <mat-icon class="time-icon" aria-hidden="true">access_time</mat-icon>
+                  Last updated {{ getLastUpdated(brewery) }} ago
+                </time>
+              </footer>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </article>
+
+      <!-- Not at Brewery State -->
+      <article *ngIf="!isAtBrewery()" class="no-brewery-state">
+        <mat-card elevation="0">
+          <mat-card-content>
+            <header class="no-brewery-header">
+              <h1 class="brewery-status">
+                Braxton's <span class="underline">not</span> at a brewery!
+                <span class="sad-emoji" role="img" aria-label="disappointed face">😱</span>
+              </h1>
+              <p class="no-brewery-message">
+                Check back later to see when the next brewery visit happens!
+              </p>
+            </header>
+          </mat-card-content>
+        </mat-card>
+      </article>
+
+    </div>
+  </section>
+</main>
+
+<!-- Notification FAB -->
+<button
+  mat-mini-fab
+  color="primary"
+  class="notification-fab"
+  (click)="listenToNotifications()"
+  *ngIf="!hasNotifications()"
+  aria-label="Enable notifications for brewery updates"
+  title="Get notified when Braxton visits a brewery">
   <mat-icon>notifications_none</mat-icon>
 </button>
