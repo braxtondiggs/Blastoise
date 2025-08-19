@@ -1,27 +1,194 @@
-<form (ngSubmit)="save()" [formGroup]="form">
-  <h2 mat-dialog-title class="flex-row flex-align-start-center flex-gap-8">
-    <img src="/assets/icons/icon-72x72.png" />
-    <span>Add A Brewery</span>
-  </h2>
-  <mat-dialog-content>
-    <mat-form-field appearance="outline" style="width: 100%">
-      <mat-label>Brewery Name</mat-label>
-      <input matInput formControlName="name" />
-      <button matSuffix mat-icon-button type="button" (click)="search()">
-        <mat-icon>search</mat-icon>
-      </button>
-      <mat-error *ngIf="form.controls.name.errors?.required">Name is required</mat-error>
-    </mat-form-field>
-    <mat-selection-list #list>
-      <mat-list-option *ngFor="let item of $brewery | async" [value]="item">
-        <div mat-line>{{item.name}}</div>
-        <div mat-line style="font-size: 12px">{{item.formatted_address}}</div>
-      </mat-list-option>
-    </mat-selection-list>
-  </mat-dialog-content>
-  <div align="end" mat-dialog-actions>
-    <button mat-button mat-raised-button mat-dialog-close color="primary">Cancel</button>
-    <div class="spacer"></div>
-    <button mat-button mat-raised-button color="accent">Add</button>
+<div class="brewery-dialog mobile-optimized">
+  <!-- Enhanced Header -->
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-info">
+        <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="header-logo" />
+        <div class="header-text">
+          <h2>Add New Brewery</h2>
+          <p class="header-subtitle">Search and add breweries to your collection</p>
+        </div>
+      </div>
+    </div>
   </div>
-</form>
+
+  <!-- Enhanced Content -->
+  <div class="dialog-content">
+    <!-- Search Section -->
+    <form [formGroup]="form" class="search-form">
+      <div class="search-container">
+        <div class="search-section">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search for brewery</mat-label>
+            <input matInput
+                   formControlName="name"
+                   placeholder="Enter brewery name..."
+                   (keyup.enter)="search()"
+                   autocomplete="off" />
+            <button matSuffix
+                    mat-icon-button
+                    type="button"
+                    (click)="search()"
+                    [disabled]="form.invalid || isSearching"
+                    class="search-btn">
+              <mat-icon *ngIf="!isSearching">search</mat-icon>
+              <mat-spinner *ngIf="isSearching" diameter="20"></mat-spinner>
+            </button>
+            <mat-error *ngIf="form.controls.name.errors?.['required']">
+              Brewery name is required
+            </mat-error>
+            <mat-error *ngIf="form.controls.name.errors?.['minlength']">
+              Please enter at least 2 characters
+            </mat-error>
+          </mat-form-field>
+
+          <div class="search-help" *ngIf="!hasSearched && !isSearching">
+            <mat-icon>info</mat-icon>
+            <span>Enter a brewery name and click search to find locations</span>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- Results Section -->
+    <div class="results-section" *ngIf="hasSearched">
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isSearching">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Searching for breweries...</p>
+      </div>
+
+      <!-- Results Container -->
+      <div class="results-container" *ngIf="!isSearching && breweries.length > 0">
+        <div class="brewery-item" *ngFor="let brewery of breweries; trackBy: trackByPlaceId; let first = first; let last = last"
+             [class.selected]="isSelected(brewery)"
+             [class.processing]="addingItems.has(brewery.place_id)"
+             [class.first-item]="first"
+             [class.last-item]="last"
+             (click)="toggleSelection(brewery)">
+
+          <!-- Mobile-Optimized Brewery Info -->
+          <div class="brewery-section">
+            <div class="brewery-header">
+              <div class="brewery-icon-wrapper">
+                <mat-icon class="brewery-icon">local_bar</mat-icon>
+              </div>
+              <div class="brewery-details">
+                <h3 class="brewery-name">{{brewery.name}}</h3>
+                <p class="brewery-rating" *ngIf="brewery.rating">★ {{brewery.rating}} ({{brewery.user_ratings_total}} reviews)</p>
+              </div>
+              <div class="selection-indicator">
+                <mat-checkbox [checked]="isSelected(brewery)"
+                             [disabled]="addingItems.has(brewery.place_id)"
+                             (click)="$event.stopPropagation()"
+                             (change)="toggleSelection(brewery)"
+                             color="primary"></mat-checkbox>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile-Optimized Location Info -->
+          <div class="location-section">
+            <div class="location-info">
+              <div class="location-icon-wrapper">
+                <mat-icon class="location-icon">place</mat-icon>
+              </div>
+              <div class="location-details">
+                <p class="brewery-address">{{brewery.formatted_address}}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Adding Indicator -->
+          <div class="processing-indicator" *ngIf="addingItems.has(brewery.place_id)">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span class="processing-text">Adding...</span>
+          </div>
+        </div>
+
+        <!-- No Results -->
+        <div class="empty-state" *ngIf="breweries.length === 0">
+          <div class="empty-content">
+            <mat-icon class="empty-icon">search_off</mat-icon>
+            <h3>No breweries found</h3>
+            <p>Try searching with a different name or check your spelling</p>
+            <div class="empty-actions">
+              <button mat-stroked-button (click)="clearSearch()" class="clear-btn">
+                <mat-icon>refresh</mat-icon>
+                <span class="btn-text">Try Again</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results State -->
+      <div class="no-results-state" *ngIf="!isSearching && hasSearched && breweries.length === 0 && !searchError">
+        <div class="no-results-content">
+          <mat-icon class="no-results-icon">search_off</mat-icon>
+          <h3>No Breweries Found</h3>
+          <p>We couldn't find any breweries matching your search. Try a different name or check your spelling.</p>
+          <button mat-stroked-button (click)="clearSearch()" class="clear-btn">
+            <mat-icon>refresh</mat-icon>
+            <span class="btn-text">Try Another Search</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" *ngIf="!isSearching && searchError">
+        <div class="error-content">
+          <mat-icon class="error-icon">error_outline</mat-icon>
+          <h3>Search Failed</h3>
+          <p>{{searchError}}</p>
+          <button mat-stroked-button (click)="search()" class="retry-btn">
+            <mat-icon>refresh</mat-icon>
+            <span class="btn-text">Try Again</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Actions -->
+  <div class="dialog-actions mobile-actions-footer" *ngIf="selectedBreweries.length > 0">
+    <div class="actions-content">
+
+      <div class="primary-actions">
+        <button mat-stroked-button
+                type="button"
+                mat-dialog-close
+                [disabled]="isProcessing"
+                class="cancel-btn mobile-btn">
+          <mat-icon>close</mat-icon>
+          <span class="btn-text">Cancel</span>
+        </button>
+
+        <button mat-raised-button
+                color="primary"
+                (click)="save()"
+                [disabled]="selectedBreweries.length === 0 || isProcessing"
+                class="add-btn mobile-btn">
+          <mat-icon *ngIf="!isProcessing">add</mat-icon>
+          <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
+          <span class="btn-text">{{isProcessing ? 'Adding...' : 'Add&nbsp;Selected'}}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Close Action for No Selection -->
+  <div class="dialog-actions mobile-actions-footer" *ngIf="selectedBreweries.length === 0">
+    <div class="actions-content">
+      <div class="primary-actions">
+        <button mat-raised-button
+                color="primary"
+                mat-dialog-close
+                class="close-btn mobile-close-btn">
+          <mat-icon>close</mat-icon>
+          <span class="btn-text">Close</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

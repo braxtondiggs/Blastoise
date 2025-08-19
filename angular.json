@@ -29,6 +29,11 @@
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
             "aot": true,
+            "allowedCommonJsDependencies": [
+              "dayjs",
+              "dayjs/plugin/duration",
+              "dayjs/plugin/relativeTime"
+            ],
             "assets": [
               "src/favicon.ico",
               "src/assets",
@@ -65,8 +70,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "35kb",
+                  "maximumError": "50kb"
                 }
               ],
               "serviceWorker": true,

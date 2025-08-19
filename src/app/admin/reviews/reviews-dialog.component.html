@@ -1,30 +1,134 @@
-<h2 mat-dialog-title class="flex-row flex-align-start-center flex-gap-8">
-  <img src="/assets/icons/icon-72x72.png" />
-  <span>Under Review</span>
-</h2>
-<mat-dialog-content>
-  <mat-list role="list" *ngIf="data.reviews.length > 0;else empty_review">
-    <mat-list-item role="listitem" *ngFor="let item of data.reviews">
-      <div class="flex-row flex-align-space-between-center flex-1">
-        <div class="flex-column flex-1">
-          <h3>{{item.name}}</h3>
-          <caption>{{item.display.caption}}</caption>
-        </div>
-        <div class="flex-row">
-          <button mat-icon-button (click)="vote(true, item)">
-            <mat-icon color="accent">thumb_up</mat-icon>
-          </button>
-          <button mat-icon-button (click)="vote(false, item)">
-            <mat-icon color="warn">thumb_down</mat-icon>
-          </button>
+<div class="reviews-dialog mobile-optimized">
+  <!-- Enhanced Header -->
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-info">
+        <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="header-logo" />
+        <div class="header-text">
+          <h2>Pending Reviews</h2>
+          <p class="header-subtitle">
+            {{data.reviews.length}} location{{data.reviews.length !== 1 ? 's' : ''}} waiting for approval
+          </p>
         </div>
       </div>
-    </mat-list-item>
-  </mat-list>
-  <ng-template #empty_review>
-    <h3 class="center">Great Work!<br /> Nothing is needed to review.</h3>
-  </ng-template>
-</mat-dialog-content>
-<div align="start" mat-dialog-actions>
-  <button mat-button mat-raised-button mat-dialog-close color="accent">Close</button>
+    </div>
+  </div>
+
+  <!-- Enhanced Content -->
+  <div class="dialog-content">
+    <!-- Reviews List -->
+    <div class="reviews-container" *ngIf="data.reviews.length > 0; else emptyState">
+      <div class="review-item" *ngFor="let item of data.reviews; trackBy: trackByPlaceId; let first = first; let last = last"
+           [class.processing]="processingItems.has(item.place_id)"
+           [class.first-item]="first"
+           [class.last-item]="last">
+
+        <!-- Mobile-Optimized Location Info -->
+        <div class="location-section">
+          <div class="location-header">
+            <div class="location-icon-wrapper">
+              <mat-icon class="location-icon">place</mat-icon>
+            </div>
+            <div class="location-details">
+              <h3 class="location-name">{{item.name}}</h3>
+              <p class="location-address">{{item.address}}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile-Optimized Visit Info -->
+        <div class="visit-section">
+          <div class="visit-timing">
+            <div class="timing-icon-wrapper">
+              <mat-icon class="timing-icon">schedule</mat-icon>
+            </div>
+            <div class="timing-details">
+              <p class="visit-date">{{item.display.caption}}</p>
+              <p class="visit-duration" *ngIf="item.display.duration">
+                Duration: {{item.display.duration}}
+              </p>
+            </div>
+          </div>
+
+          <div class="visit-status" *ngIf="item.display.isCurrentVisit">
+            <mat-chip color="accent" selected class="current-visit-chip">
+              <mat-icon>radio_button_checked</mat-icon>
+              <span class="chip-text">Live</span>
+            </mat-chip>
+          </div>
+        </div>
+
+        <!-- Mobile-Optimized Action Buttons -->
+        <div class="actions-section">
+          <div class="action-buttons mobile-actions">
+            <button mat-raised-button
+                    color="primary"
+                    (click)="vote(true, item)"
+                    [disabled]="processingItems.has(item.place_id)"
+                    class="approve-btn mobile-btn">
+              <mat-icon>check</mat-icon>
+              <span class="btn-text">Approve</span>
+            </button>
+
+            <button mat-stroked-button
+                    color="warn"
+                    (click)="vote(false, item)"
+                    [disabled]="processingItems.has(item.place_id)"
+                    class="reject-btn mobile-btn">
+              <mat-icon>close</mat-icon>
+              <span class="btn-text">Reject</span>
+            </button>
+          </div>
+
+          <!-- Mobile-Optimized Loading State -->
+          <div class="processing-indicator" *ngIf="processingItems.has(item.place_id)">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span class="processing-text">Processing...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <div class="empty-content">
+          <mat-icon class="empty-icon">task_alt</mat-icon>
+          <h3>All caught up!</h3>
+          <p>No pending reviews at the moment. Great work!</p>
+          <div class="empty-stats">
+            <mat-chip color="primary" selected>
+              <mat-icon>verified</mat-icon>
+              All locations reviewed
+            </mat-chip>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Enhanced Actions -->
+  <div class="dialog-actions mobile-actions-footer">
+    <div class="actions-content">
+      <div class="bulk-actions" *ngIf="data.reviews.length > 1">
+        <button mat-stroked-button
+                (click)="approveAll()"
+                [disabled]="processingItems.size > 0"
+                class="bulk-approve mobile-bulk-btn">
+          <mat-icon>done_all</mat-icon>
+          <span class="btn-text">Approve All ({{data.reviews.length}})</span>
+        </button>
+      </div>
+
+      <div class="primary-actions">
+        <button mat-raised-button
+                color="primary"
+                mat-dialog-close
+                class="close-btn mobile-close-btn">
+          <mat-icon>close</mat-icon>
+          <span class="btn-text">Close</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

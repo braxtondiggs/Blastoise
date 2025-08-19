@@ -1,24 +1,89 @@
-<form (ngSubmit)="login()" [formGroup]="form">
-  <h2 mat-dialog-title class="flex-row flex-align-start-center flex-gap-8">
-    <img src="/assets/icons/icon-72x72.png" />
-    <span>Admin Login</span>
-  </h2>
-  <mat-dialog-content>
-    <div class="flex-column flex-gap-12">
-      <mat-form-field appearance="outline">
-        <mat-label>Email Address</mat-label>
-        <input matInput formControlName="email" />
-        <mat-error *ngIf="form.controls.email.errors?.required">Email is required</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Password</mat-label>
-        <input matInput formControlName="password" type="password" />
-        <mat-error *ngIf="form.controls.password.errors?.required">Password is required</mat-error>
-      </mat-form-field>
+<div class="auth-modal">
+  <div class="auth-header">
+    <div class="logo-section">
+      <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="logo" />
+      <div class="brand-info">
+        <h2>Welcome Back</h2>
+        <p>Sign in to access the admin panel</p>
+      </div>
     </div>
-    <mat-error *ngIf="error">{{error}}</mat-error>
-  </mat-dialog-content>
-  <div align="end" mat-dialog-actions>
-    <button mat-button mat-raised-button color="accent" type="submit">Login</button>
   </div>
-</form>
+
+  <form (ngSubmit)="login()" [formGroup]="form" class="auth-form">
+    <div class="form-content">
+      <div class="form-fields">
+        <mat-form-field appearance="outline" class="auth-field">
+          <mat-label>Email Address</mat-label>
+          <input matInput
+                 formControlName="email"
+                 type="email"
+                 autocomplete="email"
+                 placeholder="Enter your email" />
+          <mat-icon matSuffix class="field-icon">email</mat-icon>
+          <mat-error *ngIf="form.controls.email.errors?.['required']">
+            Email is required
+          </mat-error>
+          <mat-error *ngIf="form.controls.email.errors?.['email']">
+            Please enter a valid email address
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="auth-field">
+          <mat-label>Password</mat-label>
+          <input matInput
+                 formControlName="password"
+                 [type]="hidePassword ? 'password' : 'text'"
+                 autocomplete="current-password"
+                 placeholder="Enter your password" />
+          <button mat-icon-button
+                  matSuffix
+                  type="button"
+                  (click)="hidePassword = !hidePassword"
+                  [attr.aria-label]="'Hide password'"
+                  [attr.aria-pressed]="hidePassword"
+                  class="password-toggle">
+            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          <mat-error *ngIf="form.controls.password.errors?.['required']">
+            Password is required
+          </mat-error>
+          <mat-error *ngIf="form.controls.password.errors?.['minlength']">
+            Password must be at least 6 characters
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="error-section" *ngIf="error">
+        <div class="error-message">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ error }}</span>
+        </div>
+      </div>
+
+      <div class="loading-section" *ngIf="isLoading">
+        <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
+        <p class="loading-text">Signing you in...</p>
+      </div>
+    </div>
+
+    <div class="auth-actions">
+      <button mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="form.invalid || isLoading"
+              class="login-button">
+        <mat-icon *ngIf="!isLoading">login</mat-icon>
+        <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+        <span>{{ isLoading ? 'Signing In...' : 'Sign In' }}</span>
+      </button>
+
+      <button mat-button
+              type="button"
+              mat-dialog-close
+              [disabled]="isLoading"
+              class="cancel-button">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
