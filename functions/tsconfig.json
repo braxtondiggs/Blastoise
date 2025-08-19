@@ -1,15 +1,29 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017"
+    "target": "ES2020",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "declaration": false
   },
   "compileOnSave": true,
   "include": [
-    "src"
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**/*"
   ]
 }
