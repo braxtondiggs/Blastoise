@@ -9,11 +9,12 @@
     "test": "ng test",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadless --code-coverage",
     "lint": "ng lint",
-    "e2e": "ng e2e",
+    "lint:fix": "ng lint --fix",
     "deploy": "npm run build:prod && firebase deploy",
     "deploy:functions": "firebase deploy --only functions",
     "serve:local": "firebase emulators:start",
-    "analyze": "npm run build:prod && npx webpack-bundle-analyzer dist/stats.json"
+    "analyze": "npm run build:prod && npx webpack-bundle-analyzer dist/stats.json",
+    "audit:fix": "npm audit fix"
   },
   "private": true,
   "dependencies": {
@@ -40,9 +41,17 @@
   "devDependencies": {
     "@angular-devkit/architect": "0.1600.0",
     "@angular-devkit/build-angular": "^16.0.0",
+    "@angular-eslint/builder": "20.1.1",
+    "@angular-eslint/eslint-plugin": "^20.1.1",
+    "@angular-eslint/eslint-plugin-template": "20.1.1",
+    "@angular-eslint/schematics": "20.1.1",
+    "@angular-eslint/template-parser": "20.1.1",
     "@angular/cli": "^16.0.0",
     "@angular/compiler-cli": "^16.0.0",
     "@types/node": "^18.15.0",
+    "@typescript-eslint/eslint-plugin": "7.11.0",
+    "@typescript-eslint/parser": "7.11.0",
+    "eslint": "8.57.1",
     "firebase-tools": "^12.0.0",
     "typescript": "~5.0.0"
   }

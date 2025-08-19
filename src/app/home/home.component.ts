@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, DestroyRef, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireMessaging } from '@angular/fire/compat/messaging';
@@ -20,7 +20,7 @@ interface HomeComponentState {
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent implements OnInit, OnDestroy {
+export class HomeComponent implements OnInit {
   // Angular v16 dependency injection
   private readonly afs = inject(AngularFirestore);
   private readonly afMessaging = inject(AngularFireMessaging);
@@ -62,10 +62,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.initializeNotifications();
     this.loadBreweryData();
-  }
-
-  ngOnDestroy(): void {
-    // Cleanup is handled automatically by takeUntilDestroyed
   }
 
   /**

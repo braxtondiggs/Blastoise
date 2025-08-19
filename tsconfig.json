@@ -8,6 +8,9 @@
     "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
     "sourceMap": true,
     "declaration": false,
     "downlevelIteration": true,
@@ -15,10 +18,11 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "target": "ES2022",
-    "module": "es2020",
-    "skipLibCheck": true, // Temp solution that need to be removed when angular fire is updated
+    "module": "ES2022",
+    "useDefineForClassFields": false,
+    "skipLibCheck": true,
     "lib": [
-      "es2018",
+      "ES2022",
       "dom"
     ]
   },

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Brewery, BreweryTimeline } from 'src/app/core/interfaces';
@@ -38,9 +38,9 @@ export class TimelineDialogComponent implements OnInit {
       clockFaceTimeInactiveColor: '#fff'
     }
   };
-  constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { timeline: BreweryTimeline, brewery: Brewery, breweries: Brewery[] },
-    private dialogRef: MatDialogRef<TimelineDialogComponent>) { }
+
+  public data = inject(MAT_DIALOG_DATA) as { timeline: BreweryTimeline, brewery: Brewery, breweries: Brewery[] };
+  private dialogRef = inject(MatDialogRef<TimelineDialogComponent>);
 
   ngOnInit() {
     if (this.data.breweries) {
@@ -81,7 +81,7 @@ export class TimelineDialogComponent implements OnInit {
   }
 
   onStartChange() {
-    this.form.controls.end.patchValue(this.form.value.start || null);
+    this.form.controls['end']?.patchValue(this.form.value.start || null);
   }
 
   private filter(value: string | Brewery): Brewery[] {

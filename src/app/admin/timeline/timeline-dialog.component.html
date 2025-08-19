@@ -9,8 +9,8 @@
         <mat-form-field style="padding-bottom:8px" *ngIf="data.breweries">
           <mat-label>Brewery</mat-label>
           <input type="text" matInput formControlName="brewery" [matAutocomplete]="auto">
-          <mat-error *ngIf="form.controls.brewery.errors?.required">Brewery is required</mat-error>
-          <mat-error *ngIf="form.controls.brewery.errors?.match && !form.controls.brewery.errors?.required">Must choose brewery from list</mat-error>
+          <mat-error *ngIf="form.controls['brewery']?.errors?.['required']">Brewery is required</mat-error>
+          <mat-error *ngIf="form.controls['brewery']?.errors?.['match'] && !form.controls['brewery']?.errors?.['required']">Must choose brewery from list</mat-error>
           <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn">
             <mat-option *ngFor="let brewery of filtered | async" [value]="brewery">
               <h3>{{brewery.name}}</h3>
@@ -22,14 +22,14 @@
         <mat-form-field appearance="outline" class="flex-calc-50">
           <mat-label>Start Date</mat-label>
           <input matInput [matDatepicker]="pickerStart" formControlName="start" (dateChange)="onStartChange()" />
-          <mat-error *ngIf="form.controls.start.errors?.required">Start Date is required</mat-error>
+          <mat-error *ngIf="form.controls['start']?.errors?.['required']">Start Date is required</mat-error>
           <mat-datepicker #pickerStart></mat-datepicker>
           <mat-datepicker-toggle matSuffix [for]="pickerStart"></mat-datepicker-toggle>
         </mat-form-field>
         <mat-form-field appearance="outline" class="flex-calc-50">
           <mat-label>End Date</mat-label>
           <input matInput [matDatepicker]="pickerEnd" formControlName="end" />
-          <mat-error *ngIf="form.controls.end.errors?.required">Start Date is required</mat-error>
+          <mat-error *ngIf="form.controls['end']?.errors?.['required']">End Date is required</mat-error>
           <mat-datepicker #pickerEnd></mat-datepicker>
           <mat-datepicker-toggle matSuffix [for]="pickerEnd"></mat-datepicker-toggle>
         </mat-form-field>
@@ -41,7 +41,7 @@
           <button matSuffix mat-icon-button type="button" (click)="startTime.open()">
             <mat-icon>schedule</mat-icon>
           </button>
-          <mat-error *ngIf="form.controls.startTime.errors?.required">Start Time is required</mat-error>
+          <mat-error *ngIf="form.controls['startTime']?.errors?.['required']">Start Time is required</mat-error>
           <ngx-material-timepicker #startTime [theme]="theme" [defaultTime]="defaultTimeStart"></ngx-material-timepicker>
         </mat-form-field>
         <mat-form-field appearance="outline" class="flex-calc-50">
@@ -50,7 +50,7 @@
           <button matSuffix mat-icon-button type="button" (click)="endTime.open()">
             <mat-icon>schedule</mat-icon>
           </button>
-          <mat-error *ngIf="form.controls.endTime.errors?.required">End Time is required</mat-error>
+          <mat-error *ngIf="form.controls['endTime']?.errors?.['required']">End Time is required</mat-error>
           <ngx-material-timepicker #endTime [theme]="theme" [defaultTime]="defaultTimeEnd"></ngx-material-timepicker>
         </mat-form-field>
       </div>

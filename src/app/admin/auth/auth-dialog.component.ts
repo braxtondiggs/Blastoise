@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -19,10 +19,8 @@ export class AuthDialogComponent {
     password: new FormControl('', [Validators.required, Validators.minLength(6)])
   });
 
-  constructor(
-    public auth: AngularFireAuth,
-    private dialogRef: MatDialogRef<AuthDialogComponent>
-  ) { }
+  public auth = inject(AngularFireAuth);
+  private dialogRef = inject(MatDialogRef<AuthDialogComponent>);
 
   async login(): Promise<void> {
     if (this.form.valid && !this.isLoading) {

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable } from 'rxjs';
@@ -10,11 +10,12 @@ import { User } from '@firebase/auth-types';
 })
 export class AuthService {
   user$: Observable<any>;
-  constructor(
-    private afAuth: AngularFireAuth,
-    private router: Router
-  ) {
-    this.user$ = afAuth.authState
+
+  private afAuth = inject(AngularFireAuth);
+  private router = inject(Router);
+
+  constructor() {
+    this.user$ = this.afAuth.authState
   }
 
   uid(): Promise<any> {
@@ -28,6 +29,6 @@ export class AuthService {
 
   async isAdmin(user: User) {
     const idTokenResult = await user.getIdTokenResult();
-    return !!idTokenResult.claims.admin;
+    return !!idTokenResult.claims['admin'];
   }
 }

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -26,13 +26,13 @@ interface EnhancedBreweryReview extends BreweryReview {
 export class ReviewsDialogComponent {
   processingItems = new Set<string>();
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { reviews: EnhancedBreweryReview[] },
-    private afs: AngularFirestore,
-    private http: HttpClient,
-    private toast: MatSnackBar,
-    private dialogRef: MatDialogRef<ReviewsDialogComponent>
-  ) {
+  public data = inject(MAT_DIALOG_DATA) as { reviews: EnhancedBreweryReview[] };
+  private afs = inject(AngularFirestore);
+  private http = inject(HttpClient);
+  private toast = inject(MatSnackBar);
+  private dialogRef = inject(MatDialogRef<ReviewsDialogComponent>);
+
+  constructor() {
     dayjs.extend(isBetween);
     dayjs.extend(duration);
     this.enhanceReviewsData();

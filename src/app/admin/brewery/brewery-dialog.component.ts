@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, inject } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSelectionList } from '@angular/material/list';
@@ -51,11 +51,9 @@ export class BreweryDialogComponent {
     name: new FormControl('', [Validators.required, Validators.minLength(2)])
   });
 
-  constructor(
-    private dialogRef: MatDialogRef<BreweryDialogComponent>,
-    private http: HttpClient,
-    private snackBar: MatSnackBar
-  ) { }
+  private dialogRef = inject(MatDialogRef<BreweryDialogComponent>);
+  private http = inject(HttpClient);
+  private snackBar = inject(MatSnackBar);
 
   trackByPlaceId(index: number, item: BrewerySearchResult): string {
     return item.place_id;
@@ -168,7 +166,7 @@ export class BreweryDialogComponent {
 
       // Show success message
       const message = breweryData.length === 1
-        ? `Added "${breweryData[0].name}" successfully`
+        ? `Added "${breweryData[0]?.name}" successfully`
         : `Added ${breweryData.length} breweries successfully`;
 
       this.snackBar.open(message, 'Close', { duration: 3000 });
