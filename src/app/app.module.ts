@@ -2,6 +2,7 @@ import { NgModule, ErrorHandler, isDevMode } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ServiceWorkerModule } from '@angular/service-worker';
+import { provideHttpClient } from '@angular/common/http';
 
 // Angular Fire v16 imports - using compat modules for better NgModule compatibility
 import { AngularFireModule } from '@angular/fire/compat';
@@ -49,6 +50,8 @@ export class GlobalErrorHandler implements ErrorHandler {
     })
   ],
   providers: [
+    // HTTP Client configuration - using new Angular 18 approach
+    provideHttpClient(),
     // Global error handler for better error tracking
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     // Analytics tracking services for improved user tracking

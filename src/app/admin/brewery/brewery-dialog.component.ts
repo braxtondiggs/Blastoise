@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { Component, ViewChild, inject } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -6,20 +5,7 @@ import { MatSelectionList } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
-
-interface BrewerySearchResult {
-  place_id: string;
-  name: string;
-  formatted_address: string;
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-  rating?: number;
-  user_ratings_total?: number;
-}
+import { ApiService, BrewerySearchResult } from '../../core/services';
 
 interface BreweryData {
   address: string;
@@ -52,7 +38,7 @@ export class BreweryDialogComponent {
   });
 
   private dialogRef = inject(MatDialogRef<BreweryDialogComponent>);
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private snackBar = inject(MatSnackBar);
 
   trackByPlaceId(index: number, item: BrewerySearchResult): string {
@@ -102,12 +88,7 @@ export class BreweryDialogComponent {
     this.breweries = [];
 
     // Make the HTTP request and subscribe to execute it
-    this.http.post<BrewerySearchResult[]>(
-      'https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/brewery',
-      {
-        brewery: encodeURIComponent(breweryName)
-      }
-    ).pipe(
+    this.api.searchBreweries(breweryName).pipe(
       map(results => {
         // Ensure we have an array and filter out any invalid results
         const validResults = Array.isArray(results) ? results.filter(r =>

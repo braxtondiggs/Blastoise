@@ -94,16 +94,20 @@
 
           <!-- Enhanced Name Column with Status Indicators -->
           <ng-container matColumnDef="name">
-            <th mat-header-cell mat-sort-header *matHeaderCellDef class="name-header">
-              <div class="header-content">
-                <mat-icon>local_bar</mat-icon>
-                <span>Brewery</span>
-              </div>
+            <th mat-header-cell mat-sort-header *matHeaderCellDef class="name-header"
+                sortActionDescription="Sort by brewery name">Brewery
             </th>
             <td mat-cell *matCellDef="let element" class="name-cell">
               <div class="brewery-info">
                 <div class="brewery-main">
                   <span class="brewery-name">{{element.name}}</span>
+                  <!-- Secondary info -->
+                  <div class="brewery-meta" *ngIf="element.address">
+                    <span class="address">
+                      <mat-icon>location_on</mat-icon>
+                      {{element.address}}
+                    </span>
+                  </div>
                   <div class="brewery-badges">
                     <!-- Visit count chip using Material design -->
                     <mat-chip-set>
@@ -112,14 +116,6 @@
                                class="visit-chip">
                         <mat-icon matChipAvatar>timeline</mat-icon>
                         {{element.timeline}} visit{{element.timeline !== 1 ? 's' : ''}}
-                      </mat-chip>
-
-                      <!-- Recent visit chip -->
-                      <mat-chip *ngIf="element.lastUpdated && isRecentVisit(element.lastUpdated)"
-                               color="accent"
-                               matTooltip="Visited in the last 30 days">
-                        <mat-icon matChipAvatar>schedule</mat-icon>
-                        Recent
                       </mat-chip>
 
                       <!-- Favorite chip -->
@@ -132,35 +128,19 @@
                     </mat-chip-set>
                   </div>
                 </div>
-
-                <!-- Secondary info -->
-                <div class="brewery-meta" *ngIf="element.address">
-                  <span class="address">
-                    <mat-icon>location_on</mat-icon>
-                    {{element.address}}
-                  </span>
-                </div>
               </div>
             </td>
           </ng-container>
 
           <!-- Enhanced Date Column with Visual Indicators -->
           <ng-container matColumnDef="date">
-            <th mat-header-cell mat-sort-header *matHeaderCellDef class="date-header">
-              <div class="header-content">
-                <mat-icon>schedule</mat-icon>
-                <span>Last Visit</span>
-              </div>
+            <th mat-header-cell mat-sort-header *matHeaderCellDef class="date-header"
+                sortActionDescription="Sort by last visit date">Last Visit
             </th>
             <td mat-cell *matCellDef="let element" class="date-cell">
               <div class="date-info" *ngIf="element.updated; else noDate">
                 <div class="date-main">
                   <span class="date-primary">{{ element.updated }}</span>
-                  <div class="date-indicator"
-                       [class.recent]="element.lastUpdated && isRecentVisit(element.lastUpdated)"
-                       [class.old]="element.lastUpdated && !isRecentVisit(element.lastUpdated)"
-                       *ngIf="element.lastUpdated">
-                  </div>
                 </div>
                 <span class="date-relative">{{ getRelativeTime(element.lastUpdated) }}</span>
               </div>
@@ -175,30 +155,23 @@
 
           <!-- Enhanced Actions Column with Quick Actions -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header">
-              <span>Quick Actions</span>
-            </th>
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let element" class="actions-cell">
               <div class="action-buttons">
-                <!-- Primary action: Add visit -->
-                <button mat-mini-fab
-                        color="primary"
-                        (click)="addTimeline(element); $event.stopPropagation()"
-                        matTooltip="Add new visit"
-                        class="action-btn primary-action">
-                  <mat-icon>add</mat-icon>
-                </button>
-
-                <!-- Secondary actions menu -->
                 <button mat-icon-button
                         [matMenuTriggerFor]="actionsMenu"
                         (click)="$event.stopPropagation()"
                         matTooltip="More actions"
-                        class="action-btn secondary-action">
+                        [attr.aria-label]="'More actions for ' + element.name">
                   <mat-icon>more_vert</mat-icon>
                 </button>
 
                 <mat-menu #actionsMenu="matMenu">
+                  <button mat-menu-item
+                        (click)="addTimeline(element)">
+                  <mat-icon>add</mat-icon>
+                  <span>Add New Visit</span>
+                </button>
                   <button mat-menu-item (click)="editBrewery(element)">
                     <mat-icon>edit</mat-icon>
                     <span>Edit Details</span>
@@ -214,7 +187,7 @@
                   <mat-divider></mat-divider>
                   <button mat-menu-item
                           (click)="removeBrewery(element.placeId)"
-                          *ngIf="!element.timeline || element.timeline === 0"
+                          [disabled]="element.timeline || element.timeline > 0"
                           class="delete-action">
                     <mat-icon>delete</mat-icon>
                     <span>Delete Brewery</span>
@@ -226,8 +199,10 @@
 
           <!-- Enhanced Expandable Detail Row -->
           <ng-container matColumnDef="expandedDetail">
-            <td mat-cell *matCellDef="let element" [attr.colspan]="columns.length" class="detail-cell">
-              <div class="timeline-section" [@detailExpand]="element === expandedElement() ? 'expanded' : 'collapsed'">
+            <td mat-cell *matCellDef="let element" [attr.colspan]="columns.length" class="mat-cell-expandable">
+              <div class="timeline-section"
+                   [@detailExpand]="element === expandedElement() ? 'expanded' : 'collapsed'"
+                   style="overflow: hidden;">
                 <div *ngIf="(timeline$ | async) as timeline; else noTimeline" class="timeline-container">
                   <div class="timeline-header">
                     <h3>
@@ -255,7 +230,8 @@
                         </div>
                       </div>
                       <div class="timeline-actions">
-                        <button mat-icon-button [matMenuTriggerFor]="menu" class="timeline-menu-btn">
+                        <button mat-icon-button [matMenuTriggerFor]="menu" class="timeline-menu-btn"
+                                [attr.aria-label]="'Actions for visit on ' + timelineDisplay[i]?.title">
                           <mat-icon>more_vert</mat-icon>
                         </button>
                         <mat-menu #menu="matMenu">
@@ -295,7 +271,8 @@
           <tr mat-row *matRowDef="let element; columns: columns;"
               (click)="getExpandedElement(element)"
               class="table-row"
-              [class.expanded]="element === expandedElement()"></tr>
+              [class.expanded]="element === expandedElement()"
+              [attr.aria-label]="'Brewery row for ' + element.name"></tr>
           <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
 
           <!-- Enhanced No Data Row -->

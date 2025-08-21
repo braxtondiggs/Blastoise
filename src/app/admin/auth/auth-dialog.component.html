@@ -76,14 +76,6 @@
         <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
         <span>{{ isLoading ? 'Signing In...' : 'Sign In' }}</span>
       </button>
-
-      <button mat-button
-              type="button"
-              mat-dialog-close
-              [disabled]="isLoading"
-              class="cancel-button">
-        Cancel
-      </button>
     </div>
   </form>
 </div>

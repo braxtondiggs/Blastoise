@@ -8,22 +8,22 @@ export interface AddActionResult {
 @Component({
   selector: 'app-add-actions-bottom-sheet',
   template: `
-    <mat-nav-list>
+    <mat-list>
       <h3 mat-subheader>Quick Actions</h3>
       <mat-list-item (click)="selectAction('timeline')" button>
         <mat-icon matListItemIcon>timeline</mat-icon>
-        <div matListItemTitle>Add Visit to Timeline</div>
-        <div matListItemLine class="mat-caption">Record a new brewery visit</div>
+        <span matListItemTitle>Add Visit to Timeline</span>
+        <span matListItemLine class="mat-caption">Record a new brewery visit</span>
       </mat-list-item>
       <mat-list-item (click)="selectAction('brewery')" button>
         <mat-icon matListItemIcon>local_bar</mat-icon>
-        <div matListItemTitle>Add New Brewery</div>
-        <div matListItemLine class="mat-caption">Create a new brewery entry</div>
+        <span matListItemTitle>Add New Brewery</span>
+        <span matListItemLine class="mat-caption">Create a new brewery entry</span>
       </mat-list-item>
-    </mat-nav-list>
+    </mat-list>
   `,
   styles: [`
-    mat-nav-list {
+    mat-list {
       padding: 16px 0;
       min-width: 280px;
       max-width: 100vw;
@@ -69,7 +69,7 @@ export interface AddActionResult {
 
     /* Mobile responsive styles */
     @media (max-width: 768px) {
-      :host ::ng-deep mat-nav-list {
+      :host ::ng-deep mat-list {
         min-width: 100%;
         padding: 12px 0;
       }

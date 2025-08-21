@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 
 // Angular Material Modules
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -40,6 +39,7 @@ import { AuthDialogComponent } from './auth/auth-dialog.component';
 import { BreweryDialogComponent } from './brewery/brewery-dialog.component';
 import { ReviewsDialogComponent } from './reviews/reviews-dialog.component';
 import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
+import { ApiService, AuthService } from '../core/services';
 
 @NgModule({
   declarations: [
@@ -54,7 +54,6 @@ import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    HttpClientModule,
     AdminRoutingModule,
 
     // Angular Material Modules
@@ -84,6 +83,7 @@ import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
 
     // Third-party modules
     NgxMaterialTimepickerModule
-  ]
+  ],
+  providers: [ ApiService, AuthService ],
 })
 export class AdminModule { }
