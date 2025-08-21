@@ -15,7 +15,7 @@ export class AuthService {
   private router = inject(Router);
 
   constructor() {
-    this.user$ = this.afAuth.authState
+    this.user$ = this.afAuth.authState;
   }
 
   uid(): Promise<any> {

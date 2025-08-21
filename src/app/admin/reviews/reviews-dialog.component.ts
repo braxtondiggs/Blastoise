@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Brewery, BreweryReview, BreweryTimeline } from 'src/app/core/interfaces';
+import { ApiService } from '../../core/services';
 import { take } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
 import * as isBetween from 'dayjs/plugin/isBetween';
@@ -28,9 +28,8 @@ export class ReviewsDialogComponent {
 
   public data = inject(MAT_DIALOG_DATA) as { reviews: EnhancedBreweryReview[] };
   private afs = inject(AngularFirestore);
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private toast = inject(MatSnackBar);
-  private dialogRef = inject(MatDialogRef<ReviewsDialogComponent>);
 
   constructor() {
     dayjs.extend(isBetween);
@@ -160,7 +159,7 @@ export class ReviewsDialogComponent {
     // Send notification if it's a current visit
     if (item.display.isCurrentVisit) {
       try {
-        await this.http.post('https://us-central1-mybuddiesio.cloudfunctions.net/endpoints/notification', {
+        await this.api.sendNotification({
           brewery: item.name
         }).toPromise();
       } catch (notificationError) {

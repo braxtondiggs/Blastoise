@@ -7,19 +7,18 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
-import { map, take, takeUntil, catchError, switchMap, startWith } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, take, catchError } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Timestamp } from '@firebase/firestore-types';
 import * as dayjs from 'dayjs';
 import * as duration from 'dayjs/plugin/duration';
 import * as relativeTime from 'dayjs/plugin/relativeTime';
-import { AuthService } from '../core/services';
+import { AuthService, ApiService } from '../core/services';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthDialogComponent } from './auth/auth-dialog.component';
 import { ReviewsDialogComponent } from './reviews/reviews-dialog.component';
 import { AlertDialogComponent } from './alert/alert-dialog.component';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
@@ -32,19 +31,18 @@ import { AddActionsBottomSheetComponent, AddActionResult } from './add-actions/a
   styleUrls: ['./admin.component.scss'],
   animations: [
     trigger('detailExpand', [
-      state('collapsed', style({ height: '0px', minHeight: '0' })),
-      state('expanded', style({ height: '*' })),
+      state('collapsed', style({ height: '0px', minHeight: '0', overflow: 'hidden' })),
+      state('expanded', style({ height: '*', overflow: 'visible' })),
       transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
     ]),
   ],
 })
 export class AdminComponent implements OnInit {
-  // Injected services using Angular 16 inject() function
   private readonly auth = inject(AuthService);
+  private readonly api = inject(ApiService);
   private readonly afs = inject(AngularFirestore);
   private readonly dialog = inject(MatDialog);
   private readonly bottomSheet = inject(MatBottomSheet);
-  private readonly http = inject(HttpClient);
   private readonly toast = inject(MatSnackBar);
   private readonly titleService = inject(Title);
   private readonly route = inject(ActivatedRoute);
@@ -543,25 +541,15 @@ export class AdminComponent implements OnInit {
       const position = await this.getCurrentPosition();
       const { latitude, longitude } = position.coords;
 
-      const geocodioResponse = await this.http.post<{ address: string }>(
-        'https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/geocodio',
-        { location: `${latitude},${longitude}` }
-      ).toPromise();
+      const geocodioResponse = await this.api.getAddressFromLocation(latitude, longitude).toPromise();
 
       if (!geocodioResponse?.address) {
         throw new Error('Failed to get address from location');
       }
 
-      const importResponse = await this.http.post<{
-        msg: string;
-        status: boolean;
-        candidates: Array<{ name: string }>
-      }>(
-        'https://us-central1-blastoise-5d78e.cloudfunctions.net/endpoints/import',
-        {
-          address: geocodioResponse.address,
-          location: `${latitude},${longitude}`
-        }
+      const importResponse = await this.api.importLocation(
+        geocodioResponse.address,
+        `${latitude},${longitude}`
       ).toPromise();
 
       if (!importResponse) {
@@ -599,14 +587,6 @@ export class AdminComponent implements OnInit {
         }
       );
     });
-  }
-
-  // Utility methods for UI
-  isRecentVisit(timestamp: any): boolean {
-    if (!timestamp) return false;
-    const date = timestamp instanceof Date ? timestamp : (timestamp as Timestamp).toDate();
-    const thirtyDaysAgo = dayjs().subtract(30, 'days');
-    return dayjs(date).isAfter(thirtyDaysAgo);
   }
 
   // Get appropriate chip color for visit count (Material Design colors)
@@ -669,5 +649,10 @@ export class AdminComponent implements OnInit {
     }).catch(() => {
       this.toast.open('Failed to copy address', 'Close', { duration: 3000 });
     });
+  }
+
+  // Track by function for better table performance (Angular 18 best practice)
+  trackByBrewery(index: number, brewery: Brewery): string {
+    return brewery.placeId || brewery.name || index.toString();
   }
 }

@@ -2,7 +2,7 @@ import { Component, OnInit, inject, DestroyRef, signal, computed } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireMessaging } from '@angular/fire/compat/messaging';
-import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
+import { Observable, timeout, of } from 'rxjs';
 import { map, tap, catchError, startWith, finalize } from 'rxjs/operators';
 import { HumanizeDuration, HumanizeDurationLanguage } from 'humanize-duration-ts';
 import { Brewery } from '../core/interfaces';
@@ -68,7 +68,23 @@ export class HomeComponent implements OnInit {
    * Initialize Firebase Cloud Messaging if notifications are enabled
    */
   private initializeNotifications(): void {
-    if (this.hasNotifications()) {
+
+    // Check service worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        console.log('Service worker registrations:', registrations.length);
+        registrations.forEach((registration, index) => {
+          console.log(`SW ${index}:`, registration.scope);
+        });
+      });
+    }
+
+    // Check if user has granted permission but token is missing
+    if (Notification.permission === 'granted' && !this.notificationToken()) {
+      console.log('Permission granted but token missing, requesting new token...');
+      this.listenToNotifications();
+    } else if (this.hasNotifications()) {
+      console.log('Notifications already set up, setting up listener...');
       this.setupNotificationListener();
     }
   }
@@ -81,8 +97,9 @@ export class HomeComponent implements OnInit {
       .collection<Brewery>('breweries', ref =>
         ref.orderBy('lastUpdated', 'desc').limit(1)
       )
-      .valueChanges()
-      .pipe(
+      .valueChanges();
+
+    this.brewery$ = this.brewery$.pipe(
         startWith([]), // Start with empty array
         map(breweries => this.filterActiveBreweries(breweries)),
         tap(breweries => this.updateState({ breweries, isLoading: false, hasError: false })),
@@ -101,7 +118,7 @@ export class HomeComponent implements OnInit {
       );
 
     // Subscribe to brewery data to update component state
-    this.brewery$.subscribe();
+    this.brewery$?.subscribe();
   }
 
   /**
@@ -156,17 +173,60 @@ export class HomeComponent implements OnInit {
    */
   async listenToNotifications(): Promise<void> {
     try {
-      if (this.hasNotifications()) return;
-
-      const token = await this.afMessaging.requestToken.pipe(
-        takeUntilDestroyed(this.destroyRef)
-      ).toPromise();
-
-      if (!token) {
-        console.warn('No FCM token received');
+      // Check if we already have notifications enabled (token exists and permissions granted)
+      if (this.hasNotifications()) {
+        console.log('Notifications already enabled');
         return;
       }
 
+      console.log('Requesting FCM token...');
+
+      // Try getToken() first with timeout (more reliable for getting existing tokens)
+      try {
+        const token = await this.afMessaging.getToken.pipe(
+          timeout(10000), // 10 second timeout
+          takeUntilDestroyed(this.destroyRef)
+        ).toPromise();
+
+        if (token) {
+          console.log('FCM token received via getToken:', token);
+          await this.saveToken(token);
+          return;
+        }
+      } catch (getTokenError) {
+        console.warn('getToken failed or timed out:', getTokenError);
+      }
+
+      // If getToken fails, try requestToken with timeout
+      console.log('Trying requestToken...');
+      const token = await this.afMessaging.getToken.pipe(
+        timeout(15000), // 15 second timeout
+        catchError(error => {
+          console.error('RequestToken error:', error);
+          return of(null); // Return null on error
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      ).toPromise();
+
+
+      if (!token) return;
+
+      console.log('FCM token received via requestToken:', token);
+      await this.saveToken(token);
+
+    } catch (error) {
+      console.error('Error setting up notifications:', error);
+      // Clear any stale token if there was an error
+      localStorage.removeItem('notificationToken');
+      this.notificationToken.set(null);
+    }
+  }
+
+  /**
+   * Save the FCM token to localStorage and Firestore
+   */
+  private async saveToken(token: string): Promise<void> {
+    try {
       // Store token in Firestore
       await this.afs.collection('notifications').add({
         token,
@@ -179,11 +239,12 @@ export class HomeComponent implements OnInit {
       localStorage.setItem('notificationToken', token);
       this.notificationToken.set(token);
 
-      this.setupNotificationListener();
+      console.log('Notification token saved to localStorage');
 
+      this.setupNotificationListener();
     } catch (error) {
-      console.error('Error setting up notifications:', error);
-      // Could show user-friendly error message here
+      console.error('Error saving token:', error);
+      throw error;
     }
   }
 
