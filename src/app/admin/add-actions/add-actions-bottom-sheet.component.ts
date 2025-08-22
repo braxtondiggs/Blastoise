@@ -1,5 +1,8 @@
 import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { MatListModule } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
 
 export interface AddActionResult {
   action: 'timeline' | 'brewery';
@@ -7,6 +10,8 @@ export interface AddActionResult {
 
 @Component({
   selector: 'app-add-actions-bottom-sheet',
+  standalone: true,
+  imports: [CommonModule, MatListModule, MatIconModule],
   template: `
     <mat-list>
       <h3 mat-subheader>Quick Actions</h3>

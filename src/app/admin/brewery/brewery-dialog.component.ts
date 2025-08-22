@@ -1,8 +1,16 @@
 import { Component, ViewChild, inject } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef } from '@angular/material/dialog';
-import { MatSelectionList } from '@angular/material/list';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
+import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatSelectionList, MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { ApiService, BrewerySearchResult } from '../../core/services';
@@ -19,6 +27,20 @@ interface BreweryData {
   selector: 'app-brewery-dialog',
   templateUrl: './brewery-dialog.component.html',
   styleUrls: ['./brewery-dialog.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatListModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+    MatCardModule,
+    MatCheckboxModule
+  ]
 })
 export class BreweryDialogComponent {
   @ViewChild('list') list?: MatSelectionList;

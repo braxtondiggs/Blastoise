@@ -63,8 +63,22 @@
       </button>
     </div>
   </div>
+
+  <!-- Main Loading State -->
+  <div class="main-loading-section" *ngIf="isLoading()">
+    <mat-card class="loading-card" appearance="outlined">
+      <mat-card-content>
+        <div class="main-loading-content">
+          <mat-spinner diameter="60" color="primary"></mat-spinner>
+          <h3>Loading breweries...</h3>
+          <p>Please wait while we fetch your brewery data</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
   <!-- Data Table using Material elevation -->
-  <div class="table-section">
+  <div class="table-section" *ngIf="!isLoading()">
     <mat-card class="table-card" appearance="outlined">
       <!-- Search Header using Material form field -->
       <div class="table-header-controls">
@@ -239,10 +253,6 @@
                             <mat-icon>edit</mat-icon>
                             <span>Edit Visit</span>
                           </button>
-                          <button mat-menu-item (click)="addTimeline(element)">
-                            <mat-icon>add</mat-icon>
-                            <span>Add Visit</span>
-                          </button>
                           <button mat-menu-item (click)="removeTimeline(element, item, timeline)" class="delete-item">
                             <mat-icon>delete</mat-icon>
                             <span>Delete Visit</span>
@@ -278,27 +288,38 @@
           <!-- Enhanced No Data Row -->
           <tr class="no-data-row" *matNoDataRow>
             <td class="no-data-cell" colspan="4">
-              <div class="no-data-content">
-                <mat-icon>search_off</mat-icon>
+              <div class="no-data-content" *ngIf="!isLoading(); else loadingState">
+                <mat-icon class="no-data-icon">local_bar</mat-icon>
                 <h4>No breweries found</h4>
-                <p *ngIf="dataSource.filter; else noBreweries">
-                  No breweries match your search
+                <p *ngIf="dataSource.filter; else noBreweries" class="no-data-description">
+                  No breweries match your search criteria.<br>
+                  Try adjusting your search terms.
                 </p>
                 <ng-template #noBreweries>
-                  <p>Start by adding your first brewery</p>
-                  <button mat-raised-button color="primary" (click)="addBrewery()">
+                  <p class="no-data-description">
+                    Start building your brewery collection!<br>
+                    Add your first brewery to get started.
+                  </p>
+                  <button mat-raised-button color="primary" (click)="addBrewery()" class="add-brewery-btn">
                     <mat-icon>add</mat-icon>
-                    Add Brewery
+                    Add Your First Brewery
                   </button>
                 </ng-template>
               </div>
+              <ng-template #loadingState>
+                <div class="loading-data-content">
+                  <mat-spinner diameter="40" color="primary"></mat-spinner>
+                  <p>Loading breweries...</p>
+                </div>
+              </ng-template>
             </td>
           </tr>
         </table>
       </div>
 
       <!-- Enhanced Paginator -->
-      <mat-paginator [pageSizeOptions]="[15, 25, 50, 100]"
+      <mat-paginator #paginator
+                     [pageSizeOptions]="[15, 25, 50, 100]"
                      showFirstLastButtons
                      class="table-paginator">
       </mat-paginator>
@@ -310,14 +331,6 @@
     <button mat-fab color="primary" (click)="openQuickActions()" class="main-fab" matTooltip="Quick Actions">
       <mat-icon>add</mat-icon>
     </button>
-  </div>
-
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" *ngIf="isLoading()">
-    <div class="loading-content">
-      <mat-spinner color="primary" diameter="60"></mat-spinner>
-      <p>Loading...</p>
-    </div>
   </div>
 </div>
 

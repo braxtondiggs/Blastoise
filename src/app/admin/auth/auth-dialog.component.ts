@@ -1,5 +1,13 @@
 import { Component, inject } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 
@@ -7,6 +15,8 @@ import { MatDialogRef } from '@angular/material/dialog';
   selector: 'app-auth-dialog',
   templateUrl: './auth-dialog.component.html',
   styleUrls: ['./auth-dialog.component.scss'],
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatProgressSpinnerModule]
 })
 
 export class AuthDialogComponent {
@@ -19,7 +29,7 @@ export class AuthDialogComponent {
     password: new FormControl('', [Validators.required, Validators.minLength(6)])
   });
 
-  public auth = inject(AngularFireAuth);
+  public auth = inject(Auth);
   private dialogRef = inject(MatDialogRef<AuthDialogComponent>);
 
   async login(): Promise<void> {
@@ -32,7 +42,7 @@ export class AuthDialogComponent {
         const password = this.form.value.password;
 
         if (email && password) {
-          const response = await this.auth.signInWithEmailAndPassword(email, password);
+          const response = await signInWithEmailAndPassword(this.auth, email, password);
           if (response) {
             this.dialogRef.close();
           }

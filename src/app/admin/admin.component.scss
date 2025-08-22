@@ -134,6 +134,36 @@
   }
 }
 
+// Main Loading State
+.main-loading-section {
+  margin-bottom: 32px;
+
+  .loading-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    .main-loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 48px 24px;
+      gap: 16px;
+
+      h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 500;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
 // Enhanced table section with better design
 .table-section {
   .table-card {
@@ -597,5 +627,97 @@
       width: 48px;
       height: 48px;
     }
+  }
+}
+
+// Enhanced No Data and Loading States
+.no-data-row {
+  .no-data-cell {
+    border: none !important;
+    padding: 48px 24px !important;
+  }
+}
+
+.no-data-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 32px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 16px;
+  border: 2px dashed #dee2e6;
+  margin: 16px;
+
+  .no-data-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    color: #6c757d;
+    margin-bottom: 8px;
+  }
+
+  h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .no-data-description {
+    margin: 0;
+    color: #6c757d;
+    line-height: 1.5;
+    max-width: 400px;
+  }
+
+  .add-brewery-btn {
+    margin-top: 8px;
+    padding: 12px 24px;
+    font-weight: 500;
+    border-radius: 8px;
+    text-transform: none;
+  }
+}
+
+.loading-data-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  color: #6c757d;
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+}
+
+// Responsive adjustments for no-data state
+@media (max-width: 768px) {
+  .no-data-content {
+    padding: 24px 16px;
+    margin: 8px;
+
+    .no-data-icon {
+      font-size: 40px;
+      height: 40px;
+      width: 40px;
+    }
+
+    h4 {
+      font-size: 1.1rem;
+    }
+
+    .no-data-description {
+      font-size: 0.9rem;
+    }
+  }
+
+  .loading-data-content {
+    padding: 32px 16px;
   }
 }

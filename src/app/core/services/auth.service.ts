@@ -1,29 +1,30 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { Auth, onAuthStateChanged, signOut, User } from '@angular/fire/auth';
 import { Observable } from 'rxjs';
 import { take, map } from 'rxjs/operators';
-import { User } from '@firebase/auth-types';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  user$: Observable<any>;
+  user$: Observable<User | null>;
 
-  private afAuth = inject(AngularFireAuth);
+  private auth = inject(Auth);
   private router = inject(Router);
 
   constructor() {
-    this.user$ = this.afAuth.authState;
+    this.user$ = new Observable(subscriber => {
+      return onAuthStateChanged(this.auth, subscriber);
+    });
   }
 
-  uid(): Promise<any> {
-    return this.user$.pipe(take(1), map(u => u && u.uid)).toPromise();
+  uid(): Promise<string | null> {
+    return this.user$.pipe(take(1), map(u => u?.uid || null)).toPromise() as Promise<string | null>;
   }
 
   async signOut() {
-    await this.afAuth.signOut();
+    await signOut(this.auth);
     this.router.navigate(['/']);
   }
 
