@@ -1,4 +1,5 @@
 @use "@angular/material" as mat;
+@use "sass:color";
 // @import "variables.scss"; // Commented out due to Angular 18 compatibility issues
 
 @include mat.core();
@@ -140,7 +141,7 @@ app-home {
 }
 
 .auth-backdrop {
-  background-color: lighten(black, 15%);
+  background-color: color.adjust(black, $lightness: 15%);
 }
 
 app-reviews-dialog .mat-list-item-content {

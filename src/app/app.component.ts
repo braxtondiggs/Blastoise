@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { RouterModule } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
-import { AngularFireAnalytics } from '@angular/fire/compat/analytics';
-import { AngularFireMessaging } from '@angular/fire/compat/messaging';
+import { Analytics, logEvent } from '@angular/fire/analytics';
+import { Messaging, getToken, onMessage } from '@angular/fire/messaging';
 import { SwUpdate } from '@angular/service-worker';
 import { Subject } from 'rxjs';
 import { takeUntil, catchError, filter } from 'rxjs/operators';
@@ -11,14 +12,15 @@ import { EMPTY } from 'rxjs';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrls: ['./app.component.scss'],
+  standalone: true,
+  imports: [RouterModule]
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  // Inject services using the modern inject() function (Angular 14+)
-  private readonly analytics = inject(AngularFireAnalytics);
-  private readonly messaging = inject(AngularFireMessaging);
+  private readonly analytics = inject(Analytics);
+  private readonly messaging = inject(Messaging);
   private readonly swUpdate = inject(SwUpdate);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
@@ -47,11 +49,13 @@ export class AppComponent implements OnInit, OnDestroy {
       this.meta.updateTag({ property: 'og:type', content: 'website' });
 
       // Log app initialization for analytics tracking
-      this.analytics.logEvent('app_initialized', {
-        version: '16.0',
-        timestamp: new Date().toISOString(),
-        user_agent: navigator.userAgent
-      });
+      try {
+        logEvent(this.analytics as any, 'app_initialized', {
+          version: '16.0',
+          timestamp: new Date().toISOString(),
+          user_agent: navigator.userAgent
+        });
+      } catch {}
     } catch (error) {
       console.warn('App initialization failed:', error);
     }
@@ -72,10 +76,10 @@ export class AppComponent implements OnInit, OnDestroy {
         const navigationEvent = event as NavigationEnd;
 
         // Track page views for analytics
-        this.analytics.logEvent('page_view', {
+        try { logEvent(this.analytics as any, 'page_view', {
           page_path: navigationEvent.urlAfterRedirects,
           page_title: this.title.getTitle()
-        });
+        }); } catch {}
 
         // Update title based on route
         this.updatePageTitle(navigationEvent.urlAfterRedirects);
@@ -107,14 +111,14 @@ export class AppComponent implements OnInit, OnDestroy {
         .subscribe(event => {
           if (event.type === 'VERSION_READY') {
             console.log('New version available. Reloading...');
-            this.analytics.logEvent('app_update_available');
+            try { logEvent(this.analytics as any, 'app_update_available'); } catch {}
 
             this.swUpdate.activateUpdate().then(() => {
-              this.analytics.logEvent('app_update_applied');
+              try { logEvent(this.analytics as any, 'app_update_applied'); } catch {}
               document.location.reload();
             }).catch(error => {
               console.error('Failed to activate update:', error);
-              this.analytics.logEvent('app_update_failed', { error: error.message });
+              try { logEvent(this.analytics as any, 'app_update_failed', { error: error.message }); } catch {}
             });
           }
         });
@@ -128,35 +132,22 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  private requestNotificationPermission(): void {
-    this.messaging.requestPermission
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError(error => {
-          console.warn('Notification permission request failed:', error);
-          this.analytics.logEvent('notification_permission_denied', { error: error.message });
-          return EMPTY;
-        })
-      )
-      .subscribe({
-        next: (token) => {
-          if (token) {
-            console.log('Notification permission granted:', token);
-            this.analytics.logEvent('notification_permission_granted', {
-              token_length: token.length
-            });
-
-            // Listen for foreground messages
-            this.messaging.messages
-              .pipe(takeUntil(this.destroy$))
-              .subscribe(message => {
-                console.log('Foreground message received:', message);
-                this.analytics.logEvent('notification_received', {
-                  message_id: (message as any)?.messageId || 'unknown'
-                });
-              });
-          }
+  private async requestNotificationPermission(): Promise<void> {
+    try {
+      if (Notification.permission === 'granted') {
+        const token = await getToken(this.messaging as any, { vapidKey: undefined });
+        if (token) {
+          try { logEvent(this.analytics as any, 'notification_permission_granted', { token_length: token.length }); } catch {}
         }
-      });
+
+        onMessage(this.messaging as any, (message) => {
+          console.log('Foreground message received:', message);
+          try { logEvent(this.analytics as any, 'notification_received', { message_id: (message as any)?.messageId || 'unknown' }); } catch {}
+        });
+      }
+    } catch (error: any) {
+      console.warn('Notification permission request failed:', error);
+      try { logEvent(this.analytics as any, 'notification_permission_denied', { error: error?.message }); } catch {}
+    }
   }
 }

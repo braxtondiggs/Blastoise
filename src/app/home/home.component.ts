@@ -1,12 +1,20 @@
 import { Component, OnInit, inject, DestroyRef, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { AngularFireMessaging } from '@angular/fire/compat/messaging';
+import { Firestore, collectionData, collection, query, orderBy, limit as limitFn, addDoc } from '@angular/fire/firestore';
+import { Messaging, getToken, onMessage } from '@angular/fire/messaging';
 import { Observable, timeout, of } from 'rxjs';
 import { map, tap, catchError, startWith, finalize } from 'rxjs/operators';
 import { HumanizeDuration, HumanizeDurationLanguage } from 'humanize-duration-ts';
 import { Brewery } from '../core/interfaces';
 import * as dayjs from 'dayjs';
+
+// Angular Material imports
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCardModule } from '@angular/material/card';
 
 interface HomeComponentState {
   breweries: Brewery[];
@@ -18,12 +26,21 @@ interface HomeComponentState {
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  styleUrls: ['./home.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatCardModule
+  ]
 })
 export class HomeComponent implements OnInit {
   // Angular v16 dependency injection
-  private readonly afs = inject(AngularFirestore);
-  private readonly afMessaging = inject(AngularFireMessaging);
+  private readonly afs = inject(Firestore);
+  private readonly afMessaging = inject(Messaging);
   private readonly destroyRef = inject(DestroyRef);
 
   // Angular v16 signals for reactive state management
@@ -93,13 +110,11 @@ export class HomeComponent implements OnInit {
    * Load brewery data from Firestore with error handling
    */
   private loadBreweryData(): void {
-    this.brewery$ = this.afs
-      .collection<Brewery>('breweries', ref =>
-        ref.orderBy('lastUpdated', 'desc').limit(1)
-      )
-      .valueChanges();
+  const colRef = collection(this.afs, 'breweries');
+  const q = query(colRef, orderBy('lastUpdated', 'desc'), limitFn(1));
+  this.brewery$ = collectionData(q, { idField: 'placeId' }) as unknown as Observable<Brewery[]>;
 
-    this.brewery$ = this.brewery$.pipe(
+  this.brewery$ = this.brewery$.pipe(
         startWith([]), // Start with empty array
         map(breweries => this.filterActiveBreweries(breweries)),
         tap(breweries => this.updateState({ breweries, isLoading: false, hasError: false })),
@@ -181,38 +196,17 @@ export class HomeComponent implements OnInit {
 
       console.log('Requesting FCM token...');
 
-      // Try getToken() first with timeout (more reliable for getting existing tokens)
+      // Use modular getToken
       try {
-        const token = await this.afMessaging.getToken.pipe(
-          timeout(10000), // 10 second timeout
-          takeUntilDestroyed(this.destroyRef)
-        ).toPromise();
-
+        const token = await getToken(this.afMessaging as any, { vapidKey: undefined });
         if (token) {
-          console.log('FCM token received via getToken:', token);
+          console.log('FCM token received:', token);
           await this.saveToken(token);
           return;
         }
       } catch (getTokenError) {
         console.warn('getToken failed or timed out:', getTokenError);
       }
-
-      // If getToken fails, try requestToken with timeout
-      console.log('Trying requestToken...');
-      const token = await this.afMessaging.getToken.pipe(
-        timeout(15000), // 15 second timeout
-        catchError(error => {
-          console.error('RequestToken error:', error);
-          return of(null); // Return null on error
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      ).toPromise();
-
-
-      if (!token) return;
-
-      console.log('FCM token received via requestToken:', token);
-      await this.saveToken(token);
 
     } catch (error) {
       console.error('Error setting up notifications:', error);
@@ -227,8 +221,8 @@ export class HomeComponent implements OnInit {
    */
   private async saveToken(token: string): Promise<void> {
     try {
-      // Store token in Firestore
-      await this.afs.collection('notifications').add({
+      // Store token in Firestore using modular API
+      await addDoc(collection(this.afs, 'notifications'), {
         token,
         createdAt: new Date(),
         userAgent: navigator.userAgent,
@@ -252,18 +246,15 @@ export class HomeComponent implements OnInit {
    * Setup listener for incoming FCM messages
    */
   private setupNotificationListener(): void {
-    this.afMessaging.messages
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (message) => {
-          console.log('Received FCM message:', message);
-          // Handle incoming notification
-          this.handleNotificationMessage(message);
-        },
-        error: (error) => {
-          console.error('FCM message error:', error);
-        }
-      });
+    // Use modular messaging onMessage for foreground messages
+    onMessage(this.afMessaging as any, (message) => {
+      try {
+        console.log('Received FCM message:', message);
+        this.handleNotificationMessage(message);
+      } catch (e) {
+        console.error('FCM message handling error:', e);
+      }
+    });
   }
 
   /**

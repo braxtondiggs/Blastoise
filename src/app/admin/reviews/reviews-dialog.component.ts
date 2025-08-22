@@ -1,6 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Firestore, setDoc, doc, docData, deleteDoc } from '@angular/fire/firestore';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Brewery, BreweryReview, BreweryTimeline } from 'src/app/core/interfaces';
 import { ApiService } from '../../core/services';
@@ -21,13 +26,15 @@ interface EnhancedBreweryReview extends BreweryReview {
   selector: 'app-reviews-dialog',
   templateUrl: './reviews-dialog.component.html',
   styleUrls: ['./reviews-dialog.component.scss'],
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatChipsModule, MatProgressSpinnerModule]
 })
 
 export class ReviewsDialogComponent {
   processingItems = new Set<string>();
 
   public data = inject(MAT_DIALOG_DATA) as { reviews: EnhancedBreweryReview[] };
-  private afs = inject(AngularFirestore);
+  private afs = inject(Firestore);
   private api = inject(ApiService);
   private toast = inject(MatSnackBar);
 
@@ -132,29 +139,24 @@ export class ReviewsDialogComponent {
 
   private async approveReview(item: EnhancedBreweryReview): Promise<void> {
     // Add brewery to the main collection
-    await this.afs.doc<Brewery>(`breweries/${item.place_id}`).set({
+    await setDoc(doc(this.afs, 'breweries', item.place_id), {
       address: item.address,
       location: item.location,
       name: item.name,
       placeId: item.place_id,
       lastUpdated: item.start
-    }, { merge: true });
+    }, { merge: true } as any);
 
     // Add timeline entry
-    const timeline = await this.afs.doc<any>(`brewery-timeline/${item.place_id}`)
-      .valueChanges()
-      .pipe(take(1))
-      .toPromise();
-
-    const timelineData: any = timeline || {};
+  const timelineRef = doc(this.afs, 'brewery-timeline', item.place_id);
+  const timelineData: any = await docData(timelineRef) as any || {};
     const index = Object.keys(timelineData).length;
     timelineData[index] = {
       start: item.start,
       end: item.end
     };
 
-    await this.afs.doc(`brewery-timeline/${item.place_id}`)
-      .set(timelineData, { merge: true });
+  await setDoc(doc(this.afs, 'brewery-timeline', item.place_id), timelineData as any, { merge: true } as any);
 
     // Send notification if it's a current visit
     if (item.display.isCurrentVisit) {
@@ -170,7 +172,7 @@ export class ReviewsDialogComponent {
   }
 
   private async removeReview(item: EnhancedBreweryReview): Promise<void> {
-    await this.afs.doc(`brewery-review/${item.place_id}`).delete();
+  await deleteDoc(doc(this.afs, 'brewery-review', item.place_id));
 
     const index = this.data.reviews.findIndex(review => review.place_id === item.place_id);
     if (index > -1) {

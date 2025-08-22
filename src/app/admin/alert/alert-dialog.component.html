@@ -1,12 +1,35 @@
-<h2 mat-dialog-title class="flex-row flex-align-start-center flex-gap-8">
-  <img src="/assets/icons/icon-72x72.png" />
-  <span>Braxton's Beer Alert</span>
-</h2>
-<mat-dialog-content>
-  <p>{{data.msg}}</p>
-</mat-dialog-content>
-<div align="end" mat-dialog-actions>
-  <button mat-button mat-raised-button mat-dialog-close color="primary">Cancel</button>
-  <div class="spacer"></div>
-  <button mat-button mat-raised-button [mat-dialog-close]="true" color="accent">Ok</button>
+<div class="alert-modal" [attr.data-type]="data.type">
+  <div class="alert-header">
+    <div class="logo-section">
+      <div class="icon-container">
+        <mat-icon class="alert-icon">{{ alertIcon }}</mat-icon>
+      </div>
+      <div class="brand-info">
+        <h2>{{ alertTitle }}</h2>
+        <p>System notification</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-content">
+    <div class="message-section">
+      <p class="alert-message">{{ data.msg }}</p>
+    </div>
+
+    <div class="alert-actions">
+      <button mat-raised-button
+              color="primary"
+              (click)="onConfirm()"
+              class="confirm-button">
+        <mat-icon>check</mat-icon>
+        <span>OK</span>
+      </button>
+
+      <button mat-button
+              (click)="onCancel()"
+              class="cancel-button">
+        Cancel
+      </button>
+    </div>
+  </div>
 </div>

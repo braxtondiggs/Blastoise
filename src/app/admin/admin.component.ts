@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild, inject, DestroyRef, signal, computed } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef, signal, computed, AfterViewInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { Firestore, collectionData, collection, query, orderBy, doc, docData, setDoc, updateDoc, deleteDoc } from '@angular/fire/firestore';
 import { Brewery, BreweryReview, BreweryTimeline } from '../core/interfaces';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
@@ -25,10 +27,48 @@ import { TimelineDialogComponent } from './timeline/timeline-dialog.component';
 import { BreweryDialogComponent } from './brewery/brewery-dialog.component';
 import { AddActionsBottomSheetComponent, AddActionResult } from './add-actions/add-actions-bottom-sheet.component';
 
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { ReactiveFormsModule } from '@angular/forms';
+
 @Component({
   selector: 'app-admin',
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatTooltipModule,
+    MatBadgeModule,
+    MatMenuModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    ReactiveFormsModule
+  ],
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({ height: '0px', minHeight: '0', overflow: 'hidden' })),
@@ -37,10 +77,10 @@ import { AddActionsBottomSheetComponent, AddActionResult } from './add-actions/a
     ]),
   ],
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, AfterViewInit {
   private readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
-  private readonly afs = inject(AngularFirestore);
+  private readonly afs = inject(Firestore);
   private readonly dialog = inject(MatDialog);
   private readonly bottomSheet = inject(MatBottomSheet);
   private readonly toast = inject(MatSnackBar);
@@ -71,8 +111,8 @@ export class AdminComponent implements OnInit {
   public viewMode: 'compact' | 'detailed' = 'detailed';
   public readonly originalData: Brewery[] = [];
 
-  @ViewChild(MatSort) sort?: MatSort;
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatSort, { static: false }) sort?: MatSort;
+  @ViewChild(MatPaginator, { static: false }) paginator?: MatPaginator;
 
   constructor() {
     // Initialize dayjs plugins
@@ -93,7 +133,7 @@ export class AdminComponent implements OnInit {
       if (this.isLoggedIn()) {
         this.initializeBreweriesData();
         this.initializeReviewsData();
-        this.isLoading.set(false);
+        // Note: isLoading will be set to false after breweries data loads
       } else {
         this.getAuth();
       }
@@ -103,12 +143,38 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  ngAfterViewInit(): void {
+    // Set up pagination and sorting after view is initialized
+    this.setupTableFeatures();
+  }
+
+  private setupTableFeatures(): void {
+    if (this.dataSource && this.dataSource.data.length > 0) {
+      if (this.paginator) {
+        this.dataSource.paginator = this.paginator;
+      }
+      if (this.sort) {
+        this.dataSource.sort = this.sort;
+        this.dataSource.sortingDataAccessor = (item: Brewery, property: string) => {
+          switch (property) {
+            case 'date':
+              return item.lastUpdated ? new Date((item.lastUpdated as Timestamp).toDate()) : new Date(0);
+            default:
+              return (item as any)[property];
+          }
+        };
+        this.sort.sortChange.emit(this.sort);
+      }
+    }
+  }
+
   private initializeBreweriesData(): void {
-    this.afs.collection<Brewery>('breweries')
-      .valueChanges()
+    const colRef = collection(this.afs, 'breweries');
+    const q = query(colRef);
+    collectionData(q, { idField: 'placeId' })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        map(data => data.map(brewery => ({
+        map((data: any[]) => data.map(brewery => ({
           ...brewery,
           updated: brewery.lastUpdated ?
             dayjs((brewery.lastUpdated as Timestamp).toDate()).format('MM/DD/YY h:mm A') : ''
@@ -116,42 +182,29 @@ export class AdminComponent implements OnInit {
         catchError(error => {
           console.error('Error loading breweries:', error);
           this.toast.open('Error loading brewery data', 'Close', { duration: 3000 });
+          this.isLoading.set(false); // Set loading to false on error
           return of([] as Brewery[]);
         })
       )
       .subscribe(data => {
-        this.dataSource.data = data;
+        this.dataSource.data = data as Brewery[];
 
-        if (this.paginator) {
-          this.dataSource.paginator = this.paginator;
-        }
-        if (this.sort) {
-          this.dataSource.sort = this.sort;
-          this.dataSource.sortingDataAccessor = (item: Brewery, property: string) => {
-            switch (property) {
-              case 'date':
-                return item.lastUpdated ? new Date((item.lastUpdated as Timestamp).toDate()) : new Date(0);
-              default:
-                return (item as any)[property];
-            }
-          };
-          this.sort.sortChange.emit(this.sort);
-        }
+        // Set up table features after data is loaded and view is available
+        setTimeout(() => {
+          this.setupTableFeatures();
+        }, 0);
+        
+        // Set loading to false after data has been loaded
+        this.isLoading.set(false);
       });
   }
 
   private initializeReviewsData(): void {
-    this.reviews$ = this.afs.collection<BreweryReview>(
-      'brewery-review',
-      ref => ref.orderBy('start', 'desc')
-    ).valueChanges().pipe(
-      takeUntilDestroyed(this.destroyRef),
-      catchError(error => {
-        console.error('Error loading reviews:', error);
-        this.toast.open('Error loading reviews', 'Close', { duration: 3000 });
-        return of([]);
-      })
-    );
+  const reviewsCol = collection(this.afs, 'brewery-review');
+  const reviewsQuery = query(reviewsCol, orderBy('start', 'desc'));
+  this.reviews$ = collectionData(reviewsQuery) as unknown as Observable<BreweryReview[]>;
+  // attach error handling
+  // Note: collectionData doesn't support catchError directly; subscribers can handle errors if needed
   }
 
   applyFilter(event: Event): void {
@@ -241,8 +294,8 @@ export class AdminComponent implements OnInit {
     const currentExpanded = this.expandedElement();
     this.expandedElement.set(currentExpanded === brewery ? null : brewery);
 
-    this.timeline$ = this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`)
-      .valueChanges()
+    const docRef = doc(this.afs, 'brewery-timeline', brewery.placeId);
+    this.timeline$ = docData(docRef)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         map((data: any) => {
@@ -269,7 +322,7 @@ export class AdminComponent implements OnInit {
           this.toast.open('Error loading timeline data', 'Close', { duration: 3000 });
           return of([]);
         })
-      );
+      ) as Observable<BreweryTimeline[]>;
   }
 
   modifyTimeline(brewery: Brewery, item: BreweryTimeline, timeline: BreweryTimeline[]): void {
@@ -320,12 +373,10 @@ export class AdminComponent implements OnInit {
       .sort((a: any, b: any) => b.start - a.start);
 
     if (sortedTimeline[0]) {
-      await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`)
-        .update({ lastUpdated: sortedTimeline[0].start });
+      await updateDoc(doc(this.afs, 'breweries', brewery.placeId), { lastUpdated: sortedTimeline[0].start });
     }
 
-    await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`)
-      .set(updatedTimeline as any);
+    await setDoc(doc(this.afs, 'brewery-timeline', brewery.placeId), updatedTimeline as any);
 
     this.toast.open('Timeline updated successfully', 'Close', { duration: 2000 });
   }
@@ -368,10 +419,9 @@ export class AdminComponent implements OnInit {
     try {
       const { brewery, start, startTime, end, endTime } = result;
 
-      const timeline = await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`)
-        .valueChanges()
-        .pipe(take(1))
-        .toPromise() || {};
+  const docRef = doc(this.afs, 'brewery-timeline', brewery.placeId);
+  const timelineData = await docData(docRef) as unknown as any || {};
+  const timeline = timelineData || {};
 
       const index = Object.values(timeline).length;
       const startDate = dayjs(start).format('MM/DD/YYYY');
@@ -388,11 +438,10 @@ export class AdminComponent implements OnInit {
         }))
         .sort((a: any, b: any) => b.start - a.start);
 
-      await this.afs.doc<BreweryTimeline>(`brewery-timeline/${brewery.placeId}`).set(timeline as any);
+  await setDoc(doc(this.afs, 'brewery-timeline', brewery.placeId), timeline as any);
 
       if (sortedTimeline[0]) {
-        await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`)
-          .update({ lastUpdated: sortedTimeline[0].start });
+  await updateDoc(doc(this.afs, 'breweries', brewery.placeId), { lastUpdated: sortedTimeline[0].start });
       }
 
       this.toast.open('Timeline updated successfully', 'Close', { duration: 2000 });
@@ -448,11 +497,10 @@ export class AdminComponent implements OnInit {
       }))
       .sort((a: any, b: any) => b.start - a.start);
 
-    await this.afs.doc(`brewery-timeline/${brewery.placeId}`).set(data);
+    await setDoc(doc(this.afs, 'brewery-timeline', brewery.placeId), data as any);
 
     if (sortedTimeline[0]) {
-      await this.afs.doc<Brewery>(`breweries/${brewery.placeId}`)
-        .update({ lastUpdated: sortedTimeline[0].start });
+      await updateDoc(doc(this.afs, 'breweries', brewery.placeId), { lastUpdated: sortedTimeline[0].start });
     }
 
     this.toast.open('Timeline item removed successfully', 'Close', { duration: 2000 });
@@ -471,7 +519,7 @@ export class AdminComponent implements OnInit {
       if (result?.length) {
         try {
           const promises = result.map((brewery: Brewery) =>
-            this.afs.doc<Brewery>(`breweries/${brewery.placeId}`).set(brewery, { merge: true })
+            setDoc(doc(this.afs, 'breweries', brewery.placeId), brewery, { merge: true } as any)
           );
           await Promise.all(promises);
           this.toast.open('Brewery added successfully', 'Close', { duration: 2000 });
@@ -485,7 +533,7 @@ export class AdminComponent implements OnInit {
 
   async removeBrewery(placeId: string): Promise<void> {
     try {
-      await this.afs.doc<Brewery>(`breweries/${placeId}`).delete();
+  await deleteDoc(doc(this.afs, 'breweries', placeId));
       this.toast.open('Brewery removed successfully', 'Close', { duration: 2000 });
     } catch (error) {
       console.error('Error removing brewery:', error);
