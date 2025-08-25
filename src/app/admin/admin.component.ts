@@ -16,6 +16,8 @@ import { Timestamp } from '@firebase/firestore-types';
 import * as dayjs from 'dayjs';
 import * as duration from 'dayjs/plugin/duration';
 import * as relativeTime from 'dayjs/plugin/relativeTime';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as utc from 'dayjs/plugin/utc';
 import { AuthService, ApiService } from '../core/services';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthDialogComponent } from './auth/auth-dialog.component';
@@ -118,6 +120,8 @@ export class AdminComponent implements OnInit, AfterViewInit {
     // Initialize dayjs plugins
     dayjs.extend(duration);
     dayjs.extend(relativeTime);
+    dayjs.extend(timezone);
+    dayjs.extend(utc);
 
     // Initialize title from route data
     const routeTitle = this.route.snapshot.data['title'] || 'Admin';
@@ -177,7 +181,7 @@ export class AdminComponent implements OnInit, AfterViewInit {
         map((data: any[]) => data.map(brewery => ({
           ...brewery,
           updated: brewery.lastUpdated ?
-            dayjs((brewery.lastUpdated as Timestamp).toDate()).format('MM/DD/YY h:mm A') : ''
+            dayjs((brewery.lastUpdated as Timestamp).toDate()).tz(dayjs.tz.guess()).format('MM/DD/YY h:mm A z') : ''
         }))),
         catchError(error => {
           console.error('Error loading breweries:', error);
@@ -304,8 +308,8 @@ export class AdminComponent implements OnInit, AfterViewInit {
           return Object.values(data)
             .sort((a: any, b: any) => b.start.toDate() - a.start.toDate())
             .map((item: any, index: number) => {
-              const start = dayjs(item.start.toDate().getTime());
-              const end = item.end ? dayjs(item.end.toDate().getTime()) : null;
+              const start = dayjs(item.start.toDate().getTime()).tz(dayjs.tz.guess());
+              const end = item.end ? dayjs(item.end.toDate().getTime()).tz(dayjs.tz.guess()) : null;
 
               this.timelineDisplay[index] = {
                 title: start.format('dddd MMM D, YYYY'),
@@ -362,8 +366,8 @@ export class AdminComponent implements OnInit, AfterViewInit {
 
     const updatedTimeline = { ...timeline };
     (updatedTimeline as any)[index] = {
-      start: dayjs(`${startDate} ${result.startTime}`).toDate(),
-      end: dayjs(`${endDate} ${result.endTime}`).toDate()
+      start: dayjs.tz(`${startDate} ${result.startTime}`, dayjs.tz.guess()).utc().toDate(),
+      end: dayjs.tz(`${endDate} ${result.endTime}`, dayjs.tz.guess()).utc().toDate()
     };
 
     const sortedTimeline = Object.values(updatedTimeline)
@@ -428,8 +432,8 @@ export class AdminComponent implements OnInit, AfterViewInit {
       const endDate = dayjs(end).format('MM/DD/YYYY');
 
       (timeline as any)[index] = {
-        start: dayjs(`${startDate} ${startTime}`).toDate(),
-        end: dayjs(`${endDate} ${endTime}`).toDate()
+        start: dayjs.tz(`${startDate} ${startTime}`, dayjs.tz.guess()).utc().toDate(),
+        end: dayjs.tz(`${endDate} ${endTime}`, dayjs.tz.guess()).utc().toDate()
       };
 
       const sortedTimeline = Object.values(timeline)

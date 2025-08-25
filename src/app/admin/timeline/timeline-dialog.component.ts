@@ -15,6 +15,8 @@ import { RequireMatch } from 'src/app/core/validators';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as utc from 'dayjs/plugin/utc';
 
 @Component({
   selector: 'app-timeline-dialog',
@@ -46,8 +48,13 @@ export class TimelineDialogComponent implements OnInit {
     end: new FormControl('', [Validators.required]),
     endTime: new FormControl('', [Validators.required])
   } as any); // Allow dynamic addition of controls
-  defaultTimeStart: string = dayjs().format('HH:mm').toString();
+  defaultTimeStart: string = dayjs().tz(dayjs.tz.guess()).format('HH:mm').toString();
   defaultTimeEnd = this.defaultTimeStart;
+
+  constructor() {
+    dayjs.extend(timezone);
+    dayjs.extend(utc);
+  }
 
   public data = inject(MAT_DIALOG_DATA) as { timeline: BreweryTimeline, brewery: Brewery, breweries: Brewery[] };
   private dialogRef = inject(MatDialogRef<TimelineDialogComponent>);
@@ -77,14 +84,14 @@ export class TimelineDialogComponent implements OnInit {
 
       let data: any = {};
       if (startDate) {
-        const start = dayjs(startDate.toDate());
+        const start = dayjs(startDate.toDate()).tz(dayjs.tz.guess());
         this.defaultTimeStart = start.format('HH:mm').toString();
         data.start = start.toDate();
         data.startTime = this.defaultTimeStart;
       }
 
       if (endDate) {
-        const end = dayjs(endDate.toDate());
+        const end = dayjs(endDate.toDate()).tz(dayjs.tz.guess());
         this.defaultTimeEnd = end.format('HH:mm').toString();
         data.end = end.toDate();
         data.endTime = this.defaultTimeEnd;

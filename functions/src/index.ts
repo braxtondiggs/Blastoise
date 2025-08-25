@@ -5,6 +5,12 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import cors from 'cors';
 import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+
+// Configure dayjs with timezone support
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import express from 'express';
 import cheerio from 'cheerio';
 import axios from 'axios';
@@ -38,11 +44,11 @@ app.post('/import', async (request: express.Request, response: express.Response)
     const lastCallSnap = await db.doc('brewery-review/last-call').get();
     const lastCall = lastCallSnap.data();
     logger.info(
-      `${dayjs().toString()} - ${dayjs(lastCall?.time.toDate().getTime())
-        .add(5, 'minute').toString()}`
+      `${dayjs().utc().toString()} - ${dayjs(lastCall?.time.toDate().getTime())
+        .utc().add(5, 'minute').toString()}`
     );
-    if (dayjs().isBefore(
-      dayjs(lastCall?.time.toDate().getTime()).add(5, 'minute')
+    if (dayjs().utc().isBefore(
+      dayjs(lastCall?.time.toDate().getTime()).utc().add(5, 'minute')
     )) {
       logger.warn('Hasn\'t been enough time');
       return response.json({
@@ -129,7 +135,7 @@ function updateBreweryInfo(candidates: Candidate[]) {
       if (!data) return;
       const isSameDay = Object.entries(data).filter((o) =>
         dayjs().isSame(
-          dayjs((o[1] as { start: admin.firestore.Timestamp }).start.toDate().getTime()),
+          dayjs((o[1] as { start: admin.firestore.Timestamp }).start.toDate().getTime()).utc(),
           'week'
         )
       );
@@ -305,7 +311,7 @@ app.get('/last-updated', async (
       start: admin.firestore.Timestamp;
     }>;
     const [first] = entries.sort(
-      (a, b) => b.start.toDate().getTime() - a.start.toDate().getTime()
+      (a, b) => dayjs(b.start.toDate().getTime()).utc().valueOf() - dayjs(a.start.toDate().getTime()).utc().valueOf()
     );
     await db.doc(`breweries/${brewery.placeId}`).update({
       lastUpdated: first.start
