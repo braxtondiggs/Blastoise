@@ -7,12 +7,14 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Firestore, setDoc, doc, docData, deleteDoc } from '@angular/fire/firestore';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Brewery, BreweryReview, BreweryTimeline } from 'src/app/core/interfaces';
+import { BreweryReview } from 'src/app/core/interfaces';
 import { ApiService } from '../../core/services';
-import { take } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
 import * as isBetween from 'dayjs/plugin/isBetween';
 import * as duration from 'dayjs/plugin/duration';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as utc from 'dayjs/plugin/utc';
+import * as advancedFormat from 'dayjs/plugin/advancedFormat';
 
 interface EnhancedBreweryReview extends BreweryReview {
   display: {
@@ -41,6 +43,9 @@ export class ReviewsDialogComponent {
   constructor() {
     dayjs.extend(isBetween);
     dayjs.extend(duration);
+    dayjs.extend(timezone);
+    dayjs.extend(utc);
+    dayjs.extend(advancedFormat);
     this.enhanceReviewsData();
   }
 
@@ -55,18 +60,22 @@ export class ReviewsDialogComponent {
       let isCurrentVisit = false;
 
       if (startTime) {
-        caption = startTime.format('dddd, MMM D, YYYY - h:mm A');
+        // Convert UTC timestamp to user's local timezone for display
+        const localStartTime = startTime.tz(dayjs.tz.guess());
+        caption = localStartTime.format('dddd, MMM D, YYYY - h:mm A z');
 
         if (endTime) {
-          const duration = dayjs.duration(endTime.diff(startTime));
+          const localEndTime = endTime.tz(dayjs.tz.guess());
+          const duration = dayjs.duration(localEndTime.diff(localStartTime));
           visitDuration = duration.humanize();
         }
 
         if (endTime) {
-          isCurrentVisit = now.isBetween(startTime, endTime);
+          const localEndTime = endTime.tz(dayjs.tz.guess());
+          isCurrentVisit = now.isBetween(localStartTime, localEndTime);
         } else {
           // If no end time, consider it current if it started within the last 8 hours
-          isCurrentVisit = now.diff(startTime, 'hours') <= 8;
+          isCurrentVisit = now.diff(localStartTime, 'hours') <= 8;
         }
       }
 
