@@ -109,6 +109,12 @@
       </article>
 
     </div>
+
+    <!-- Location Permissions Section -->
+    <section class="location-section" *ngIf="!isLoading() && !hasError()">
+      <app-location-permissions></app-location-permissions>
+    </section>
+
   </section>
 </main>
 

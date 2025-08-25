@@ -28,6 +28,20 @@ export interface ImportResponse {
   candidates: Array<{ name: string }>;
 }
 
+export interface LocationUpdateRequest {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: number;
+  source?: string;
+}
+
+export interface LocationUpdateResponse {
+  success: boolean;
+  locationId?: string;
+  msg: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -72,6 +86,16 @@ export class ApiService {
     return this.http.post(
       `${this.baseUrl}/notification`,
       data
+    );
+  }
+
+  /**
+   * Send background location update
+   */
+  sendLocationUpdate(locationData: LocationUpdateRequest): Observable<LocationUpdateResponse> {
+    return this.http.post<LocationUpdateResponse>(
+      `${this.baseUrl}/location-update`,
+      locationData
     );
   }
 }

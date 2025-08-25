@@ -1,0 +1,151 @@
+<mat-card class="location-permissions-card">
+  <mat-card-header>
+    <mat-card-title>
+      <mat-icon>location_on</mat-icon>
+      Background Location Tracking
+    </mat-card-title>
+    <mat-card-subtitle>
+      Enable background location tracking for automatic brewery detection
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <!-- Permission Status -->
+    <div class="permission-status">
+      <div class="status-row">
+        <span class="status-label">Permission Status:</span>
+        <span class="status-value" [ngClass]="'status-' + permissionStatus()">
+          <mat-icon>{{ getPermissionStatusIcon() }}</mat-icon>
+          {{ getPermissionStatusText() }}
+        </span>
+      </div>
+      
+      <div class="status-row">
+        <span class="status-label">Tracking Status:</span>
+        <span class="status-value" [ngClass]="isTracking() ? 'status-active' : 'status-inactive'">
+          <mat-icon>{{ isTracking() ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
+          {{ isTracking() ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Permission Request -->
+    <div class="permission-request" *ngIf="!hasPermission()">
+      <div class="request-info">
+        <mat-icon class="info-icon">info</mat-icon>
+        <div class="info-content">
+          <h4>Why enable location tracking?</h4>
+          <ul>
+            <li>Automatically detect when you visit breweries</li>
+            <li>Receive notifications about nearby brewery locations</li>
+            <li>Track your brewery visit history</li>
+            <li>Enable geofencing features</li>
+          </ul>
+          
+          <div class="privacy-note">
+            <mat-icon>security</mat-icon>
+            <small>
+              <strong>Privacy:</strong> Location data is only used for brewery detection. 
+              You can disable tracking at any time.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="request-actions" *ngIf="canRequestPermission()">
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="requestPermissions()"
+          [disabled]="isRequesting()"
+          class="request-button">
+          <mat-icon>location_on</mat-icon>
+          <span *ngIf="!isRequesting()">Enable Location Access</span>
+          <mat-spinner *ngIf="isRequesting()" diameter="20"></mat-spinner>
+        </button>
+      </div>
+
+      <div class="permission-denied" *ngIf="isPermissionDenied()">
+        <mat-icon class="warning-icon">warning</mat-icon>
+        <p>Location permissions have been denied. To enable background location tracking:</p>
+        <ol>
+          <li>Click on the location/lock icon in your browser's address bar</li>
+          <li>Select "Allow" for location access</li>
+          <li>Refresh this page</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Settings Form (shown when permission is granted) -->
+    <form [formGroup]="settingsForm" *ngIf="hasPermission()" class="settings-form">
+      <div class="setting-item">
+        <mat-slide-toggle 
+          formControlName="enabled"
+          (change)="onTrackingToggle($event.checked)"
+          [disabled]="isRequesting()">
+          Enable Background Tracking
+        </mat-slide-toggle>
+        <p class="setting-description">
+          Continuously track location in the background for automatic brewery detection
+        </p>
+      </div>
+
+      <div class="setting-item" *ngIf="settingsForm.get('enabled')?.value">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Tracking Frequency</mat-label>
+          <mat-select formControlName="trackingInterval">
+            <mat-option *ngFor="let interval of trackingIntervals" [value]="interval.value">
+              {{ interval.label }}
+            </mat-option>
+          </mat-select>
+          <mat-hint>How often to update your location</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="setting-item" *ngIf="settingsForm.get('enabled')?.value">
+        <mat-slide-toggle formControlName="highAccuracy">
+          High Accuracy Mode
+        </mat-slide-toggle>
+        <p class="setting-description">
+          Use GPS for more precise location (may drain battery faster)
+        </p>
+      </div>
+
+      <div class="setting-item" *ngIf="settingsForm.get('enabled')?.value">
+        <mat-slide-toggle formControlName="significantChangeOnly">
+          Significant Change Only
+        </mat-slide-toggle>
+        <p class="setting-description">
+          Only update location when you move significantly (saves battery)
+        </p>
+      </div>
+    </form>
+  </mat-card-content>
+
+  <mat-card-actions>
+    <div class="card-actions">
+      <!-- Test Current Location -->
+      <button 
+        mat-button 
+        color="accent"
+        (click)="getCurrentLocation()"
+        [disabled]="!hasPermission() || isRequesting()">
+        <mat-icon>my_location</mat-icon>
+        Test Location
+      </button>
+
+      <!-- Sync Data -->
+      <button 
+        mat-button 
+        color="accent"
+        (click)="syncLocationData()"
+        [disabled]="!hasPermission() || isRequesting()">
+        <mat-icon>sync</mat-icon>
+        Sync Data
+      </button>
+
+      <!-- Loading Spinner -->
+      <mat-spinner *ngIf="isRequesting()" diameter="24" class="action-spinner"></mat-spinner>
+    </div>
+  </mat-card-actions>
+</mat-card>
