@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
+import { LocationPermissionsComponent } from './location-permissions/location-permissions.component';
 
 interface HomeComponentState {
   breweries: Brewery[];
@@ -34,7 +35,8 @@ interface HomeComponentState {
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatCardModule
+    MatCardModule,
+    LocationPermissionsComponent
   ]
 })
 export class HomeComponent implements OnInit {

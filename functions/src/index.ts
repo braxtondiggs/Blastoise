@@ -26,6 +26,16 @@ interface RequestBody {
   address?: string;
   location?: string;
   brewery?: string;
+  timestamp?: number;
+  source?: string;
+}
+
+interface LocationUpdateBody {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: number;
+  source?: string;
 }
 
 const app = express();
@@ -34,6 +44,120 @@ db.settings({ ignoreUndefinedProperties: true });
 
 // Automatically allow cross-origin requestsd
 app.use(cors({ origin: true }));
+
+app.post('/location-update', async (request: express.Request, response: express.Response) => {
+  try {
+    const body = request.body as LocationUpdateBody;
+    
+    if (!body.latitude || !body.longitude || !body.timestamp) {
+      return response.status(400).json({
+        success: false,
+        msg: 'Missing required fields: latitude, longitude, timestamp'
+      });
+    }
+
+    // Store location update in Firestore
+    const locationData = {
+      latitude: body.latitude,
+      longitude: body.longitude,
+      accuracy: body.accuracy || null,
+      timestamp: admin.firestore.Timestamp.fromMillis(body.timestamp),
+      source: body.source || 'unknown',
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      location: new admin.firestore.GeoPoint(body.latitude, body.longitude)
+    };
+
+    // Save to location-history collection
+    const locationDoc = await db.collection('location-history').add(locationData);
+    
+    // Check for nearby breweries and trigger import logic if needed
+    const lastCallSnap = await db.doc('brewery-review/last-call').get();
+    const lastCall = lastCallSnap.data();
+    
+    // Only process if it's been more than 5 minutes since last brewery check
+    if (!lastCall || dayjs().isAfter(
+      dayjs(lastCall?.time.toDate().getTime()).add(5, 'minute')
+    )) {
+      // Use existing import logic with the new location
+      try {
+        // Get address from coordinates
+        const template = await config.getTemplate();
+        const geocodioAPI = (template.parameters.GEOCODIO.defaultValue as unknown as { value: string }).value;
+        
+        if (geocodioAPI) {
+          const geocoder = new Geocodio(geocodioAPI);
+          const { results } = await geocoder.reverse(`${body.latitude},${body.longitude}`);
+          const address = results[0]?.formatted_address;
+
+          if (address) {
+            // Trigger brewery search logic
+            const googleAPI = (template.parameters.GOOGLEAPI.defaultValue as unknown as { value: string }).value;
+            if (googleAPI) {
+              const { data: query }: { data: PlaceSearch } = await axios.get(
+                'https://maps.googleapis.com/maps/api/place/findplacefromtext/json',
+                {
+                  params: {
+                    input: encodeURIComponent(`brewery near ${address}`),
+                    key: googleAPI,
+                    inputtype: 'textquery',
+                    fields: 'formatted_address,name,geometry,place_id'
+                  }
+                }
+              );
+
+              // Process brewery candidates
+              for (const candidate of query.candidates) {
+                if (candidate.geometry?.location) {
+                  candidate.distance = getDistance({
+                    latitude: candidate.geometry.location.lat,
+                    longitude: candidate.geometry.location.lng
+                  }, {
+                    latitude: body.latitude,
+                    longitude: body.longitude
+                  });
+                }
+              }
+
+              // Filter candidates within 250 feet
+              const nearbyBreweries = query.candidates.filter(
+                (candidate) => convertDistance(candidate.distance, 'ft') <= 250
+              );
+
+              if (nearbyBreweries.length > 0) {
+                // Update last call timestamp
+                await db.doc('brewery-review/last-call').set({
+                  time: admin.firestore.FieldValue.serverTimestamp(),
+                  place_id: nearbyBreweries[0].place_id,
+                  triggeredBy: 'background-location'
+                });
+
+                // Process brewery updates
+                updateBreweryInfo(nearbyBreweries);
+                
+                logger.info(`Background location triggered brewery check. Found ${nearbyBreweries.length} nearby breweries.`);
+              }
+            }
+          }
+        }
+      } catch (geocodingError) {
+        logger.warn('Geocoding failed for background location:', geocodingError);
+      }
+    }
+
+    return response.json({
+      success: true,
+      locationId: locationDoc.id,
+      msg: 'Location updated successfully'
+    });
+
+  } catch (error) {
+    logger.error('Location update failed:', error);
+    return response.status(500).json({
+      success: false,
+      msg: 'Failed to process location update'
+    });
+  }
+});
 
 app.post('/import', async (request: express.Request, response: express.Response) => {
   const template = await config.getTemplate();
