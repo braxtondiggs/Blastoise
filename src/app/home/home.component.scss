@@ -11,6 +11,10 @@
 }
 
 // Toolbar styling
+.spacer {
+  flex: 1 1 auto;
+}
+
 .mat-toolbar.mat-transparent {
   background: transparent;
   backdrop-filter: blur(10px);

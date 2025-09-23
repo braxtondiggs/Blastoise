@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, from, throwError, timer } from 'rxjs';
 import { map, switchMap, catchError, takeUntil, filter } from 'rxjs/operators';
 import { ApiService } from './api.service';
+/// <reference path="../../../types/background-sync.d.ts" />
 
 export interface LocationData {
   latitude: number;
@@ -36,7 +37,7 @@ export class LocationService {
   private readonly currentLocation$ = new BehaviorSubject<LocationData | null>(null);
   private readonly permissionStatus$ = new BehaviorSubject<LocationPermissionStatus>(LocationPermissionStatus.UNKNOWN);
   private readonly locationQueue: LocationData[] = [];
-  
+
   // Tracking configuration
   private readonly defaultSettings: LocationSettings = {
     enabled: false,
@@ -87,7 +88,7 @@ export class LocationService {
       // First check current permission status
       if ('permissions' in navigator) {
         const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-        
+
         if (permission.state === 'denied') {
           this.permissionStatus$.next(LocationPermissionStatus.DENIED);
           return LocationPermissionStatus.DENIED;
@@ -101,12 +102,12 @@ export class LocationService {
 
     } catch (error) {
       const errorCode = (error as GeolocationPositionError)?.code;
-      
+
       if (errorCode === GeolocationPositionError.PERMISSION_DENIED) {
         this.permissionStatus$.next(LocationPermissionStatus.DENIED);
         return LocationPermissionStatus.DENIED;
       }
-      
+
       this.permissionStatus$.next(LocationPermissionStatus.UNKNOWN);
       throw error;
     }
@@ -117,7 +118,7 @@ export class LocationService {
    */
   async startTracking(settings?: Partial<LocationSettings>): Promise<void> {
     const currentSettings = { ...this.getSettings(), ...settings };
-    
+
     if (!navigator.geolocation) {
       throw new Error('Geolocation is not supported');
     }
@@ -209,7 +210,7 @@ export class LocationService {
       // Send all queued locations using the new location-update endpoint
       const locations = [...this.locationQueue];
       const sentLocations: LocationData[] = [];
-      
+
       for (const location of locations) {
         try {
           const locationUpdateRequest = {
@@ -221,7 +222,7 @@ export class LocationService {
           };
 
           const response = await this.apiService.sendLocationUpdate(locationUpdateRequest).toPromise();
-          
+
           if (response && response.success) {
             sentLocations.push(location);
             console.log('Location sent successfully:', response.locationId);
@@ -234,9 +235,9 @@ export class LocationService {
 
       // Remove successfully sent locations from queue
       for (const sentLocation of sentLocations) {
-        const index = this.locationQueue.findIndex(loc => 
-          loc.latitude === sentLocation.latitude && 
-          loc.longitude === sentLocation.longitude && 
+        const index = this.locationQueue.findIndex(loc =>
+          loc.latitude === sentLocation.latitude &&
+          loc.longitude === sentLocation.longitude &&
           loc.timestamp === sentLocation.timestamp
         );
         if (index > -1) {
@@ -304,7 +305,7 @@ export class LocationService {
 
     this.lastKnownLocation = locationData;
     this.currentLocation$.next(locationData);
-    
+
     // Add to queue for background sync
     this.locationQueue.push(locationData);
 
@@ -318,7 +319,7 @@ export class LocationService {
 
   private handleLocationError(error: GeolocationPositionError): void {
     console.error('Location error:', error);
-    
+
     switch (error.code) {
       case GeolocationPositionError.PERMISSION_DENIED:
         this.permissionStatus$.next(LocationPermissionStatus.DENIED);
@@ -349,13 +350,13 @@ export class LocationService {
     if ('permissions' in navigator) {
       try {
         const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-        
+
         const statusMap: Record<PermissionState, LocationPermissionStatus> = {
           granted: LocationPermissionStatus.GRANTED,
           denied: LocationPermissionStatus.DENIED,
           prompt: LocationPermissionStatus.PROMPT
         };
-        
+
         this.permissionStatus$.next(statusMap[permission.state]);
 
         // Listen for permission changes
@@ -370,7 +371,7 @@ export class LocationService {
 
   private loadSettings(): void {
     const settings = this.getSettings();
-    
+
     // Auto-start tracking if enabled in settings
     if (settings.enabled && 'serviceWorker' in navigator) {
       // Wait a bit for the app to fully load

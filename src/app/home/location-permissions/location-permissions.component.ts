@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { LocationService, LocationPermissionStatus, LocationSettings } from '../../core/services/location.service';
 
 // Angular Material imports
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSelectModule } from '@angular/material/select';
@@ -12,6 +11,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatListModule } from '@angular/material/list';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-location-permissions',
@@ -21,40 +25,45 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
     MatButtonModule,
     MatSlideToggleModule,
     MatSelectModule,
     MatFormFieldModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatChipsModule,
+    MatExpansionModule,
+    MatListModule,
+    MatDividerModule,
+    MatDialogModule
   ]
 })
 export class LocationPermissionsComponent implements OnInit {
   private readonly locationService = inject(LocationService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialogRef = inject(MatDialogRef<LocationPermissionsComponent>, { optional: true });
 
   // Component state
   readonly isRequesting = signal(false);
   readonly permissionStatus = signal(LocationPermissionStatus.UNKNOWN);
   readonly isTracking = signal(false);
-  
+
   // Form for location settings
   settingsForm: FormGroup;
 
   // Computed properties
-  readonly canRequestPermission = computed(() => 
-    this.permissionStatus() === LocationPermissionStatus.UNKNOWN || 
+  readonly canRequestPermission = computed(() =>
+    this.permissionStatus() === LocationPermissionStatus.UNKNOWN ||
     this.permissionStatus() === LocationPermissionStatus.PROMPT
   );
-  
-  readonly hasPermission = computed(() => 
+
+  readonly hasPermission = computed(() =>
     this.permissionStatus() === LocationPermissionStatus.GRANTED
   );
-  
-  readonly isPermissionDenied = computed(() => 
+
+  readonly isPermissionDenied = computed(() =>
     this.permissionStatus() === LocationPermissionStatus.DENIED
   );
 
@@ -87,7 +96,7 @@ export class LocationPermissionsComponent implements OnInit {
       this.permissionStatus.set(status);
     });
 
-    // Subscribe to tracking status changes  
+    // Subscribe to tracking status changes
     this.locationService.isTracking.subscribe(tracking => {
       this.isTracking.set(tracking);
     });
@@ -103,19 +112,19 @@ export class LocationPermissionsComponent implements OnInit {
    */
   async requestPermissions(): Promise<void> {
     this.isRequesting.set(true);
-    
+
     try {
       const status = await this.locationService.requestPermissions();
-      
+
       if (status === LocationPermissionStatus.GRANTED) {
         this.snackBar.open('Location permissions granted! 🎉', 'Dismiss', {
           duration: 3000,
           panelClass: ['success-snackbar']
         });
-        
+
         // Auto-enable tracking if permission granted
         this.settingsForm.patchValue({ enabled: true });
-        
+
       } else if (status === LocationPermissionStatus.DENIED) {
         this.snackBar.open('Location permissions denied. You can enable them in browser settings.', 'Dismiss', {
           duration: 5000,
@@ -142,7 +151,7 @@ export class LocationPermissionsComponent implements OnInit {
         if (this.hasPermission()) {
           const settings = this.settingsForm.value as LocationSettings;
           await this.locationService.startTracking(settings);
-          
+
           this.snackBar.open('Background location tracking started 📍', 'Dismiss', {
             duration: 3000,
             panelClass: ['success-snackbar']
@@ -165,7 +174,7 @@ export class LocationPermissionsComponent implements OnInit {
         duration: 4000,
         panelClass: ['error-snackbar']
       });
-      
+
       // Revert the toggle
       this.settingsForm.patchValue({ enabled: !enabled }, { emitEvent: false });
     }
@@ -178,7 +187,7 @@ export class LocationPermissionsComponent implements OnInit {
     try {
       this.isRequesting.set(true);
       const location = await this.locationService.getCurrentPosition();
-      
+
       this.snackBar.open(
         `Current location: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
         'Dismiss',
@@ -205,7 +214,7 @@ export class LocationPermissionsComponent implements OnInit {
     try {
       this.isRequesting.set(true);
       await this.locationService.sendLocationData();
-      
+
       this.snackBar.open('Location data synchronized successfully! ✅', 'Dismiss', {
         duration: 3000,
         panelClass: ['success-snackbar']
@@ -272,5 +281,12 @@ export class LocationPermissionsComponent implements OnInit {
       default:
         return 'help_outline';
     }
+  }
+
+  /**
+   * Close the dialog
+   */
+  closeDialog(): void {
+    this.dialogRef?.close();
   }
 }

@@ -2,6 +2,14 @@
 <mat-toolbar color="transparent" role="banner">
   <mat-toolbar-row>
     <span class="spacer"></span>
+    <button
+      mat-icon-button
+      (click)="openLocationPermissions()"
+      *ngIf="isUserLoggedIn()"
+      aria-label="Location settings"
+      title="Location Settings">
+      <mat-icon>location_on</mat-icon>
+    </button>
     <a
       mat-icon-button
       href="admin"
@@ -92,7 +100,7 @@
       </article>
 
       <!-- Not at Brewery State -->
-      <article *ngIf="!isAtBrewery()" class="no-brewery-state">
+      <article *ngIf="!isAtBrewery() && false" class="no-brewery-state">
         <mat-card elevation="0">
           <mat-card-content>
             <header class="no-brewery-header">
@@ -109,11 +117,6 @@
       </article>
 
     </div>
-
-    <!-- Location Permissions Section -->
-    <section class="location-section" *ngIf="!isLoading() && !hasError()">
-      <app-location-permissions></app-location-permissions>
-    </section>
 
   </section>
 </main>
