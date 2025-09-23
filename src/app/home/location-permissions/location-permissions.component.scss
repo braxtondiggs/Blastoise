@@ -1,0 +1,58 @@
+// Dialog-specific styles
+.spacer {
+  flex: 1 1 auto;
+}
+
+.status-chips {
+  margin-bottom: 16px;
+
+  mat-chip-set {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.privacy-panel {
+  margin-top: 16px;
+
+  mat-expansion-panel-header {
+    padding: 8px 16px;
+  }
+}
+
+.denied-card {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+
+  h4 {
+    margin: 0 0 16px 0;
+  }
+}
+
+// Form field spacing
+mat-form-field {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+// Action buttons alignment
+mat-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-spinner {
+    margin-left: auto;
+  }
+}

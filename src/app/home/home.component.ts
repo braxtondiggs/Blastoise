@@ -7,6 +7,7 @@ import { Observable, timeout, of } from 'rxjs';
 import { map, tap, catchError, startWith, finalize } from 'rxjs/operators';
 import { HumanizeDuration, HumanizeDurationLanguage } from 'humanize-duration-ts';
 import { Brewery } from '../core/interfaces';
+import { AuthService } from '../core/services';
 import * as dayjs from 'dayjs';
 
 // Angular Material imports
@@ -15,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { LocationPermissionsComponent } from './location-permissions/location-permissions.component';
 
 interface HomeComponentState {
   breweries: Brewery[];
@@ -34,21 +37,26 @@ interface HomeComponentState {
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatCardModule
+    MatCardModule,
+    MatDialogModule
   ]
 })
 export class HomeComponent implements OnInit {
   // Angular v16 dependency injection
   private readonly afs = inject(Firestore);
   private readonly afMessaging = inject(Messaging);
+  private readonly authService = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Angular v16 signals for reactive state management
   private readonly state = signal<HomeComponentState>({
     breweries: [],
     isLoading: true,
     hasError: false
   });
+
+  // User authentication state
+  private readonly user = signal<any>(null);
 
   // Computed signals for derived state
   readonly isLoading = computed(() => this.state().isLoading);
@@ -56,6 +64,7 @@ export class HomeComponent implements OnInit {
   readonly errorMessage = computed(() => this.state().errorMessage);
   readonly currentBrewery = computed(() => this.state().breweries[0] || null);
   readonly isAtBrewery = computed(() => this.state().breweries.length > 0);
+  readonly isUserLoggedIn = computed(() => this.user() !== null);
 
   // Notification state
   private readonly notificationToken = signal<string | null>(
@@ -77,8 +86,20 @@ export class HomeComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.initializeUserAuthentication();
     this.initializeNotifications();
     this.loadBreweryData();
+  }
+
+  /**
+   * Initialize user authentication state
+   */
+  private initializeUserAuthentication(): void {
+    this.authService.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.user.set(user);
+      });
   }
 
   /**
@@ -323,5 +344,17 @@ export class HomeComponent implements OnInit {
     if (target) {
       target.style.display = 'none';
     }
+  }
+
+  /**
+   * Open location permissions modal
+   */
+  openLocationPermissions(): void {
+    this.dialog.open(LocationPermissionsComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      autoFocus: false,
+      disableClose: false
+    });
   }
 }

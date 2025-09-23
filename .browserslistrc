@@ -14,6 +14,11 @@ last 2 Edge major versions
 last 2 Safari major versions
 last 2 iOS major versions
 Firefox ESR
+Chrome >= 119
+Firefox >= 115
+Safari >= 16.4
+Edge >= 119
+iOS >= 16.4
 not dead
 not IE 11
 not IE 10
