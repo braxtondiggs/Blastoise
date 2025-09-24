@@ -38,6 +38,7 @@ interface LocationUpdateBody {
   source?: string;
 }
 
+
 const app = express();
 const config = admin.remoteConfig();
 db.settings({ ignoreUndefinedProperties: true });
@@ -47,24 +48,57 @@ app.use(cors({ origin: true }));
 
 app.post('/location-update', async (request: express.Request, response: express.Response) => {
   try {
-    const body = request.body as LocationUpdateBody;
+    const body = request.body;
 
-    if (!body.latitude || !body.longitude || !body.timestamp) {
-      return response.status(400).json({
-        success: false,
-        msg: 'Missing required fields: latitude, longitude, timestamp'
-      });
+    // Detect if this is OwnTracks format or your original format
+    const isOwnTracks = body._type === 'location' && body.lat && body.lon && body.tst;
+
+    let latitude: number; let longitude: number; let accuracy: number; let timestamp: number; let source: string;
+
+    if (isOwnTracks) {
+      // Handle OwnTracks format
+      latitude = body.lat;
+      longitude = body.lon;
+      accuracy = body.acc || 0;
+      timestamp = body.tst * 1000; // Convert Unix seconds to milliseconds
+      source = `owntracks-${body.tid || 'unknown'}`;
+
+      logger.info(`OwnTracks location received from ${body.tid}: ${latitude}, ${longitude}`);
+    } else {
+      // Handle original format
+      const typedBody = body as LocationUpdateBody;
+
+      if (!typedBody.latitude || !typedBody.longitude || !typedBody.timestamp) {
+        return response.status(400).json({
+          success: false,
+          msg: 'Missing required fields: latitude, longitude, timestamp'
+        });
+      }
+
+      latitude = typedBody.latitude;
+      longitude = typedBody.longitude;
+      accuracy = typedBody.accuracy || 0;
+      timestamp = typedBody.timestamp;
+      source = typedBody.source || 'pwa';
     }
 
-    // Store location update in Firestore
+    // Store location update in Firestore (unified format)
     const locationData = {
-      latitude: body.latitude,
-      longitude: body.longitude,
-      accuracy: body.accuracy || null,
-      timestamp: admin.firestore.Timestamp.fromMillis(body.timestamp),
-      source: body.source || 'unknown',
+      latitude,
+      longitude,
+      accuracy,
+      timestamp: admin.firestore.Timestamp.fromMillis(timestamp),
+      source,
       receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-      location: new admin.firestore.GeoPoint(body.latitude, body.longitude)
+      location: new admin.firestore.GeoPoint(latitude, longitude),
+      // Store additional OwnTracks data if available
+      ...(isOwnTracks && {
+        velocity: body.vel || 0,
+        altitude: body.alt || 0,
+        battery: body.batt || null,
+        trigger: body.t || 'unknown',
+        trackerId: body.tid || 'unknown'
+      })
     };
 
     // Save to location-history collection
@@ -86,7 +120,7 @@ app.post('/location-update', async (request: express.Request, response: express.
 
         if (geocodioAPI) {
           const geocoder = new Geocodio(geocodioAPI);
-          const { results } = await geocoder.reverse(`${body.latitude},${body.longitude}`);
+          const { results } = await geocoder.reverse(`${latitude},${longitude}`);
           const address = results[0]?.formatted_address;
 
           if (address) {
@@ -112,8 +146,8 @@ app.post('/location-update', async (request: express.Request, response: express.
                     latitude: candidate.geometry.location.lat,
                     longitude: candidate.geometry.location.lng
                   }, {
-                    latitude: body.latitude,
-                    longitude: body.longitude
+                    latitude,
+                    longitude
                   });
                 }
               }
