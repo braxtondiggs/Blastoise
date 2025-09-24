@@ -30,12 +30,11 @@ interface RequestBody {
   source?: string;
 }
 
-interface LocationUpdateBody {
-  latitude: number;
-  longitude: number;
-  accuracy?: number;
+interface LocationCache {
+  address: string;
   timestamp: number;
-  source?: string;
+  lat: number;
+  lon: number;
 }
 
 
@@ -46,43 +45,98 @@ db.settings({ ignoreUndefinedProperties: true });
 // Automatically allow cross-origin requestsd
 app.use(cors({ origin: true }));
 
+// Location caching functions to reduce API costs
+async function getCachedAddress(latitude: number, longitude: number): Promise<string | null> {
+  try {
+    // Check if we have a cached address within 100 meters from last 24 hours
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+
+    const cacheQuery = await db.collection('location-cache')
+      .where('timestamp', '>', oneDayAgo)
+      .limit(50) // Limit query size for performance
+      .get();
+
+    for (const doc of cacheQuery.docs) {
+      const cached = doc.data() as LocationCache;
+      const distance = getDistance(
+        { latitude, longitude },
+        { latitude: cached.lat, longitude: cached.lon }
+      );
+
+      // If within 100 meters, reuse cached address
+      if (distance <= 100) {
+        logger.info(`Using cached address to save API costs (${distance}m away)`);
+        return cached.address;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    logger.warn('Error checking location cache:', error);
+    return null;
+  }
+}
+
+async function cacheAddress(latitude: number, longitude: number, address: string): Promise<void> {
+  try {
+    await db.collection('location-cache').add({
+      address,
+      lat: latitude,
+      lon: longitude,
+      timestamp: Date.now(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    logger.info('Cached address for future use');
+  } catch (error) {
+    logger.warn('Error caching address:', error);
+  }
+}
+
+async function cleanupOldCache(): Promise<void> {
+  try {
+    // Clean up cache entries older than 7 days
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+    const oldCacheQuery = await db.collection('location-cache')
+      .where('timestamp', '<', sevenDaysAgo)
+      .limit(100)
+      .get();
+
+    if (!oldCacheQuery.empty) {
+      const batch = db.batch();
+      oldCacheQuery.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      logger.info(`Cleaned up ${oldCacheQuery.docs.length} old cache entries`);
+    }
+  } catch (error) {
+    logger.warn('Error cleaning up cache:', error);
+  }
+}
+
 app.post('/location-update', async (request: express.Request, response: express.Response) => {
   try {
     const body = request.body;
 
-    // Detect if this is OwnTracks format or your original format
-    const isOwnTracks = body._type === 'location' && body.lat && body.lon && body.tst;
-
-    let latitude: number; let longitude: number; let accuracy: number; let timestamp: number; let source: string;
-
-    if (isOwnTracks) {
-      // Handle OwnTracks format
-      latitude = body.lat;
-      longitude = body.lon;
-      accuracy = body.acc || 0;
-      timestamp = body.tst * 1000; // Convert Unix seconds to milliseconds
-      source = `owntracks-${body.tid || 'unknown'}`;
-
-      logger.info(`OwnTracks location received from ${body.tid}: ${latitude}, ${longitude}`);
-    } else {
-      // Handle original format
-      const typedBody = body as LocationUpdateBody;
-
-      if (!typedBody.latitude || !typedBody.longitude || !typedBody.timestamp) {
-        return response.status(400).json({
-          success: false,
-          msg: 'Missing required fields: latitude, longitude, timestamp'
-        });
-      }
-
-      latitude = typedBody.latitude;
-      longitude = typedBody.longitude;
-      accuracy = typedBody.accuracy || 0;
-      timestamp = typedBody.timestamp;
-      source = typedBody.source || 'pwa';
+    // Validate OwnTracks payload
+    if (body._type !== 'location' || !body.lat || !body.lon || !body.tst) {
+      return response.status(400).json({
+        success: false,
+        msg: 'Invalid OwnTracks payload: missing required fields (_type, lat, lon, tst)'
+      });
     }
 
-    // Store location update in Firestore (unified format)
+    // Extract OwnTracks data
+    const latitude = body.lat;
+    const longitude = body.lon;
+    const accuracy = body.acc || 0;
+    const timestamp = body.tst * 1000; // Convert Unix seconds to milliseconds
+    const source = `owntracks-${body.tid || 'unknown'}`;
+
+    logger.info(`OwnTracks location received from ${body.tid}: ${latitude}, ${longitude}`);
+
+    // Store location update in Firestore
     const locationData = {
       latitude,
       longitude,
@@ -91,14 +145,12 @@ app.post('/location-update', async (request: express.Request, response: express.
       source,
       receivedAt: admin.firestore.FieldValue.serverTimestamp(),
       location: new admin.firestore.GeoPoint(latitude, longitude),
-      // Store additional OwnTracks data if available
-      ...(isOwnTracks && {
-        velocity: body.vel || 0,
-        altitude: body.alt || 0,
-        battery: body.batt || null,
-        trigger: body.t || 'unknown',
-        trackerId: body.tid || 'unknown'
-      })
+      // Store OwnTracks specific data
+      velocity: body.vel || 0,
+      altitude: body.alt || 0,
+      battery: body.batt || null,
+      trigger: body.t || 'unknown',
+      trackerId: body.tid || 'unknown'
     };
 
     // Save to location-history collection
@@ -114,80 +166,99 @@ app.post('/location-update', async (request: express.Request, response: express.
     )) {
       // Use existing import logic with the new location
       try {
-        // Get address from coordinates
-        const template = await config.getTemplate();
-        const geocodioAPI = (template.parameters.GEOCODIO.defaultValue as unknown as { value: string }).value;
+        // Check cached address first to save API costs
+        let address = await getCachedAddress(latitude, longitude);
 
-        if (geocodioAPI) {
-          const geocoder = new Geocodio(geocodioAPI);
-          const { results } = await geocoder.reverse(`${latitude},${longitude}`);
-          const address = results[0]?.formatted_address;
+        if (!address) {
+          // Only make API call if no cached address available
+          logger.info('No cached address found, making Geocodio API call');
+          const template = await config.getTemplate();
+          const geocodioAPI = (template.parameters.GEOCODIO.defaultValue as unknown as { value: string }).value;
 
-          if (address) {
-            // Trigger brewery search logic
-            const googleAPI = (template.parameters.GOOGLEAPI.defaultValue as unknown as { value: string }).value;
-            if (googleAPI) {
-              const { data: query }: { data: PlaceSearch } = await axios.get(
-                'https://maps.googleapis.com/maps/api/place/findplacefromtext/json',
-                {
-                  params: {
-                    input: encodeURIComponent(`brewery near ${address}`),
-                    key: googleAPI,
-                    inputtype: 'textquery',
-                    fields: 'formatted_address,name,geometry,place_id'
-                  }
-                }
-              );
+          if (geocodioAPI) {
+            const geocoder = new Geocodio(geocodioAPI);
+            const { results } = await geocoder.reverse(`${latitude},${longitude}`);
+            address = results[0]?.formatted_address;
 
-              // Process brewery candidates
-              for (const candidate of query.candidates) {
-                if (candidate.geometry?.location) {
-                  candidate.distance = getDistance({
-                    latitude: candidate.geometry.location.lat,
-                    longitude: candidate.geometry.location.lng
-                  }, {
-                    latitude,
-                    longitude
-                  });
+            if (address) {
+              // Cache the result for future use
+              await cacheAddress(latitude, longitude, address);
+            }
+          }
+        }
+
+        if (address) {
+          // Trigger brewery search logic
+          const template = await config.getTemplate();
+          const googleAPI = (template.parameters.GOOGLEAPI.defaultValue as unknown as { value: string }).value;
+          if (googleAPI) {
+            const { data: query }: { data: PlaceSearch } = await axios.get(
+              'https://maps.googleapis.com/maps/api/place/findplacefromtext/json',
+              {
+                params: {
+                  input: encodeURIComponent(`brewery near ${address}`),
+                  key: googleAPI,
+                  inputtype: 'textquery',
+                  fields: 'formatted_address,name,geometry,place_id'
                 }
               }
+            );
 
-              // Filter candidates within 250 feet
-              const nearbyBreweries = query.candidates.filter(
-                (candidate) => convertDistance(candidate.distance, 'ft') <= 250
-              );
-
-              if (nearbyBreweries.length > 0) {
-                // Update last call timestamp
-                await db.doc('brewery-review/last-call').set({
-                  time: admin.firestore.FieldValue.serverTimestamp(),
-                  place_id: nearbyBreweries[0].place_id,
-                  triggeredBy: 'background-location'
+            // Process brewery candidates
+            for (const candidate of query.candidates) {
+              if (candidate.geometry?.location) {
+                candidate.distance = getDistance({
+                  latitude: candidate.geometry.location.lat,
+                  longitude: candidate.geometry.location.lng
+                }, {
+                  latitude,
+                  longitude
                 });
-
-                // Process brewery updates
-                updateBreweryInfo(nearbyBreweries);
-
-                logger.info(`Background location triggered brewery check. Found ${nearbyBreweries.length} nearby breweries.`);
               }
+            }
+
+            // Filter candidates within 250 feet
+            const nearbyBreweries = query.candidates.filter(
+              (candidate) => convertDistance(candidate.distance, 'ft') <= 250
+            );
+
+            if (nearbyBreweries.length > 0) {
+              // Update last call timestamp
+              await db.doc('brewery-review/last-call').set({
+                time: admin.firestore.FieldValue.serverTimestamp(),
+                place_id: nearbyBreweries[0].place_id,
+                triggeredBy: 'owntracks'
+              });
+
+              // Process brewery updates
+              updateBreweryInfo(nearbyBreweries);
+
+              logger.info(`OwnTracks location triggered brewery check. Found ${nearbyBreweries.length} nearby breweries.`);
             }
           }
         }
       } catch (geocodingError) {
-        logger.warn('Geocoding failed for background location:', geocodingError);
+        logger.warn('Geocoding failed for OwnTracks location:', geocodingError);
       }
+    } else {
+      logger.info('Skipping brewery check - too soon since last check');
+    }
+
+    // Cleanup old cache entries occasionally (1 in 20 chance)
+    if (Math.random() < 0.05) {
+      cleanupOldCache().catch((err) => logger.warn('Cache cleanup failed:', err));
     }
 
     return response.json({
       success: true,
       locationId: locationDoc.id,
-      msg: 'Location updated successfully'
+      msg: 'OwnTracks location updated successfully'
     });
   } catch (error) {
-    logger.error('Location update failed:', error);
+    logger.error('OwnTracks location update failed:', error);
     return response.status(500).json({
       success: false,
-      msg: 'Failed to process location update'
+      msg: 'Failed to process OwnTracks location update'
     });
   }
 });
