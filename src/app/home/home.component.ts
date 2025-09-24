@@ -16,8 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { LocationPermissionsComponent } from './location-permissions/location-permissions.component';
 
 interface HomeComponentState {
   breweries: Brewery[];
@@ -37,8 +35,7 @@ interface HomeComponentState {
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatCardModule,
-    MatDialogModule
+    MatCardModule
   ]
 })
 export class HomeComponent implements OnInit {
@@ -46,7 +43,6 @@ export class HomeComponent implements OnInit {
   private readonly afs = inject(Firestore);
   private readonly afMessaging = inject(Messaging);
   private readonly authService = inject(AuthService);
-  private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly state = signal<HomeComponentState>({
@@ -346,15 +342,5 @@ export class HomeComponent implements OnInit {
     }
   }
 
-  /**
-   * Open location permissions modal
-   */
-  openLocationPermissions(): void {
-    this.dialog.open(LocationPermissionsComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      autoFocus: false,
-      disableClose: false
-    });
-  }
+
 }
