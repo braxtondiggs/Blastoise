@@ -1,0 +1,131 @@
+<div class="mb-6">
+  <!-- Filter toggle button -->
+  <div class="flex justify-between items-center">
+    <button class="btn btn-sm btn-outline" (click)="toggleFilters()">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+      </svg>
+      Filters
+      @if (hasFilters()) {
+        <span class="badge badge-sm badge-primary">{{ activeFiltersCount() }}</span>
+      }
+    </button>
+
+    @if (hasFilters()) {
+      <button class="btn btn-sm btn-ghost" (click)="clearFilters()">
+        Clear all
+      </button>
+    }
+  </div>
+
+  <!-- Expandable filter panel -->
+  @if (showFilters()) {
+    <div class="card bg-base-200 mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div class="card-body">
+        <!-- Search -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">Search venue name</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Search by name..."
+            class="input input-bordered w-full"
+            [value]="searchQuery()"
+            (input)="onSearchChange($any($event.target).value)"
+          />
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Venue type filter -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">Venue type</span>
+          </label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              class="btn btn-sm"
+              [class.btn-primary]="isVenueTypeSelected('brewery')"
+              [class.btn-outline]="!isVenueTypeSelected('brewery')"
+              (click)="toggleVenueType('brewery')"
+            >
+              Brewery
+            </button>
+            <button
+              class="btn btn-sm"
+              [class.btn-primary]="isVenueTypeSelected('winery')"
+              [class.btn-outline]="!isVenueTypeSelected('winery')"
+              (click)="toggleVenueType('winery')"
+            >
+              Winery
+            </button>
+            <button
+              class="btn btn-sm"
+              [class.btn-primary]="isVenueTypeSelected('taproom')"
+              [class.btn-outline]="!isVenueTypeSelected('taproom')"
+              (click)="toggleVenueType('taproom')"
+            >
+              Taproom
+            </button>
+            <button
+              class="btn btn-sm"
+              [class.btn-primary]="isVenueTypeSelected('bar')"
+              [class.btn-outline]="!isVenueTypeSelected('bar')"
+              (click)="toggleVenueType('bar')"
+            >
+              Bar
+            </button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Date range filter -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">From date</span>
+            </label>
+            <input
+              type="date"
+              class="input input-bordered w-full"
+              [value]="dateFrom() || ''"
+              (change)="onDateFromChange($any($event.target).value)"
+            />
+          </div>
+
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">To date</span>
+            </label>
+            <input
+              type="date"
+              class="input input-bordered w-full"
+              [value]="dateTo() || ''"
+              (change)="onDateToChange($any($event.target).value)"
+            />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Sort order -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">Sort by</span>
+          </label>
+          <select
+            class="select select-bordered w-full"
+            [value]="sortBy()"
+            (change)="onSortChange($any($event.target).value)"
+          >
+            <option value="recent">Most recent first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="longest">Longest duration first</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  }
+</div>

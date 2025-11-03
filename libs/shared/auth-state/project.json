@@ -1,0 +1,16 @@
+{
+  "name": "auth-state",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/auth-state/src",
+  "projectType": "library",
+  "tags": ["type:shared", "scope:auth"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/shared/auth-state/jest.config.ts"
+      }
+    }
+  }
+}

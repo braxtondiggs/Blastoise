@@ -1,0 +1,11 @@
+{
+  "name": "@blastoise/ui",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "*",
+    "@angular/core": "*",
+    "@blastoise/shared": "*",
+    "jest-preset-angular": "*"
+  },
+  "sideEffects": false
+}

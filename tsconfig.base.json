@@ -1,0 +1,43 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@blastoise/shared": ["libs/shared/src/index.ts"],
+      "@blastoise/ui": ["libs/ui/src/index.ts"],
+      "@blastoise/data": ["libs/data/src/index.ts"],
+      "@blastoise/data-backend": ["libs/data-backend/src/index.ts"],
+      "@blastoise/data-frontend": ["libs/data-frontend/src/index.ts"],
+      "@blastoise/features-auth": ["libs/features/auth/src/index.ts"],
+      "@blastoise/features-visits": ["libs/features/visits/src/index.ts"],
+      "@blastoise/features/map": ["libs/features/src/index.ts"],
+      "@blastoise/features/sharing": ["libs/features/src/index.ts"],
+      "@blastoise/workers": ["libs/workers/src/index.ts"],
+      "@blastoise/features-settings": ["libs/features/settings/src/index.ts"],
+      "@blastoise/features-sharing": ["libs/features/sharing/src/index.ts"],
+      "@blastoise/shared/auth-state": ["libs/shared/auth-state/src/index.ts"]
+    },
+    "strict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "exclude": ["node_modules", "tmp"]
+}

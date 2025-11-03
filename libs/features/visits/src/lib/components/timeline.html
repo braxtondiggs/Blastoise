@@ -1,0 +1,97 @@
+<!-- T245: Timeline with screen reader support -->
+<div class="max-w-4xl mx-auto px-4 py-6" role="main" aria-label="Visit timeline">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold" id="timeline-heading">Your Visits</h1>
+    <button
+      class="btn btn-sm btn-ghost"
+      (click)="refresh()"
+      [disabled]="isLoading()"
+      aria-label="Refresh visit timeline"
+      [attr.aria-busy]="isLoading()"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Empty state -->
+  @if (isEmpty()) {
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <h2 class="mt-4 text-2xl font-semibold">No visits yet</h2>
+      <p class="mt-2 text-base-content/70">
+        Your brewery and winery visits will appear here automatically.
+      </p>
+      <p class="mt-1 text-sm text-base-content/60">
+        Make sure location tracking is enabled in your settings.
+      </p>
+    </div>
+  }
+
+  <!-- Timeline with grouped visits -->
+  @if (!isEmpty()) {
+    <div class="space-y-8" role="feed" aria-labelledby="timeline-heading">
+      @for (group of groupedVisits(); track group.date) {
+        <!-- Date header -->
+        <section [attr.aria-labelledby]="'date-header-' + group.date">
+          <div class="mb-4">
+            <h2
+              [id]="'date-header-' + group.date"
+              class="text-xl font-semibold opacity-80"
+            >
+              {{ group.displayDate }}
+            </h2>
+            <div class="divider" role="separator"></div>
+          </div>
+
+          <!-- Visits for this date -->
+          <div
+            class="space-y-4 pl-4"
+            role="list"
+            [attr.aria-label]="'Visits on ' + group.displayDate"
+          >
+            @for (visit of group.visits; track visit.id) {
+              <app-visit-card
+                [visit]="visit"
+                [venue]="visit.venue"
+                (click)="onVisitClick(visit)"
+                class="cursor-pointer transition-transform hover:scale-[1.02]"
+                role="listitem"
+                [attr.aria-label]="'Visit to ' + (visit.venue?.name || 'venue') + ' at ' + (visit.arrival_time | date:'short')"
+                tabindex="0"
+              />
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Loading indicator -->
+      @if (isLoading()) {
+        <div
+          class="flex flex-col items-center justify-center py-8"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading more visits"
+        >
+          <span class="loading loading-spinner loading-lg" aria-hidden="true"></span>
+          <p class="mt-2 text-sm text-base-content/70">Loading more visits...</p>
+        </div>
+      }
+
+      <!-- End of list indicator -->
+      @if (!hasMore() && !isLoading() && !isEmpty()) {
+        <div class="flex items-center justify-center py-8">
+          <p class="text-sm text-base-content/60">
+            You've reached the beginning of your visit history
+          </p>
+        </div>
+      }
+    </div>
+  }
+</div>

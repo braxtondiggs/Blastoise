@@ -1,0 +1,134 @@
+<div class="flex items-center justify-center min-h-[60vh] py-12">
+  <div class="max-w-2xl mx-auto px-4 text-center">
+    <!-- Illustration -->
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="h-24 w-24 mx-auto opacity-30"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+      />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+    </svg>
+
+    <!-- Heading -->
+    <h2 class="text-3xl font-bold mt-6">No visits yet</h2>
+
+    <!-- Description -->
+    <p class="text-lg opacity-70 mt-4 max-w-md mx-auto">
+      Your brewery and winery visits will appear here automatically when you
+      visit a venue.
+    </p>
+
+    <!-- How it works -->
+    <div class="mt-8 text-left card bg-base-200">
+      <div class="card-body">
+        <h3 class="card-title text-lg">How it works</h3>
+        <ul class="steps steps-vertical">
+          <li class="step step-primary">
+            <div class="text-left">
+              <h4 class="font-semibold">Enable location tracking</h4>
+              <p class="text-sm text-base-content/70">
+                Allow the app to access your location in the background
+              </p>
+            </div>
+          </li>
+          <li class="step step-primary">
+            <div class="text-left">
+              <h4 class="font-semibold">Visit a brewery or winery</h4>
+              <p class="text-sm text-base-content/70">
+                When you arrive, we'll detect it automatically
+              </p>
+            </div>
+          </li>
+          <li class="step step-primary">
+            <div class="text-left">
+              <h4 class="font-semibold">See your history</h4>
+              <p class="text-sm text-base-content/70">
+                All your visits are tracked and displayed here
+              </p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-wrap gap-4 justify-center mt-8">
+      <button class="btn btn-primary" (click)="onSettingsClick()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+        </svg>
+        Go to Settings
+      </button>
+
+      <a routerLink="/map" class="btn btn-outline">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+          />
+        </svg>
+        Explore Map
+      </a>
+    </div>
+
+    <!-- Privacy note -->
+    <div class="alert alert-info mt-6">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <span class="text-sm">
+        Your privacy is protected: we only store venue IDs and rounded
+        timestamps, never precise GPS coordinates.
+      </span>
+    </div>
+  </div>
+</div>

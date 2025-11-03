@@ -1,0 +1,71 @@
+# Docker ignore patterns for Venue Visit Tracker
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+# Note: package-lock.json is REQUIRED for npm ci in Docker builds
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs (will be rebuilt in container)
+dist/
+build/
+out-tsc/
+tmp/
+.angular/
+
+# Nx cache
+.nx/
+
+# Environment files (mount separately or use build args)
+.env
+.env.*
+*.key
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+
+# Tests
+coverage/
+*.spec.ts
+*.spec.js
+e2e/
+**/__tests__/
+**/__mocks__/
+
+# Documentation
+*.md
+docs/
+specs/
+.specify/
+
+# Logs
+*.log
+logs/
+
+# Capacitor native projects (not needed in API container)
+android/
+ios/
+
+# Local data
+apps/api/data/
+*.idb
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Misc
+Thumbs.db
+.DS_Store

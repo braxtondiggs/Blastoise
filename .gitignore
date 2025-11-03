@@ -1,18 +1,13 @@
-# See http://help.github.com/ignore-files/ for more about ignoring files.
+# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # compiled output
-/dist
-/tmp
-/out-tsc
-# Only exists if Bazel was run
-/bazel-out
+dist
+tmp
+out-tsc
+build
 
 # dependencies
-/node_modules
-
-# profiling files
-chrome-profiler-events*.json
-speed-measure-plugin*.json
+node_modules
 
 # IDEs and editors
 /.idea
@@ -29,10 +24,8 @@ speed-measure-plugin*.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.history/*
 
 # misc
-/.angular/cache
 /.sass-cache
 /connect.lock
 /coverage
@@ -46,24 +39,41 @@ testem.log
 .DS_Store
 Thumbs.db
 
-firebase-debug.log
-.firebase
+# Nx
+.nx/cache
+.nx/workspace-data
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
 
-# Environment files
+# Environment variables and secrets
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+docker/.env
+*.key
+*.pem
 
-# ESLint cache
-.eslintcache
+# Supabase local
+.temp/
+supabase/.branches
+supabase/.temp
 
-# Storybook build outputs
-.out
-.storybook-out
-storybook-static
+# Logs
+*.log
+logs/
 
-# Temporary folders
-*.tmp
-*.temp
+# Capacitor (Mobile)
+android/.gradle
+android/build
+android/.idea
+ios/App/Pods
+ios/App/build
+*.xcworkspace
+
+# IndexedDB and local storage
+*.idb
+
+# Venue data files (large JSON files from external APIs)
+apps/api/data/
+
+.angular

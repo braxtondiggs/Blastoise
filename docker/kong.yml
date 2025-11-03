@@ -1,0 +1,125 @@
+_format_version: '2.1'
+_transform: true
+
+###
+### Kong Configuration for Supabase
+### Routes all API requests to appropriate backend services
+###
+### SECURITY NOTE: This file contains hardcoded demo JWT keys from Supabase.
+### These are PUBLIC keys safe for local development only.
+### For production, generate new JWT tokens with your own secret:
+###   1. Change JWT_SECRET in docker/.env
+###   2. Generate new tokens at https://supabase.com/docs/guides/self-hosting#api-keys
+###   3. Update the 'key' values in the consumers section below
+###
+
+services:
+  - name: auth-v1-open
+    url: http://auth:9999/verify
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths:
+          - /auth/v1/verify
+    plugins:
+      - name: cors
+
+  - name: auth-v1-open-callback
+    url: http://auth:9999/callback
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths:
+          - /auth/v1/callback
+    plugins:
+      - name: cors
+
+  - name: auth-v1-open-authorize
+    url: http://auth:9999/authorize
+    routes:
+      - name: auth-v1-open-authorize
+        strip_path: true
+        paths:
+          - /auth/v1/authorize
+    plugins:
+      - name: cors
+
+  - name: auth-v1
+    _comment: 'GoTrue: /auth/v1/* -> http://auth:9999/*'
+    url: http://auth:9999/
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+
+  - name: rest-v1
+    _comment: 'PostgREST: /rest/v1/* -> http://postgrest:3000/*'
+    url: http://postgrest:3000/
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+
+  - name: realtime-v1
+    _comment: 'Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*'
+    url: http://realtime:4000/socket
+    routes:
+      - name: realtime-v1-all
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+
+  - name: storage-v1
+    _comment: 'Storage: /storage/v1/* -> http://storage:5000/*'
+    url: http://storage:5000/
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1/
+    plugins:
+      - name: cors
+
+  - name: meta
+    url: http://postgrest:3000/
+    routes:
+      - name: meta-all
+        strip_path: true
+        paths:
+          - /pg/
+
+## Consumers & ACLs
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+  - username: service_role
+    keyauth_credentials:
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+
+## Plugins
+plugins:
+  - name: cors
+    config:
+      origins:
+        - '*'
+      credentials: true
+      exposed_headers:
+        - Content-Range
+        - X-Content-Range
+        - Range-Unit
+      headers:
+        - authorization
+        - content-type
+        - x-client-info
+        - apikey
+        - prefer
+        - range
