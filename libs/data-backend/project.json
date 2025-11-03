@@ -1,0 +1,30 @@
+{
+  "name": "data-backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data-backend/src",
+  "projectType": "library",
+  "tags": ["type:lib", "scope:backend", "layer:data"],
+  "metadata": {
+    "description": "Backend-specific data repositories and services",
+    "technologies": ["TypeScript", "NestJS"]
+  },
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{workspaceRoot}/dist/out-tsc/libs/data-backend"],
+      "options": {
+        "outputPath": "dist/out-tsc/libs/data-backend",
+        "main": "libs/data-backend/src/index.ts",
+        "tsConfig": "libs/data-backend/tsconfig.lib.json",
+        "assets": ["libs/data-backend/*.md"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/data-backend/jest.config.ts"
+      }
+    }
+  }
+}

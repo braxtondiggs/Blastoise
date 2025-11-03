@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Blastoise</string>
+    <string name="title_activity_main">Blastoise</string>
+    <string name="package_name">com.blastoise.app</string>
+    <string name="custom_url_scheme">com.blastoise.app</string>
+</resources>

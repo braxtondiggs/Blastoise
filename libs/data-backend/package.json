@@ -1,0 +1,13 @@
+{
+  "name": "@blastoise/data-backend",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {
+    "tslib": "*",
+    "@blastoise/shared": "*",
+    "redis": "*",
+    "@supabase/supabase-js": "*"
+  }
+}

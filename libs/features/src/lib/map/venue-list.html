@@ -1,0 +1,151 @@
+<div class="w-full h-full overflow-y-auto">
+  <!-- Search and Filters -->
+  <div class="sticky top-0 bg-base-100 z-10 p-4 border-b border-gray-200">
+    <!-- Search Input -->
+    <div class="form-control mb-4">
+      <div class="input-group">
+        <input
+          type="text"
+          placeholder="Search venues..."
+          class="input input-bordered w-full rounded-l-lg"
+          [value]="searchQuery()"
+          (input)="onSearchChange($event)"
+          aria-label="Search venues"
+        />
+        <button class="btn btn-square rounded-r-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter and Sort Controls -->
+    <div class="flex gap-2 mb-4">
+      <!-- Type Filter -->
+      <div class="dropdown">
+        <button tabindex="0" class="btn btn-sm btn-outline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filter: {{ filterType() === 'all' ? 'All' : (filterType() === 'brewery' ? 'Breweries' : 'Wineries') }}
+        </button>
+        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10 mt-1">
+          <li><a class="text-sm" (click)="onFilterChange('all')">All Venues</a></li>
+          <li><a class="text-sm" (click)="onFilterChange('brewery')">Breweries Only</a></li>
+          <li><a class="text-sm" (click)="onFilterChange('winery')">Wineries Only</a></li>
+        </ul>
+      </div>
+
+      <!-- Sort Options -->
+      <div class="dropdown">
+        <button tabindex="0" class="btn btn-sm btn-outline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+          </svg>
+          Sort: {{ sortBy() === 'distance' ? 'Distance' : (sortBy() === 'name' ? 'Name' : 'Type') }}
+        </button>
+        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-10 mt-1">
+          <li><a class="text-sm" (click)="onSortChange('distance')">By Distance</a></li>
+          <li><a class="text-sm" (click)="onSortChange('name')">By Name</a></li>
+          <li><a class="text-sm" (click)="onSortChange('type')">By Type</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Results Count -->
+    <div class="text-sm text-gray-600 mb-2">
+      {{ filteredVenues().length }} venue{{ filteredVenues().length !== 1 ? 's' : '' }}
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="flex justify-center items-center py-12">
+      <span class="loading loading-spinner loading-lg"></span>
+      <p class="text-sm text-gray-600 ml-3">Loading venues...</p>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (isEmpty() && !loading) {
+    <div class="flex flex-col items-center justify-center py-12 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <h3 class="text-lg font-semibold mb-2">No venues found</h3>
+      <p class="text-sm text-gray-600">
+        @if (searchQuery()) {
+          Try adjusting your search or filters
+        } @else {
+          There are no venues in this area
+        }
+      </p>
+    </div>
+  }
+
+  <!-- Venue List -->
+  @if (!loading && !isEmpty()) {
+    <div class="divide-y divide-gray-200">
+      @for (venue of filteredVenues(); track venue.id) {
+        <div
+          class="flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-base-200 focus:bg-base-200 focus:outline-none focus:ring-2 focus:ring-primary"
+          [class.bg-green-50]="isVisited(venue.id)"
+          [class.hover:bg-green-100]="isVisited(venue.id)"
+          (click)="selectVenue(venue)"
+          role="button"
+          tabindex="0"
+          (keydown.enter)="selectVenue(venue)"
+          (keydown.space)="selectVenue(venue)"
+        >
+          <!-- Venue Icon -->
+          <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-base-200">
+            <span class="text-3xl">{{ getVenueIcon(venue.venue_type) }}</span>
+          </div>
+
+          <!-- Venue Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-semibold text-base truncate">{{ venue.name }}</h3>
+                <p class="text-sm text-gray-600">{{ getVenueTypeLabel(venue.venue_type) }}</p>
+              </div>
+
+              <!-- Distance Badge -->
+              @if (getDistance(venue.id)) {
+                <span class="badge badge-primary badge-sm whitespace-nowrap">
+                  {{ getDistance(venue.id) }}
+                </span>
+              }
+            </div>
+
+            <!-- Address -->
+            <p class="text-sm text-gray-500 mt-1">
+              @if (venue.address) {
+                {{ venue.address }}<br>
+              }
+              @if (venue.city || venue.state) {
+                {{ venue.city }}@if (venue.city && venue.state) {, }{{ venue.state }}
+              }
+            </p>
+
+            <!-- Visited Badge -->
+            @if (isVisited(venue.id)) {
+              <span class="badge badge-success badge-sm mt-2 whitespace-nowrap">
+                ✓ Visited
+              </span>
+            }
+          </div>
+
+          <!-- Chevron -->
+          <div class="flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

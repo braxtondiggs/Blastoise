@@ -1,0 +1,106 @@
+import {
+  Component,
+  Input,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import type { Visit, Venue } from '@blastoise/shared';
+import { interval, Subject, takeUntil } from 'rxjs';
+
+/**
+ * Active Visit Component (T126)
+ *
+ * Displays an active (in-progress) visit with:
+ * - Live duration updates (updates every minute)
+ * - Venue information
+ * - Arrival time
+ * - Visual indicator that visit is active
+ *
+ * User Story 2: Visual Timeline of Visits
+ */
+
+@Component({
+  selector: 'app-active-visit',
+  imports: [CommonModule],
+  templateUrl: './active-visit.html',
+  standalone: true,
+})
+export class ActiveVisitComponent implements OnInit, OnDestroy {
+  @Input() visit!: Visit;
+  @Input() venue?: Venue;
+
+  private readonly destroy$ = new Subject<void>();
+
+  // Current duration in minutes (updates live)
+  readonly currentDuration = signal(0);
+
+  // Formatted duration string
+  readonly formattedDuration = computed(() => {
+    return this.formatDuration(this.currentDuration());
+  });
+
+  // Formatted arrival time
+  readonly formattedArrival = computed(() => {
+    if (!this.visit) return '';
+    const date = new Date(this.visit.arrival_time);
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+    }).format(date);
+  });
+
+  ngOnInit(): void {
+    // Calculate initial duration
+    this.updateDuration();
+
+    // Update duration every minute
+    interval(60000) // 60 seconds
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.updateDuration();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * T126: Calculate and update current duration
+   */
+  private updateDuration(): void {
+    if (!this.visit?.arrival_time) return;
+
+    const arrivalTime = new Date(this.visit.arrival_time).getTime();
+    const currentTime = Date.now();
+    const durationMs = currentTime - arrivalTime;
+    const durationMinutes = Math.floor(durationMs / (1000 * 60));
+
+    this.currentDuration.set(durationMinutes);
+  }
+
+  /**
+   * Format duration as human-readable string
+   * Examples: "5 minutes", "1 hour 30 minutes", "2 hours"
+   */
+  private formatDuration(minutes: number): string {
+    if (minutes < 60) {
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (remainingMinutes === 0) {
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    }
+
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} ${
+      remainingMinutes === 1 ? 'minute' : 'minutes'
+    }`;
+  }
+}

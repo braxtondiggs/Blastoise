@@ -1,0 +1,30 @@
+{
+  "name": "data",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data/src",
+  "projectType": "library",
+  "tags": ["type:lib", "scope:shared", "layer:data"],
+  "metadata": {
+    "description": "Data access layer for Supabase, Redis, and IndexedDB",
+    "technologies": ["TypeScript", "Supabase", "Redis", "IndexedDB"]
+  },
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/data",
+        "main": "libs/data/src/index.ts",
+        "tsConfig": "libs/data/tsconfig.lib.json",
+        "assets": ["libs/data/*.md"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/data/jest.config.ts"
+      }
+    }
+  }
+}

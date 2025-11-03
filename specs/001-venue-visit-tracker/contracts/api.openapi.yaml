@@ -1,0 +1,807 @@
+openapi: 3.0.3
+info:
+  title: Venue Visit Tracker API
+  description: |
+    REST API for venue discovery, visit synchronization, and anonymized sharing.
+    All endpoints require authentication via Supabase JWT (except public shared visit viewing).
+  version: 1.0.0
+  contact:
+    name: Venue Visit Tracker Team
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+  - url: https://api.venuevisits.app/v1
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Venues
+    description: Venue discovery and search
+  - name: Visits
+    description: Visit tracking and history
+  - name: Sharing
+    description: Anonymized visit sharing
+  - name: User
+    description: User preferences and settings
+
+paths:
+  # ============================================================================
+  # VENUES
+  # ============================================================================
+
+  /venues/nearby:
+    get:
+      tags: [Venues]
+      summary: Get nearby venues
+      description: |
+        Find breweries and wineries within a specified radius of a location.
+        Results are sorted by distance (nearest first).
+      operationId: getNearbyVenues
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          description: Latitude of search center
+          example: 37.7749
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          description: Longitude of search center
+          example: -122.4194
+        - name: radius_km
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: 1
+            maximum: 50
+            default: 5
+          description: Search radius in kilometers
+          example: 10
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [brewery, winery, all]
+            default: all
+          description: Filter by venue type
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Maximum number of results
+      responses:
+        '200':
+          description: List of nearby venues
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  venues:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueWithDistance'
+                  total:
+                    type: integer
+                    description: Total number of venues found
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /venues/{venueId}:
+    get:
+      tags: [Venues]
+      summary: Get venue details
+      description: Retrieve detailed information about a specific venue
+      operationId: getVenueById
+      parameters:
+        - name: venueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Venue UUID
+      responses:
+        '200':
+          description: Venue details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /venues/search:
+    get:
+      tags: [Venues]
+      summary: Search venues by name
+      description: Full-text search for venues by name or city
+      operationId: searchVenues
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+          description: Search query
+          example: "anchor brewing"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  venues:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Venue'
+                  total:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ============================================================================
+  # VISITS
+  # ============================================================================
+
+  /visits:
+    get:
+      tags: [Visits]
+      summary: Get user visit history
+      description: |
+        Retrieve authenticated user's visit history, sorted by arrival time (newest first).
+        Supports pagination and filtering.
+      operationId: getUserVisits
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of visits to return
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Pagination offset
+        - name: active_only
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Return only active (in-progress) visits
+        - name: venue_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific venue
+      responses:
+        '200':
+          description: User visit history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VisitWithVenue'
+                  total:
+                    type: integer
+                    description: Total number of visits for user
+                  hasMore:
+                    type: boolean
+                    description: True if more results available
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Visits]
+      summary: Create or sync visit
+      description: |
+        Create a new visit or sync an existing local visit to the server.
+        Used for both automatic detection and manual visit creation.
+      operationId: createVisit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVisitRequest'
+      responses:
+        '201':
+          description: Visit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{visitId}:
+    get:
+      tags: [Visits]
+      summary: Get visit details
+      description: Retrieve detailed information about a specific visit
+      operationId: getVisitById
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Visit details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitWithVenue'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [Visits]
+      summary: Update visit
+      description: |
+        Update visit details (e.g., mark as complete, update departure time).
+        Users can only update their own visits.
+      operationId: updateVisit
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVisitRequest'
+      responses:
+        '200':
+          description: Visit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags: [Visits]
+      summary: Delete visit
+      description: Permanently delete a visit. Users can only delete their own visits.
+      operationId: deleteVisit
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Visit deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /visits/batch:
+    post:
+      tags: [Visits]
+      summary: Batch sync visits
+      description: |
+        Sync multiple local visits to the server in a single request.
+        Used for offline-to-online synchronization.
+      operationId: batchSyncVisits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                visits:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateVisitRequest'
+                  minItems: 1
+                  maxItems: 100
+      responses:
+        '200':
+          description: Batch sync results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  synced:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Visit'
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        localId:
+                          type: string
+                          description: Client-side ID that failed
+                        error:
+                          type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================================
+  # SHARING
+  # ============================================================================
+
+  /visits/{visitId}/share:
+    post:
+      tags: [Sharing]
+      summary: Share a visit
+      description: |
+        Create an anonymized, publicly accessible share link for a visit.
+        Only venue name, city, and date are exposed (no user info or precise time).
+      operationId: shareVisit
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_hours:
+                  type: integer
+                  minimum: 1
+                  maximum: 720
+                  description: Optional expiration in hours (default: never expires)
+      responses:
+        '201':
+          description: Share link created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedVisit'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /shared/{shareId}:
+    get:
+      tags: [Sharing]
+      summary: View shared visit (public)
+      description: |
+        Public endpoint to view an anonymized shared visit.
+        No authentication required.
+      operationId: getSharedVisit
+      security: []
+      parameters:
+        - name: shareId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Shared visit details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedVisit'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          description: Share link expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================================================
+  # USER PREFERENCES
+  # ============================================================================
+
+  /user/preferences:
+    get:
+      tags: [User]
+      summary: Get user preferences
+      description: Retrieve authenticated user's preferences and settings
+      operationId: getUserPreferences
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [User]
+      summary: Update user preferences
+      description: Update user preferences (partial updates supported)
+      operationId: updateUserPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+# ==============================================================================
+# COMPONENTS
+# ==============================================================================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT token
+
+  schemas:
+    Venue:
+      type: object
+      required:
+        - id
+        - name
+        - latitude
+        - longitude
+        - venue_type
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        address:
+          type: string
+          maxLength: 500
+          nullable: true
+        city:
+          type: string
+          maxLength: 100
+          nullable: true
+        state:
+          type: string
+          maxLength: 50
+          nullable: true
+        country:
+          type: string
+          maxLength: 50
+          nullable: true
+        postal_code:
+          type: string
+          maxLength: 20
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        venue_type:
+          type: string
+          enum: [brewery, winery]
+        source:
+          type: string
+          enum: [osm, brewerydb, manual]
+        metadata:
+          type: object
+          nullable: true
+          description: Additional venue info (website, phone, etc.)
+
+    VenueWithDistance:
+      allOf:
+        - $ref: '#/components/schemas/Venue'
+        - type: object
+          properties:
+            distance_km:
+              type: number
+              format: double
+              description: Distance from search center in kilometers
+
+    Visit:
+      type: object
+      required:
+        - id
+        - user_id
+        - venue_id
+        - arrival_time
+        - is_active
+        - detection_method
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        venue_id:
+          type: string
+          format: uuid
+        arrival_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp (rounded to 15 min)
+        departure_time:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 timestamp (rounded to 15 min)
+        duration_minutes:
+          type: integer
+          nullable: true
+          description: Calculated visit duration in minutes
+        is_active:
+          type: boolean
+          description: True if visit is still in progress
+        detection_method:
+          type: string
+          enum: [auto, manual]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    VisitWithVenue:
+      allOf:
+        - $ref: '#/components/schemas/Visit'
+        - type: object
+          properties:
+            venue:
+              $ref: '#/components/schemas/Venue'
+
+    CreateVisitRequest:
+      type: object
+      required:
+        - venue_id
+        - arrival_time
+      properties:
+        venue_id:
+          type: string
+          format: uuid
+        arrival_time:
+          type: string
+          format: date-time
+          description: Client-provided arrival time (will be rounded to 15 min)
+        departure_time:
+          type: string
+          format: date-time
+          nullable: true
+        detection_method:
+          type: string
+          enum: [auto, manual]
+          default: auto
+        local_id:
+          type: string
+          format: uuid
+          description: Client-side UUID for deduplication
+
+    UpdateVisitRequest:
+      type: object
+      properties:
+        departure_time:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+
+    SharedVisit:
+      type: object
+      required:
+        - id
+        - venue_name
+        - visit_date
+        - shared_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Public share link ID
+        venue_name:
+          type: string
+          maxLength: 200
+        venue_city:
+          type: string
+          maxLength: 100
+          nullable: true
+        visit_date:
+          type: string
+          format: date
+          description: Visit date only (no time)
+        shared_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        view_count:
+          type: integer
+
+    UserPreferences:
+      type: object
+      properties:
+        location_tracking_enabled:
+          type: boolean
+          default: false
+        sharing_default:
+          type: string
+          enum: [never, ask, always]
+          default: ask
+        notification_settings:
+          type: object
+          properties:
+            visit_detected:
+              type: boolean
+              default: true
+            new_venues_nearby:
+              type: boolean
+              default: false
+        privacy_settings:
+          type: object
+          properties:
+            store_visit_history:
+              type: boolean
+              default: true
+            anonymous_mode:
+              type: boolean
+              default: false
+        map_settings:
+          type: object
+          properties:
+            default_radius_km:
+              type: number
+              minimum: 1
+              maximum: 50
+              default: 5
+            cluster_markers:
+              type: boolean
+              default: true
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          nullable: true
+          description: Additional error context
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "BAD_REQUEST"
+            message: "Invalid latitude: must be between -90 and 90"
+
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "UNAUTHORIZED"
+            message: "Missing or invalid authentication token"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "Visit not found"

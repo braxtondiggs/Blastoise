@@ -1,0 +1,166 @@
+<div class="visit-detail-container">
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <span class="loading loading-spinner loading-lg"></span>
+      <p class="text-sm text-base-content/70 mt-2">Loading visit details...</p>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (error()) {
+    <div class="error-state">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <h2 class="text-2xl font-semibold mt-4">{{ error() }}</h2>
+      <button class="btn btn-primary mt-4" (click)="goBack()">
+        Go Back
+      </button>
+    </div>
+  }
+
+  <!-- Visit details -->
+  @if (!isLoading() && !error() && visit()) {
+    <div class="visit-detail-content">
+      <!-- Header with back button -->
+      <div class="detail-header">
+        <button class="btn btn-ghost btn-sm" (click)="goBack()">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back
+        </button>
+
+        <!-- Action buttons -->
+        <div class="action-buttons">
+          <button class="btn btn-sm btn-outline" (click)="shareVisit()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            Share
+          </button>
+          <button class="btn btn-sm btn-error btn-outline" (click)="deleteVisit()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Venue info -->
+      <div class="venue-info card bg-base-200">
+        <div class="card-body">
+          @if (isActive()) {
+            <div class="badge badge-success mb-2">
+              <span class="animate-pulse mr-1">●</span>
+              Active Visit
+            </div>
+          }
+
+          <h1 class="card-title text-3xl">
+            {{ venue()?.name || 'Unknown Venue' }}
+          </h1>
+
+          @if (venue()) {
+            <div class="venue-meta">
+              <p class="text-base-content/70">
+                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {{ venue()!.city }}, {{ venue()!.state }}
+              </p>
+              @if (venue()!.address) {
+                <p class="text-sm text-base-content/60 mt-1">
+                  {{ venue()!.address }}
+                </p>
+              }
+              <div class="badge badge-outline mt-2">
+                {{ venue()!.venue_type }}
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-sm mt-4" (click)="openInMaps()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              Open in Maps
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Visit times -->
+      <div class="visit-times card bg-base-100 shadow-md mt-6">
+        <div class="card-body">
+          <h2 class="card-title">Visit Details</h2>
+
+          <div class="times-grid">
+            <!-- Arrival -->
+            <div class="time-item">
+              <div class="time-label">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Arrived
+              </div>
+              <div class="time-value">
+                {{ formattedArrival() }}
+              </div>
+            </div>
+
+            <!-- Departure -->
+            @if (!isActive()) {
+              <div class="time-item">
+                <div class="time-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Departed
+                </div>
+                <div class="time-value">
+                  {{ formattedDeparture() }}
+                </div>
+              </div>
+
+              <!-- Duration -->
+              @if (visit()!.duration_minutes) {
+                <div class="time-item col-span-2">
+                  <div class="time-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Duration
+                  </div>
+                  <div class="time-value">
+                    {{ visit()!.duration_minutes | duration }}
+                  </div>
+                </div>
+              }
+            } @else {
+              <div class="time-item col-span-2">
+                <div class="alert alert-info">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>This visit is still in progress</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Detection method -->
+          <div class="divider"></div>
+          <div class="text-sm text-base-content/60">
+            Detection: {{ visit()!.detection_method === 'auto' ? 'Automatic' : 'Manual' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Share Modal (T201: User Story 4) -->
+  <app-share-modal></app-share-modal>
+</div>

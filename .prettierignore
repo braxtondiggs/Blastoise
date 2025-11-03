@@ -1,0 +1,19 @@
+# Add files here to ignore them from prettier formatting
+/dist
+/build
+/coverage
+/.nx/cache
+/.nx/workspace-data
+/node_modules
+
+# Generated files
+*.min.js
+*.bundle.js
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Capacitor native projects
+/android
+/ios
+.angular
