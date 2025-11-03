@@ -4,6 +4,11 @@
     "outDir": "../../dist/out-tsc",
     "types": []
   },
+  "angularCompilerOptions": {
+    "strictTemplates": true,
+    "strictInputAccessModifiers": true,
+    "strictNullInputTypes": true
+  },
   "include": ["src/**/*.ts"],
   "exclude": ["jest.config.ts", "src/test-setup.ts", "src/**/*.test.ts", "src/**/*.spec.ts"],
   "references": [
