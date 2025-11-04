@@ -24,7 +24,12 @@
             "input": "apps/web/public"
           }
         ],
-        "styles": ["apps/web/src/styles.css"]
+        "styles": ["apps/web/src/styles.css"],
+        "allowedCommonJsDependencies": [
+          "leaflet",
+          "leaflet.markercluster",
+          "tslib"
+        ]
       },
       "configurations": {
         "production": {
@@ -59,7 +64,7 @@
             },
             {
               "type": "anyScript",
-              "maximumWarning": "500kb",
+              "maximumWarning": "550kb",
               "maximumError": "1mb"
             }
           ],

@@ -1,28 +1,6 @@
-/**
- * Production environment configuration
- *
- * ⚠️  SECURITY: Replace these placeholder values with your production credentials!
- *
- * For Railway deployment:
- *   1. Set SUPABASE_URL to your Railway Kong service URL
- *   2. Generate new SUPABASE_ANON_KEY with your production JWT_SECRET
- *   3. Set API_BASE_URL to your Railway API service URL
- *
- * See docker/README.md for instructions on generating production keys.
- */
-
 export const environment = {
-  // ⚠️  TODO: Replace with your Railway Kong service URL
-  // Example: https://blastoise-kong-production.up.railway.app
-  supabaseUrl: 'REPLACE_WITH_PRODUCTION_SUPABASE_URL',
-
-  // ⚠️  TODO: Generate new key with production JWT_SECRET
-  // DO NOT use the demo key in production!
-  supabaseAnonKey: 'REPLACE_WITH_PRODUCTION_ANON_KEY',
-
-  // ⚠️  TODO: Replace with your Railway API service URL
-  // Example: https://blastoise-api-production.up.railway.app/api/v1
-  apiBaseUrl: 'REPLACE_WITH_PRODUCTION_API_URL',
-
+  supabaseUrl: 'https://uonjfrszljebxkjlvpqc.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvbmpmcnN6bGplYnhramx2cHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjQxMDUsImV4cCI6MjA3Nzg0MDEwNX0.v4r20KX_Z3McN7vDgjpKOxf02Vq4oAalwAqX3ehPe3o',
+  apiBaseUrl: 'https://blastoise-api.up.railway.app/api/v1',
   production: true,
 };

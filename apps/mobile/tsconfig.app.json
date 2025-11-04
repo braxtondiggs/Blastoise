@@ -11,9 +11,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["jest.config.ts", "src/test-setup.ts", "src/**/*.test.ts", "src/**/*.spec.ts"],
-  "references": [
-    {
-      "path": "../../libs/features/auth"
-    }
-  ]
+  "references": []
 }

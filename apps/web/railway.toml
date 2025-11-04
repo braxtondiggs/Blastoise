@@ -1,0 +1,9 @@
+# Railway configuration for Blastoise Web App
+# This file is used when creating a separate Railway service for the web app
+
+[build]
+builder = "nixpacks"
+buildCommand = "npx nx build web --configuration=production"
+
+[deploy]
+startCommand = "npm i serve && npx serve -s dist/apps/web/browser -l 8080"

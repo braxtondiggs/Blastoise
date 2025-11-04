@@ -1,8 +1,10 @@
 # Database Migrations
 
-This directory contains SQL migration files for the Blastoise Postgres database.
+**Note:** Migration files have been moved to `supabase/migrations/` to use Supabase CLI tooling.
 
-## Migration Files
+## Migration Files Location
+
+All SQL migration files are now in: **`supabase/migrations/`**
 
 1. **001_create_venues_table.sql** - Venues table with geolocation data
 2. **002_create_visits_table.sql** - User visits (privacy-first design)
@@ -12,32 +14,32 @@ This directory contains SQL migration files for the Blastoise Postgres database.
 
 ## Running Migrations
 
-### Using Supabase CLI
+### Using Supabase CLI (Recommended)
 
 ```bash
-# Login to Supabase
+# Login to Supabase (one-time)
 npx supabase login
 
-# Link to your project
+# Link to your cloud project (one-time)
 npx supabase link --project-ref <your-project-ref>
 
-# Apply migrations
+# Push all pending migrations
 npx supabase db push
 
-# Or run individual migrations
-psql $DATABASE_URL -f apps/api/migrations/001_create_venues_table.sql
+# Reset database (WARNING: destroys data)
+npx supabase db reset
 ```
 
-### Using psql directly
+### Using psql directly (Alternative)
 
 ```bash
 export DATABASE_URL="postgresql://postgres:[password]@[host]:5432/postgres"
 
-psql $DATABASE_URL -f apps/api/migrations/001_create_venues_table.sql
-psql $DATABASE_URL -f apps/api/migrations/002_create_visits_table.sql
-psql $DATABASE_URL -f apps/api/migrations/003_create_user_preferences_table.sql
-psql $DATABASE_URL -f apps/api/migrations/004_create_shared_visits_table.sql
-psql $DATABASE_URL -f apps/api/migrations/005_create_analytics_tables.sql
+psql $DATABASE_URL -f supabase/migrations/001_create_venues_table.sql
+psql $DATABASE_URL -f supabase/migrations/002_create_visits_table.sql
+psql $DATABASE_URL -f supabase/migrations/003_create_user_preferences_table.sql
+psql $DATABASE_URL -f supabase/migrations/004_create_shared_visits_table.sql
+psql $DATABASE_URL -f supabase/migrations/005_create_analytics_tables.sql
 ```
 
 ## Schema Overview
