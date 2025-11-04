@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "start": "nx serve web",
+    "start": "nx run-many --target=serve --all",
     "build": "nx run-many --target=build --all",
     "test": "nx run-many --target=test --all",
     "lint": "nx run-many --target=lint --all",
@@ -39,6 +39,8 @@
     "@nestjs/platform-express": "^11.1.8",
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/terminus": "^11.0.0",
+    "@ng-icons/core": "^32.2.0",
+    "@ng-icons/heroicons": "^32.2.0",
     "@sentry/node": "^10.22.0",
     "@sentry/profiling-node": "^10.22.0",
     "@supabase/supabase-js": "^2.40.0",

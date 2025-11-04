@@ -13,10 +13,7 @@
   "exclude": ["jest.config.ts", "src/test-setup.ts", "src/**/*.test.ts", "src/**/*.spec.ts"],
   "references": [
     {
-      "path": "../../libs/data"
-    },
-    {
-      "path": "../../libs/shared"
+      "path": "../../libs/features/auth"
     }
   ]
 }

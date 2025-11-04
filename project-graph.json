@@ -1,6 +1,422 @@
 {
   "graph": {
     "nodes": {
+      "auth-state": {
+        "name": "auth-state",
+        "type": "lib",
+        "data": {
+          "root": "libs/shared/auth-state",
+          "targets": {
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "libs/shared/auth-state",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/.eslintrc.json",
+                "{workspaceRoot}/libs/shared/eslint.config.cjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "npx eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "typecheck": {
+              "dependsOn": [
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/shared/auth-state",
+                "command": "tsc --build --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.json",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/tsconfig.spec.json",
+                "{projectRoot}/src/**/*.ts",
+                "{projectRoot}/jest.config.ts",
+                "{projectRoot}/src/**/*.test.ts",
+                "{projectRoot}/src/**/*.spec.ts",
+                "{projectRoot}/src/**/*.d.ts",
+                "!{workspaceRoot}/node_modules",
+                "!{workspaceRoot}/tmp",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
+                "{workspaceRoot}/dist/out-tsc/libs/shared/auth-state/*.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "npx tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nx/jest:jest",
+              "outputs": [
+                "{workspaceRoot}/coverage/{projectRoot}"
+              ],
+              "options": {
+                "jestConfig": "libs/shared/auth-state/jest.config.ts"
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "auth-state",
+          "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+          "sourceRoot": "libs/shared/auth-state/src",
+          "projectType": "library",
+          "tags": [
+            "type:shared",
+            "scope:auth"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "settings": {
+        "name": "settings",
+        "type": "lib",
+        "data": {
+          "root": "libs/features/settings",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "build",
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/features/settings",
+                "command": "tsc --build --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.json",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/tsconfig.spec.json",
+                "{projectRoot}/src/**/*.ts",
+                "{projectRoot}/jest.config.ts",
+                "{projectRoot}/src/**/*.test.ts",
+                "{projectRoot}/src/**/*.spec.ts",
+                "{projectRoot}/src/**/*.d.ts",
+                "!{workspaceRoot}/node_modules",
+                "!{workspaceRoot}/tmp",
+                "!{projectRoot}/src/test-setup.ts",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
+                "{workspaceRoot}/dist/out-tsc/libs/features/settings/*.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "npx tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
+              "options": {
+                "cwd": "libs/features/settings",
+                "command": "tsc --build tsconfig.lib.json"
+              },
+              "cache": true,
+              "inputs": [
+                "{projectRoot}/tsconfig.json",
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/src/**/*.ts",
+                "!{projectRoot}/src/**/*.spec.ts",
+                "!{projectRoot}/src/test-setup.ts",
+                "!{projectRoot}/jest.config.ts",
+                "!{projectRoot}/src/**/*.test.ts",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/out-tsc",
+                "{workspaceRoot}/dist/out-tsc/libs/features/settings/*.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Builds the project with `tsc`.",
+                "help": {
+                  "command": "npx tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "npx nx watch --projects settings --includeDependentProjects -- npx nx build-deps settings"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "executor": "@nx/eslint:lint",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nx/jest:jest",
+              "outputs": [
+                "{workspaceRoot}/coverage/{projectRoot}"
+              ],
+              "options": {
+                "jestConfig": "libs/features/settings/jest.config.ts",
+                "tsConfig": "libs/features/settings/tsconfig.spec.json"
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "settings",
+          "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+          "sourceRoot": "libs/features/settings/src",
+          "prefix": "lib",
+          "projectType": "library",
+          "tags": [],
+          "implicitDependencies": []
+        }
+      },
+      "sharing": {
+        "name": "sharing",
+        "type": "lib",
+        "data": {
+          "root": "libs/features/sharing",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "build",
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/features/sharing",
+                "command": "tsc --build --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.json",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/tsconfig.spec.json",
+                "{projectRoot}/src/**/*.ts",
+                "{projectRoot}/jest.config.ts",
+                "{projectRoot}/src/**/*.test.ts",
+                "{projectRoot}/src/**/*.spec.ts",
+                "{projectRoot}/src/**/*.d.ts",
+                "!{workspaceRoot}/node_modules",
+                "!{workspaceRoot}/tmp",
+                "!{projectRoot}/src/test-setup.ts",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
+                "{workspaceRoot}/dist/out-tsc/libs/features/sharing/*.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "npx tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
+              "options": {
+                "cwd": "libs/features/sharing",
+                "command": "tsc --build tsconfig.lib.json"
+              },
+              "cache": true,
+              "inputs": [
+                "{projectRoot}/tsconfig.json",
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/src/**/*.ts",
+                "!{projectRoot}/src/**/*.spec.ts",
+                "!{projectRoot}/src/test-setup.ts",
+                "!{projectRoot}/jest.config.ts",
+                "!{projectRoot}/src/**/*.test.ts",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/out-tsc",
+                "{workspaceRoot}/dist/out-tsc/libs/features/sharing/*.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Builds the project with `tsc`.",
+                "help": {
+                  "command": "npx tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "npx nx watch --projects sharing --includeDependentProjects -- npx nx build-deps sharing"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "executor": "@nx/eslint:lint",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nx/jest:jest",
+              "outputs": [
+                "{workspaceRoot}/coverage/{projectRoot}"
+              ],
+              "options": {
+                "jestConfig": "libs/features/sharing/jest.config.ts",
+                "tsConfig": "libs/features/sharing/tsconfig.spec.json"
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "sharing",
+          "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+          "sourceRoot": "libs/features/sharing/src",
+          "prefix": "lib",
+          "projectType": "library",
+          "tags": [],
+          "implicitDependencies": []
+        }
+      },
       "visits": {
         "name": "visits",
         "type": "lib",
@@ -160,122 +576,6 @@
         "data": {
           "root": "libs/features/auth",
           "targets": {
-            "typecheck": {
-              "dependsOn": [
-                "build",
-                "^typecheck"
-              ],
-              "options": {
-                "cwd": "libs/features/auth",
-                "command": "tsc --build --emitDeclarationOnly"
-              },
-              "cache": true,
-              "inputs": [
-                "{workspaceRoot}/tsconfig.base.json",
-                "{projectRoot}/tsconfig.json",
-                "{projectRoot}/tsconfig.lib.json",
-                "{projectRoot}/tsconfig.spec.json",
-                "{projectRoot}/src/**/*.ts",
-                "{projectRoot}/jest.config.ts",
-                "{projectRoot}/src/**/*.test.ts",
-                "{projectRoot}/src/**/*.spec.ts",
-                "{projectRoot}/src/**/*.d.ts",
-                "!{workspaceRoot}/node_modules",
-                "!{workspaceRoot}/tmp",
-                "!{projectRoot}/src/test-setup.ts",
-                "^production"
-              ],
-              "outputs": [
-                "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
-                "{workspaceRoot}/dist/out-tsc/libs/features/auth/*.tsbuildinfo"
-              ],
-              "syncGenerators": [
-                "@nx/js:typescript-sync"
-              ],
-              "metadata": {
-                "technologies": [
-                  "typescript"
-                ],
-                "description": "Runs type-checking for the project.",
-                "help": {
-                  "command": "npx tsc --build --help",
-                  "example": {
-                    "args": [
-                      "--force"
-                    ]
-                  }
-                }
-              },
-              "executor": "nx:run-commands",
-              "configurations": {},
-              "parallelism": true
-            },
-            "build": {
-              "dependsOn": [
-                "^build"
-              ],
-              "options": {
-                "cwd": "libs/features/auth",
-                "command": "tsc --build tsconfig.lib.json"
-              },
-              "cache": true,
-              "inputs": [
-                "{projectRoot}/tsconfig.json",
-                "{workspaceRoot}/tsconfig.base.json",
-                "{projectRoot}/tsconfig.lib.json",
-                "{projectRoot}/src/**/*.ts",
-                "!{projectRoot}/src/**/*.spec.ts",
-                "!{projectRoot}/src/test-setup.ts",
-                "!{projectRoot}/jest.config.ts",
-                "!{projectRoot}/src/**/*.test.ts",
-                "^production"
-              ],
-              "outputs": [
-                "{workspaceRoot}/dist/out-tsc",
-                "{workspaceRoot}/dist/out-tsc/libs/features/auth/*.tsbuildinfo"
-              ],
-              "syncGenerators": [
-                "@nx/js:typescript-sync"
-              ],
-              "metadata": {
-                "technologies": [
-                  "typescript"
-                ],
-                "description": "Builds the project with `tsc`.",
-                "help": {
-                  "command": "npx tsc --build --help",
-                  "example": {
-                    "args": [
-                      "--force"
-                    ]
-                  }
-                }
-              },
-              "executor": "nx:run-commands",
-              "configurations": {},
-              "parallelism": true
-            },
-            "build-deps": {
-              "dependsOn": [
-                "^build"
-              ],
-              "configurations": {},
-              "options": {},
-              "parallelism": true,
-              "executor": "nx:noop"
-            },
-            "watch-deps": {
-              "continuous": true,
-              "dependsOn": [
-                "build-deps"
-              ],
-              "executor": "nx:run-commands",
-              "options": {
-                "command": "npx nx watch --projects auth --includeDependentProjects -- npx nx build-deps auth"
-              },
-              "configurations": {},
-              "parallelism": true
-            },
             "lint": {
               "executor": "@nx/eslint:lint",
               "options": {},
@@ -545,10 +845,10 @@
             "build": {
               "executor": "@nx/js:tsc",
               "outputs": [
-                "{options.outputPath}"
+                "{workspaceRoot}/dist/out-tsc/libs/data-backend"
               ],
               "options": {
-                "outputPath": "dist/libs/data-backend",
+                "outputPath": "dist/out-tsc/libs/data-backend",
                 "main": "libs/data-backend/src/index.ts",
                 "tsConfig": "libs/data-backend/tsconfig.lib.json",
                 "assets": [
@@ -665,39 +965,40 @@
           "implicitDependencies": []
         }
       },
-      "mobile-e2e": {
-        "name": "mobile-e2e",
-        "type": "e2e",
+      "map": {
+        "name": "map",
+        "type": "lib",
         "data": {
-          "root": "apps/mobile-e2e",
+          "root": "libs/features",
           "targets": {
             "typecheck": {
               "dependsOn": [
+                "build",
                 "^typecheck"
               ],
               "options": {
-                "cwd": "apps/mobile-e2e",
+                "cwd": "libs/features",
                 "command": "tsc --build --emitDeclarationOnly"
               },
               "cache": true,
               "inputs": [
                 "{workspaceRoot}/tsconfig.base.json",
                 "{projectRoot}/tsconfig.json",
-                "{projectRoot}/**/*.ts",
-                "{projectRoot}/**/*.js",
-                "{projectRoot}/playwright.config.ts",
-                "{projectRoot}/src/**/*.spec.ts",
-                "{projectRoot}/src/**/*.spec.js",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/tsconfig.spec.json",
+                "{projectRoot}/src/**/*.ts",
+                "{projectRoot}/jest.config.ts",
                 "{projectRoot}/src/**/*.test.ts",
-                "{projectRoot}/src/**/*.test.js",
+                "{projectRoot}/src/**/*.spec.ts",
                 "{projectRoot}/src/**/*.d.ts",
                 "!{workspaceRoot}/node_modules",
                 "!{workspaceRoot}/tmp",
+                "!{projectRoot}/src/test-setup.ts",
                 "^production"
               ],
               "outputs": [
                 "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
-                "{workspaceRoot}/dist/out-tsc/apps/mobile-e2e/*.tsbuildinfo"
+                "{workspaceRoot}/dist/out-tsc/libs/features/*.tsbuildinfo"
               ],
               "syncGenerators": [
                 "@nx/js:typescript-sync"
@@ -720,232 +1021,98 @@
               "configurations": {},
               "parallelism": true
             },
-            "e2e": {
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
               "options": {
-                "cwd": "apps/mobile-e2e",
-                "command": "playwright test"
+                "cwd": "libs/features",
+                "command": "tsc --build tsconfig.lib.json"
               },
+              "cache": true,
+              "inputs": [
+                "{projectRoot}/tsconfig.json",
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.lib.json",
+                "{projectRoot}/src/**/*.ts",
+                "!{projectRoot}/src/**/*.spec.ts",
+                "!{projectRoot}/src/test-setup.ts",
+                "!{projectRoot}/jest.config.ts",
+                "!{projectRoot}/src/**/*.test.ts",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/out-tsc",
+                "{workspaceRoot}/dist/out-tsc/libs/features/*.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
               "metadata": {
                 "technologies": [
-                  "playwright"
+                  "typescript"
                 ],
-                "description": "Runs Playwright Tests",
+                "description": "Builds the project with `tsc`.",
                 "help": {
-                  "command": "npx playwright test --help",
+                  "command": "npx tsc --build --help",
                   "example": {
-                    "options": {
-                      "workers": 1
-                    }
+                    "args": [
+                      "--force"
+                    ]
                   }
                 }
               },
-              "dependsOn": [
-                {
-                  "projects": [
-                    "mobile"
-                  ],
-                  "target": "serve"
-                }
-              ],
-              "cache": true,
-              "inputs": [
-                "default",
-                "^production",
-                {
-                  "externalDependencies": [
-                    "@playwright/test"
-                  ]
-                }
-              ],
-              "outputs": [
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/test-output",
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/playwright-report"
-              ],
               "executor": "nx:run-commands",
               "configurations": {},
               "parallelism": true
             },
-            "e2e-ci--src/example.spec.ts": {
-              "options": {
-                "cwd": "apps/mobile-e2e",
-                "env": {
-                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/mobile-e2e/playwright-report/src-example-spec-ts",
-                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/mobile-e2e/playwright-report/src-example-spec-ts"
-                },
-                "command": "playwright test src/example.spec.ts --output=../../dist/.playwright/apps/mobile-e2e/test-output/src-example-spec-ts"
-              },
-              "metadata": {
-                "technologies": [
-                  "playwright"
-                ],
-                "description": "Runs Playwright Tests in src/example.spec.ts in CI",
-                "help": {
-                  "command": "npx playwright test --help",
-                  "example": {
-                    "options": {
-                      "workers": 1
-                    }
-                  }
-                }
-              },
+            "build-deps": {
               "dependsOn": [
-                {
-                  "projects": [
-                    "mobile"
-                  ],
-                  "target": "serve"
-                }
+                "^build"
               ],
-              "cache": true,
-              "inputs": [
-                "default",
-                "^production",
-                {
-                  "externalDependencies": [
-                    "@playwright/test"
-                  ]
-                }
-              ],
-              "outputs": [
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/test-output/src-example-spec-ts",
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/playwright-report/src-example-spec-ts"
-              ],
-              "executor": "nx:run-commands",
-              "configurations": {},
-              "parallelism": true
-            },
-            "e2e-ci": {
-              "executor": "nx:noop",
-              "cache": true,
-              "inputs": [
-                "default",
-                "^production",
-                {
-                  "externalDependencies": [
-                    "@playwright/test"
-                  ]
-                }
-              ],
-              "outputs": [
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/test-output",
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/playwright-report"
-              ],
-              "dependsOn": [
-                {
-                  "target": "e2e-ci--src/example.spec.ts",
-                  "projects": "self",
-                  "params": "forward",
-                  "options": "forward"
-                }
-              ],
-              "metadata": {
-                "technologies": [
-                  "playwright"
-                ],
-                "description": "Runs Playwright Tests in CI",
-                "nonAtomizedTarget": "e2e",
-                "help": {
-                  "command": "npx playwright test --help",
-                  "example": {
-                    "options": {
-                      "workers": 1
-                    }
-                  }
-                }
-              },
               "configurations": {},
               "options": {},
-              "parallelism": true
+              "parallelism": true,
+              "executor": "nx:noop"
             },
-            "e2e-ci--merge-reports": {
-              "executor": "@nx/playwright:merge-reports",
-              "cache": true,
-              "inputs": [
-                "default",
-                "^production",
-                {
-                  "externalDependencies": [
-                    "@playwright/test"
-                  ]
-                }
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
               ],
-              "outputs": [
-                "{workspaceRoot}/dist/.playwright/apps/mobile-e2e/playwright-report"
-              ],
+              "executor": "nx:run-commands",
               "options": {
-                "config": "playwright.config.ts",
-                "expectedSuites": 1
-              },
-              "metadata": {
-                "technologies": [
-                  "playwright"
-                ],
-                "description": "Merges Playwright blob reports from atomized tasks to produce unified reports for the configured reporters."
+                "command": "npx nx watch --projects map --includeDependentProjects -- npx nx build-deps map"
               },
               "configurations": {},
               "parallelism": true
             },
             "lint": {
-              "cache": true,
-              "options": {
-                "cwd": "apps/mobile-e2e",
-                "command": "eslint ."
-              },
-              "inputs": [
-                "default",
-                "^default",
-                "{workspaceRoot}/.eslintrc.json",
-                "{workspaceRoot}/apps/mobile-e2e/eslint.config.cjs",
-                "{workspaceRoot}/tools/eslint-rules/**/*",
-                {
-                  "externalDependencies": [
-                    "eslint"
-                  ]
-                }
-              ],
+              "executor": "@nx/eslint:lint",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nx/jest:jest",
               "outputs": [
-                "{options.outputFile}"
+                "{workspaceRoot}/coverage/{projectRoot}"
               ],
-              "metadata": {
-                "technologies": [
-                  "eslint"
-                ],
-                "description": "Runs ESLint on project",
-                "help": {
-                  "command": "npx eslint --help",
-                  "example": {
-                    "options": {
-                      "max-warnings": 0
-                    }
-                  }
-                }
+              "options": {
+                "jestConfig": "libs/features/jest.config.ts",
+                "tsConfig": "libs/features/tsconfig.spec.json"
               },
-              "executor": "nx:run-commands",
               "configurations": {},
               "parallelism": true
             }
           },
-          "metadata": {
-            "targetGroups": {
-              "E2E (CI)": [
-                "e2e-ci--src/example.spec.ts",
-                "e2e-ci",
-                "e2e-ci--merge-reports"
-              ]
-            },
-            "description": "End-to-end tests for mobile app using Playwright"
-          },
-          "name": "mobile-e2e",
+          "name": "map",
           "$schema": "../../node_modules/nx/schemas/project-schema.json",
-          "projectType": "application",
-          "sourceRoot": "apps/mobile-e2e/src",
-          "tags": [
-            "type:e2e",
-            "scope:frontend"
-          ],
-          "implicitDependencies": [
-            "mobile"
-          ]
+          "sourceRoot": "libs/features/src",
+          "prefix": "lib",
+          "projectType": "library",
+          "tags": [],
+          "implicitDependencies": []
         }
       },
       "api-e2e": {
@@ -998,6 +1165,46 @@
               "configurations": {},
               "parallelism": true
             },
+            "lint": {
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/.eslintrc.json",
+                "{workspaceRoot}/eslint.config.cjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint",
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "npx eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "options": {
+                "cwd": "apps/api-e2e",
+                "command": "eslint ."
+              },
+              "configurations": {},
+              "parallelism": true
+            },
             "e2e": {
               "executor": "@nx/jest:jest",
               "outputs": [
@@ -1005,7 +1212,8 @@
               ],
               "options": {
                 "jestConfig": "apps/api-e2e/jest.config.ts",
-                "passWithNoTests": true
+                "passWithNoTests": true,
+                "testTimeout": 30000
               },
               "dependsOn": [
                 "api:build",
@@ -1130,20 +1338,20 @@
               "configurations": {},
               "parallelism": true
             },
-            "e2e-ci--src/example.spec.ts": {
+            "e2e-ci--src/auth/anonymous.spec.ts": {
               "options": {
                 "cwd": "apps/web-e2e",
                 "env": {
-                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-example-spec-ts",
-                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-example-spec-ts"
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-anonymous-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-anonymous-spec-ts"
                 },
-                "command": "playwright test src/example.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-example-spec-ts"
+                "command": "playwright test src/auth/anonymous.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-auth-anonymous-spec-ts"
               },
               "metadata": {
                 "technologies": [
                   "playwright"
                 ],
-                "description": "Runs Playwright Tests in src/example.spec.ts in CI",
+                "description": "Runs Playwright Tests in src/auth/anonymous.spec.ts in CI",
                 "help": {
                   "command": "npx playwright test --help",
                   "example": {
@@ -1172,8 +1380,449 @@
                 }
               ],
               "outputs": [
-                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-example-spec-ts",
-                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-example-spec-ts"
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-auth-anonymous-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-auth-anonymous-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/auth/login.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-login-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-login-spec-ts"
+                },
+                "command": "playwright test src/auth/login.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-auth-login-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/auth/login.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-auth-login-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-auth-login-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/auth/magic-link.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-magic-link-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-magic-link-spec-ts"
+                },
+                "command": "playwright test src/auth/magic-link.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-auth-magic-link-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/auth/magic-link.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-auth-magic-link-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-auth-magic-link-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/auth/registration.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-registration-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-auth-registration-spec-ts"
+                },
+                "command": "playwright test src/auth/registration.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-auth-registration-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/auth/registration.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-auth-registration-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-auth-registration-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/map.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-map-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-map-spec-ts"
+                },
+                "command": "playwright test src/map.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-map-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/map.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-map-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-map-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/onboarding.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-onboarding-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-onboarding-spec-ts"
+                },
+                "command": "playwright test src/onboarding.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-onboarding-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/onboarding.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-onboarding-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-onboarding-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/settings.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-settings-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-settings-spec-ts"
+                },
+                "command": "playwright test src/settings.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-settings-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/settings.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-settings-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-settings-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/sharing.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-sharing-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-sharing-spec-ts"
+                },
+                "command": "playwright test src/sharing.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-sharing-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/sharing.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-sharing-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-sharing-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/timeline.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-timeline-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-timeline-spec-ts"
+                },
+                "command": "playwright test src/timeline.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-timeline-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/timeline.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-timeline-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-timeline-spec-ts"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e-ci--src/visit-detection.spec.ts": {
+              "options": {
+                "cwd": "apps/web-e2e",
+                "env": {
+                  "PLAYWRIGHT_HTML_OUTPUT_DIR": "../../dist/.playwright/apps/web-e2e/playwright-report/src-visit-detection-spec-ts",
+                  "PLAYWRIGHT_HTML_REPORT": "../../dist/.playwright/apps/web-e2e/playwright-report/src-visit-detection-spec-ts"
+                },
+                "command": "playwright test src/visit-detection.spec.ts --output=../../dist/.playwright/apps/web-e2e/test-output/src-visit-detection-spec-ts"
+              },
+              "metadata": {
+                "technologies": [
+                  "playwright"
+                ],
+                "description": "Runs Playwright Tests in src/visit-detection.spec.ts in CI",
+                "help": {
+                  "command": "npx playwright test --help",
+                  "example": {
+                    "options": {
+                      "workers": 1
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                {
+                  "projects": [
+                    "web"
+                  ],
+                  "target": "serve"
+                }
+              ],
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "externalDependencies": [
+                    "@playwright/test"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/test-output/src-visit-detection-spec-ts",
+                "{workspaceRoot}/dist/.playwright/apps/web-e2e/playwright-report/src-visit-detection-spec-ts"
               ],
               "executor": "nx:run-commands",
               "configurations": {},
@@ -1197,7 +1846,61 @@
               ],
               "dependsOn": [
                 {
-                  "target": "e2e-ci--src/example.spec.ts",
+                  "target": "e2e-ci--src/auth/anonymous.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/auth/login.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/auth/magic-link.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/auth/registration.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/map.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/onboarding.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/settings.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/sharing.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/timeline.spec.ts",
+                  "projects": "self",
+                  "params": "forward",
+                  "options": "forward"
+                },
+                {
+                  "target": "e2e-ci--src/visit-detection.spec.ts",
                   "projects": "self",
                   "params": "forward",
                   "options": "forward"
@@ -1239,7 +1942,7 @@
               ],
               "options": {
                 "config": "playwright.config.ts",
-                "expectedSuites": 1
+                "expectedSuites": 10
               },
               "metadata": {
                 "technologies": [
@@ -1293,7 +1996,16 @@
           "metadata": {
             "targetGroups": {
               "E2E (CI)": [
-                "e2e-ci--src/example.spec.ts",
+                "e2e-ci--src/auth/anonymous.spec.ts",
+                "e2e-ci--src/auth/login.spec.ts",
+                "e2e-ci--src/auth/magic-link.spec.ts",
+                "e2e-ci--src/auth/registration.spec.ts",
+                "e2e-ci--src/map.spec.ts",
+                "e2e-ci--src/onboarding.spec.ts",
+                "e2e-ci--src/settings.spec.ts",
+                "e2e-ci--src/sharing.spec.ts",
+                "e2e-ci--src/timeline.spec.ts",
+                "e2e-ci--src/visit-detection.spec.ts",
                 "e2e-ci",
                 "e2e-ci--merge-reports"
               ]
@@ -1454,7 +2166,9 @@
                 "!{workspaceRoot}/node_modules",
                 "!{workspaceRoot}/tmp",
                 "!{projectRoot}/src/test-setup.ts",
-                "^production"
+                {
+                  "dependentTasksOutputFiles": "**/*.d.ts"
+                }
               ],
               "outputs": [
                 "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
@@ -1482,110 +2196,111 @@
               "parallelism": true
             },
             "lint": {
-              "executor": "@nx/eslint:lint",
-              "options": {},
-              "configurations": {},
-              "parallelism": true
-            },
-            "build": {
-              "executor": "@angular/build:application",
-              "outputs": [
-                "{options.outputPath}"
-              ],
-              "options": {
-                "outputPath": "dist/apps/mobile",
-                "browser": "apps/mobile/src/main.ts",
-                "polyfills": [
-                  "zone.js"
-                ],
-                "tsConfig": "apps/mobile/tsconfig.app.json",
-                "assets": [
-                  {
-                    "glob": "**/*",
-                    "input": "apps/mobile/public"
-                  }
-                ],
-                "styles": [
-                  "apps/mobile/src/styles.css"
-                ]
-              },
-              "configurations": {
-                "production": {
-                  "budgets": [
-                    {
-                      "type": "initial",
-                      "maximumWarning": "500kb",
-                      "maximumError": "1mb"
-                    },
-                    {
-                      "type": "anyComponentStyle",
-                      "maximumWarning": "4kb",
-                      "maximumError": "8kb"
-                    }
-                  ],
-                  "outputHashing": "all"
-                },
-                "development": {
-                  "optimization": false,
-                  "extractLicenses": false,
-                  "sourceMap": true
-                }
-              },
-              "defaultConfiguration": "production",
-              "parallelism": true,
               "cache": true,
-              "dependsOn": [
-                "^build"
-              ],
+              "options": {
+                "cwd": "apps/mobile",
+                "command": "eslint ."
+              },
               "inputs": [
-                "production",
-                "^production"
-              ]
-            },
-            "serve": {
-              "continuous": true,
-              "executor": "@angular/build:dev-server",
-              "configurations": {
-                "production": {
-                  "buildTarget": "mobile:build:production"
-                },
-                "development": {
-                  "buildTarget": "mobile:build:development"
+                "default",
+                "^default",
+                "{workspaceRoot}/.eslintrc.json",
+                "{workspaceRoot}/apps/mobile/eslint.config.cjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "npx eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
                 }
               },
-              "defaultConfiguration": "development",
-              "options": {},
-              "parallelism": true
-            },
-            "extract-i18n": {
-              "executor": "@angular/build:extract-i18n",
-              "options": {
-                "buildTarget": "mobile:build"
-              },
+              "executor": "nx:run-commands",
               "configurations": {},
               "parallelism": true
             },
-            "test": {
-              "executor": "@nx/jest:jest",
-              "outputs": [
-                "{workspaceRoot}/coverage/{projectRoot}"
+            "sync": {
+              "executor": "@nx/run-commands:run-commands",
+              "options": {
+                "commands": [
+                  "npx cap sync"
+                ],
+                "cwd": "apps/mobile"
+              },
+              "dependsOn": [
+                "web:build"
               ],
-              "options": {
-                "jestConfig": "apps/mobile/jest.config.ts",
-                "tsConfig": "apps/mobile/tsconfig.spec.json"
-              },
               "configurations": {},
               "parallelism": true
             },
-            "serve-static": {
-              "continuous": true,
-              "executor": "@nx/web:file-server",
+            "open:ios": {
+              "executor": "@nx/run-commands:run-commands",
               "options": {
-                "buildTarget": "mobile:build",
-                "port": 4200,
-                "staticFilePath": "dist/apps/mobile/browser",
-                "spa": true
+                "commands": [
+                  "npx cap open ios"
+                ],
+                "cwd": "apps/mobile"
               },
+              "dependsOn": [
+                "sync"
+              ],
+              "configurations": {},
+              "parallelism": true
+            },
+            "open:android": {
+              "executor": "@nx/run-commands:run-commands",
+              "options": {
+                "commands": [
+                  "npx cap open android"
+                ],
+                "cwd": "apps/mobile"
+              },
+              "dependsOn": [
+                "sync"
+              ],
+              "configurations": {},
+              "parallelism": true
+            },
+            "run:ios": {
+              "executor": "@nx/run-commands:run-commands",
+              "options": {
+                "commands": [
+                  "npx cap run ios"
+                ],
+                "cwd": "apps/mobile"
+              },
+              "dependsOn": [
+                "sync"
+              ],
+              "configurations": {},
+              "parallelism": true
+            },
+            "run:android": {
+              "executor": "@nx/run-commands:run-commands",
+              "options": {
+                "commands": [
+                  "npx cap run android"
+                ],
+                "cwd": "apps/mobile"
+              },
+              "dependsOn": [
+                "sync"
+              ],
               "configurations": {},
               "parallelism": true
             }
@@ -1593,19 +2308,15 @@
           "name": "mobile",
           "$schema": "../../node_modules/nx/schemas/project-schema.json",
           "projectType": "application",
-          "prefix": "app",
-          "sourceRoot": "apps/mobile/src",
           "tags": [
             "type:app",
             "platform:mobile",
             "scope:frontend"
           ],
           "metadata": {
-            "description": "Mobile app (iOS/Android) with Capacitor for offline visit tracking",
+            "description": "Capacitor wrapper serving web PWA for iOS/Android",
             "technologies": [
-              "Angular",
-              "Capacitor",
-              "Geolocation API"
+              "Capacitor"
             ]
           },
           "implicitDependencies": []
@@ -1670,10 +2381,10 @@
             "build": {
               "executor": "@nx/js:tsc",
               "outputs": [
-                "{options.outputPath}"
+                "{workspaceRoot}/dist/out-tsc/libs/shared"
               ],
               "options": {
-                "outputPath": "dist/libs/shared",
+                "outputPath": "dist/out-tsc/libs/shared",
                 "main": "libs/shared/src/index.ts",
                 "tsConfig": "libs/shared/tsconfig.lib.json",
                 "assets": [
@@ -1992,7 +2703,11 @@
                 "{projectRoot}/src/**/*.ts",
                 "!{workspaceRoot}/node_modules",
                 "!{workspaceRoot}/tmp",
-                "^production"
+                "!{projectRoot}/src/**/*.spec.ts",
+                "!{projectRoot}/src/**/*.test.ts",
+                {
+                  "dependentTasksOutputFiles": "**/*.d.ts"
+                }
               ],
               "outputs": [
                 "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
@@ -2019,56 +2734,152 @@
               "configurations": {},
               "parallelism": true
             },
-            "build": {
+            "lint": {
               "cache": true,
-              "dependsOn": [
-                "^build"
-              ],
               "inputs": [
-                "production",
-                "^production",
+                "default",
+                "^default",
+                "{workspaceRoot}/.eslintrc.json",
+                "{workspaceRoot}/eslint.config.cjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
                 {
                   "externalDependencies": [
-                    "webpack-cli"
+                    "eslint"
                   ]
                 }
               ],
               "outputs": [
-                "{workspaceRoot}/dist/apps/mobile/apps/api"
+                "{options.outputFile}"
               ],
               "metadata": {
                 "technologies": [
-                  "webpack"
+                  "eslint",
+                  "eslint"
                 ],
-                "description": "Runs Webpack build",
+                "description": "Runs ESLint on project",
                 "help": {
-                  "command": "npx webpack-cli build --help",
+                  "command": "npx eslint --help",
                   "example": {
                     "options": {
-                      "json": "stats.json"
-                    },
-                    "args": [
-                      "--profile"
-                    ]
+                      "max-warnings": 0
+                    }
                   }
                 }
               },
               "executor": "nx:run-commands",
               "options": {
                 "cwd": "apps/api",
-                "args": [
-                  "--node-env=production"
-                ],
-                "command": "webpack-cli build"
+                "command": "eslint ."
               },
-              "configurations": {
-                "development": {
-                  "args": [
-                    "--node-env=development"
-                  ]
+              "configurations": {},
+              "parallelism": true
+            },
+            "docker:build": {
+              "dependsOn": [
+                "build",
+                "^build"
+              ],
+              "options": {
+                "cwd": "apps/api",
+                "args": [
+                  "--tag apps-api"
+                ],
+                "command": "docker build ."
+              },
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "metadata": {
+                "technologies": [
+                  "docker"
+                ],
+                "description": "Run Docker build",
+                "help": {
+                  "command": "docker build --help",
+                  "example": {
+                    "options": {
+                      "cache-from": "type=s3,region=eu-west-1,bucket=mybucket .",
+                      "cache-to": "type=s3,region=eu-west-1,bucket=mybucket ."
+                    }
+                  }
                 }
               },
+              "executor": "nx:run-commands",
+              "configurations": {},
               "parallelism": true
+            },
+            "docker:run": {
+              "dependsOn": [
+                "docker:build"
+              ],
+              "options": {
+                "cwd": "apps/api",
+                "command": "docker run {args} apps-api"
+              },
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "metadata": {
+                "technologies": [
+                  "docker"
+                ],
+                "description": "Run Docker run",
+                "help": {
+                  "command": "docker run --help",
+                  "example": {
+                    "options": {
+                      "args": [
+                        "-p",
+                        "3000:3000"
+                      ]
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "nx-release-publish": {
+              "executor": "@nx/docker:release-publish",
+              "configurations": {},
+              "options": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "@nx/webpack:webpack",
+              "outputs": [
+                "{options.outputPath}"
+              ],
+              "options": {
+                "outputPath": "dist/api",
+                "main": "apps/api/src/main.ts",
+                "tsConfig": "apps/api/tsconfig.app.json",
+                "webpackConfig": "apps/api/webpack.config.js",
+                "assets": [
+                  "apps/api/src/assets"
+                ],
+                "target": "node",
+                "compiler": "tsc"
+              },
+              "configurations": {
+                "production": {
+                  "optimization": true,
+                  "extractLicenses": true,
+                  "inspect": false
+                }
+              },
+              "parallelism": true,
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
             },
             "serve": {
               "continuous": true,
@@ -2079,14 +2890,17 @@
               ],
               "options": {
                 "buildTarget": "api:build",
-                "runBuildTargetDependencies": false
+                "runBuildTargetDependencies": true,
+                "host": "0.0.0.0",
+                "port": 3000
               },
               "configurations": {
                 "development": {
                   "buildTarget": "api:build:development"
                 },
                 "production": {
-                  "buildTarget": "api:build:production"
+                  "buildTarget": "api:build:production",
+                  "watch": false
                 }
               },
               "parallelism": true
@@ -2197,8 +3011,14 @@
               "parallelism": true
             }
           },
-          "projectType": "application",
           "metadata": {
+            "targetGroups": {
+              "Docker": [
+                "docker:build",
+                "docker:run",
+                "nx-release-publish"
+              ]
+            },
             "description": "NestJS REST API with Supabase and Redis for venue and visit management",
             "technologies": [
               "NestJS",
@@ -2207,6 +3027,7 @@
               "PostgreSQL"
             ]
           },
+          "projectType": "application",
           "name": "api",
           "$schema": "../../node_modules/nx/schemas/project-schema.json",
           "sourceRoot": "apps/api/src",
@@ -2246,7 +3067,9 @@
                 "!{workspaceRoot}/node_modules",
                 "!{workspaceRoot}/tmp",
                 "!{projectRoot}/src/test-setup.ts",
-                "^production"
+                {
+                  "dependentTasksOutputFiles": "**/*.d.ts"
+                }
               ],
               "outputs": [
                 "{workspaceRoot}/dist/out-tsc/**/*.d.ts",
@@ -2303,16 +3126,39 @@
               },
               "configurations": {
                 "production": {
+                  "fileReplacements": [
+                    {
+                      "replace": "apps/web/src/environments/environment.ts",
+                      "with": "apps/web/src/environments/environment.prod.ts"
+                    }
+                  ],
                   "budgets": [
                     {
                       "type": "initial",
-                      "maximumWarning": "500kb",
-                      "maximumError": "1mb"
+                      "maximumWarning": "1.5mb",
+                      "maximumError": "2mb"
                     },
                     {
                       "type": "anyComponentStyle",
                       "maximumWarning": "4kb",
                       "maximumError": "8kb"
+                    },
+                    {
+                      "type": "bundle",
+                      "name": "polyfills",
+                      "maximumWarning": "100kb",
+                      "maximumError": "150kb"
+                    },
+                    {
+                      "type": "bundle",
+                      "name": "runtime",
+                      "maximumWarning": "10kb",
+                      "maximumError": "20kb"
+                    },
+                    {
+                      "type": "anyScript",
+                      "maximumWarning": "500kb",
+                      "maximumError": "1mb"
                     }
                   ],
                   "outputHashing": "all"
@@ -2337,6 +3183,10 @@
             "serve": {
               "continuous": true,
               "executor": "@angular/build:dev-server",
+              "options": {
+                "host": "0.0.0.0",
+                "port": 4200
+              },
               "configurations": {
                 "production": {
                   "buildTarget": "web:build:production"
@@ -2346,7 +3196,6 @@
                 }
               },
               "defaultConfiguration": "development",
-              "options": {},
               "parallelism": true
             },
             "extract-i18n": {
@@ -2566,6 +3415,21 @@
       }
     },
     "dependencies": {
+      "auth-state": [
+        {
+          "source": "auth-state",
+          "target": "shared",
+          "type": "static"
+        }
+      ],
+      "settings": [
+        {
+          "source": "settings",
+          "target": "auth",
+          "type": "static"
+        }
+      ],
+      "sharing": [],
       "visits": [
         {
           "source": "visits",
@@ -2574,24 +3438,39 @@
         },
         {
           "source": "visits",
-          "target": "auth",
+          "target": "data",
           "type": "static"
         },
         {
           "source": "visits",
-          "target": "data",
+          "target": "ui",
+          "type": "static"
+        },
+        {
+          "source": "visits",
+          "target": "sharing",
+          "type": "static"
+        },
+        {
+          "source": "visits",
+          "target": "auth",
           "type": "static"
         }
       ],
       "auth": [
         {
           "source": "auth",
-          "target": "data",
+          "target": "auth-state",
           "type": "static"
         },
         {
           "source": "auth",
           "target": "shared",
+          "type": "static"
+        },
+        {
+          "source": "auth",
+          "target": "data",
           "type": "static"
         }
       ],
@@ -2609,11 +3488,16 @@
           "type": "static"
         }
       ],
-      "mobile-e2e": [
+      "map": [
         {
-          "source": "mobile-e2e",
-          "target": "mobile",
-          "type": "implicit"
+          "source": "map",
+          "target": "shared",
+          "type": "static"
+        },
+        {
+          "source": "map",
+          "target": "data",
+          "type": "static"
         }
       ],
       "api-e2e": [
@@ -2630,17 +3514,11 @@
           "type": "implicit"
         }
       ],
-      "workers": [
-        {
-          "source": "workers",
-          "target": "shared",
-          "type": "static"
-        }
-      ],
+      "workers": [],
       "mobile": [
         {
           "source": "mobile",
-          "target": "shared",
+          "target": "auth",
           "type": "static"
         }
       ],
@@ -2662,11 +3540,6 @@
           "source": "api",
           "target": "shared",
           "type": "static"
-        },
-        {
-          "source": "api",
-          "target": "data",
-          "type": "static"
         }
       ],
       "web": [
@@ -2678,12 +3551,37 @@
         {
           "source": "web",
           "target": "auth",
-          "type": "static"
+          "type": "dynamic"
         },
         {
           "source": "web",
           "target": "auth",
-          "type": "dynamic"
+          "type": "static"
+        },
+        {
+          "source": "web",
+          "target": "auth-state",
+          "type": "static"
+        },
+        {
+          "source": "web",
+          "target": "map",
+          "type": "static"
+        },
+        {
+          "source": "web",
+          "target": "data",
+          "type": "static"
+        },
+        {
+          "source": "web",
+          "target": "settings",
+          "type": "static"
+        },
+        {
+          "source": "web",
+          "target": "visits",
+          "type": "static"
         },
         {
           "source": "web",

@@ -2,116 +2,51 @@
   "name": "mobile",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "prefix": "app",
-  "sourceRoot": "apps/mobile/src",
   "tags": ["type:app", "platform:mobile", "scope:frontend"],
   "metadata": {
-    "description": "Mobile app (iOS/Android) with Capacitor for offline visit tracking",
-    "technologies": ["Angular", "Capacitor", "Geolocation API"]
+    "description": "Capacitor wrapper serving web PWA for iOS/Android",
+    "technologies": ["Capacitor"]
   },
   "targets": {
-    "build": {
-      "executor": "@angular/build:application",
-      "outputs": ["{options.outputPath}"],
+    "sync": {
+      "executor": "nx:run-commands",
       "options": {
-        "outputPath": "dist/apps/mobile",
-        "browser": "apps/mobile/src/main.ts",
-        "polyfills": ["zone.js"],
-        "tsConfig": "apps/mobile/tsconfig.app.json",
-        "assets": [
-          {
-            "glob": "**/*",
-            "input": "apps/mobile/public"
-          }
-        ],
-        "styles": ["apps/mobile/src/styles.css"]
+        "commands": ["npx cap sync"],
+        "cwd": "apps/mobile"
       },
-      "configurations": {
-        "production": {
-          "fileReplacements": [
-            {
-              "replace": "apps/mobile/src/environments/environment.ts",
-              "with": "apps/mobile/src/environments/environment.prod.ts"
-            }
-          ],
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "1.5mb",
-              "maximumError": "2mb"
-            },
-            {
-              "type": "anyComponentStyle",
-              "maximumWarning": "4kb",
-              "maximumError": "8kb"
-            },
-            {
-              "type": "bundle",
-              "name": "polyfills",
-              "maximumWarning": "100kb",
-              "maximumError": "150kb"
-            },
-            {
-              "type": "bundle",
-              "name": "runtime",
-              "maximumWarning": "10kb",
-              "maximumError": "20kb"
-            },
-            {
-              "type": "anyScript",
-              "maximumWarning": "500kb",
-              "maximumError": "1mb"
-            }
-          ],
-          "outputHashing": "all"
-        },
-        "development": {
-          "optimization": false,
-          "extractLicenses": false,
-          "sourceMap": true
-        }
+      "dependsOn": ["web:build"]
+    },
+    "open:ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["npx cap open ios"],
+        "cwd": "apps/mobile"
       },
-      "defaultConfiguration": "production"
+      "dependsOn": ["sync"]
     },
-    "serve": {
-      "continuous": true,
-      "executor": "@angular/build:dev-server",
-      "configurations": {
-        "production": {
-          "buildTarget": "mobile:build:production"
-        },
-        "development": {
-          "buildTarget": "mobile:build:development"
-        }
+    "open:android": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["npx cap open android"],
+        "cwd": "apps/mobile"
       },
-      "defaultConfiguration": "development"
+      "dependsOn": ["sync"]
     },
-    "extract-i18n": {
-      "executor": "@angular/build:extract-i18n",
+    "run:ios": {
+      "executor": "nx:run-commands",
       "options": {
-        "buildTarget": "mobile:build"
-      }
+        "commands": ["npx cap run ios"],
+        "cwd": "apps/mobile"
+      },
+      "dependsOn": ["sync"]
     },
-    "lint": {
-      "executor": "@nx/eslint:lint"
-    },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+    "run:android": {
+      "executor": "nx:run-commands",
       "options": {
-        "jestConfig": "apps/mobile/jest.config.ts",
-        "tsConfig": "apps/mobile/tsconfig.spec.json"
-      }
-    },
-    "serve-static": {
-      "continuous": true,
-      "executor": "@nx/web:file-server",
-      "options": {
-        "buildTarget": "mobile:build",
-        "port": 4200,
-        "staticFilePath": "dist/apps/mobile/browser",
-        "spa": true
-      }
+        "commands": ["npx cap run android"],
+        "cwd": "apps/mobile"
+      },
+      "dependsOn": ["sync"]
     }
   }
 }

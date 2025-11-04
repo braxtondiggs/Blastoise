@@ -291,10 +291,7 @@ docker/
 └── nginx.conf
 
 e2e/
-├── web-e2e/                         # Playwright tests for web app
-│   ├── specs/
-│   └── playwright.config.ts
-└── mobile-e2e/                      # Playwright tests for mobile app
+└── web-e2e/                         # Playwright tests for web app
     ├── specs/
     └── playwright.config.ts
 ```
