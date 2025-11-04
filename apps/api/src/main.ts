@@ -3,6 +3,9 @@
  * Privacy-first venue visit tracking API
  */
 
+// IMPORTANT: Sentry instrumentation must be imported FIRST
+import './instrument';
+
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';

@@ -1,6 +1,6 @@
 {
-  "name": "Venue Visit Tracker",
-  "short_name": "Venue Tracker",
+  "name": "Blastoise",
+  "short_name": "Blastoise",
   "description": "Automatically track brewery and winery visits with privacy-first geofencing",
   "start_url": "/",
   "display": "standalone",

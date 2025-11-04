@@ -1,15 +1,17 @@
 /**
  * T226, T231: Sentry Service for Error Tracking and Alerting
  *
- * Provides error tracking, performance monitoring, and alerting.
+ * Provides error tracking, performance monitoring, and alerting using @sentry/nestjs.
  * Integrates with Sentry.io for production error management.
+ *
+ * This service wraps Sentry SDK for easier usage in NestJS controllers and services.
+ * Automatic exception capturing is handled by SentryGlobalFilter.
  *
  * Phase 7: Notifications & Observability
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import * as Sentry from '@sentry/nestjs';
 
 export interface ErrorContext {
   userId?: string;
@@ -28,59 +30,14 @@ export class SentryService {
   private readonly errorWindowMs = 5 * 60 * 1000; // 5 minute window
 
   constructor() {
-    this.initializeSentry();
-  }
-
-  /**
-   * Initialize Sentry SDK
-   */
-  private initializeSentry(): void {
+    // Sentry is already initialized in instrument.ts
+    // This service provides a wrapper for easier usage in NestJS
     const dsn = process.env.SENTRY_DSN;
-    const environment = process.env.NODE_ENV || 'development';
-
-    if (!dsn) {
+    if (dsn) {
+      this.logger.log('Sentry service ready (initialized via instrument.ts)');
+    } else {
       this.logger.warn('SENTRY_DSN not configured - error tracking disabled');
-      return;
     }
-
-    Sentry.init({
-      dsn,
-      environment,
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
-      // Adjust in production based on traffic
-      tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
-      // Set sampling rate for profiling (optional)
-      profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
-      integrations: [
-        // Add profiling integration
-        nodeProfilingIntegration(),
-      ],
-      // Filter out sensitive data
-      beforeSend(event, _hint) {
-        // Remove sensitive fields
-        if (event.request) {
-          delete event.request.cookies;
-          delete event.request.headers?.Authorization;
-          delete event.request.headers?.authorization;
-        }
-
-        // Remove password fields from extra data
-        if (event.extra) {
-          const extraData = event.extra;
-          Object.keys(extraData).forEach((key) => {
-            if (key.toLowerCase().includes('password') ||
-                key.toLowerCase().includes('token') ||
-                key.toLowerCase().includes('secret')) {
-              delete extraData[key];
-            }
-          });
-        }
-
-        return event;
-      },
-    });
-
-    this.logger.log('Sentry initialized successfully');
   }
 
   /**

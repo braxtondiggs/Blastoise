@@ -12,17 +12,17 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { SentryService, ErrorContext } from '../../src/common/sentry/sentry.service';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 
 // Mock Sentry module
-jest.mock('@sentry/node', () => ({
+jest.mock('@sentry/nestjs', () => ({
   init: jest.fn(),
   captureException: jest.fn(),
   captureMessage: jest.fn(),
   setContext: jest.fn(),
   setUser: jest.fn(),
   setTag: jest.fn(),
-  startTransaction: jest.fn(),
+  startSpan: jest.fn((options, callback) => callback({ finish: jest.fn() })),
   addBreadcrumb: jest.fn(),
   flush: jest.fn(),
 }));
@@ -290,17 +290,22 @@ describe('Error Tracking Integration Tests (T235)', () => {
   });
 
   describe('Performance Monitoring', () => {
-    it('should start transactions for performance monitoring', () => {
-      const mockTransaction = { finish: jest.fn() };
-      (Sentry.startTransaction as jest.Mock).mockReturnValue(mockTransaction);
-
-      const transaction = service.startTransaction('visit-creation', 'http.request');
-
-      expect(Sentry.startTransaction).toHaveBeenCalledWith({
-        name: 'visit-creation',
-        op: 'http.request',
+    it('should start spans for performance monitoring', () => {
+      const mockSpan = { finish: jest.fn() };
+      (Sentry.startSpan as jest.Mock).mockImplementation((options, callback) => {
+        return callback(mockSpan);
       });
-      expect(transaction).toBe(mockTransaction);
+
+      const span = service.startTransaction('visit-creation', 'http.request');
+
+      expect(Sentry.startSpan).toHaveBeenCalledWith(
+        {
+          name: 'visit-creation',
+          op: 'http.request',
+        },
+        expect.any(Function)
+      );
+      expect(span).toBe(mockSpan);
     });
   });
 

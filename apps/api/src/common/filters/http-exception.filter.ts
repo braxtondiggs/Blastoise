@@ -5,9 +5,11 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApiResponse } from '@blastoise/shared';
+import { SentryService } from '../sentry/sentry.service';
 
 interface ExceptionResponse {
   message?: string;
@@ -17,6 +19,10 @@ interface ExceptionResponse {
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  constructor(
+    @Inject(SentryService) private readonly sentryService: SentryService
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -48,6 +54,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `${request.method} ${request.url} - ${status} - ${message}`,
       exception instanceof Error ? exception.stack : undefined
     );
+
+    // Capture exception in Sentry (only for server errors)
+    if (status >= 500 && exception instanceof Error) {
+      this.sentryService.captureException(exception, {
+        userId: (request as Request & { user?: { id: string } }).user?.id,
+        endpoint: request.url,
+        method: request.method,
+        timestamp: new Date().toISOString(),
+        additionalData: {
+          statusCode: status,
+          errorCode,
+        },
+      });
+    }
 
     // Send standardized error response
     const errorResponse: ApiResponse = {
