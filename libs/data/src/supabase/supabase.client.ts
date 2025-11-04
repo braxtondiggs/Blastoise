@@ -31,7 +31,7 @@ export function initSupabaseClient(config: SupabaseConfig): void {
       detectSessionInUrl: true,
       storageKey: 'blastoise-auth',
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      flowType: 'implicit',
+      flowType: 'pkce',
       // Provide a no-op lock function to bypass Navigator Lock API
       // This prevents lock timeout errors when multiple tabs are open
       // Safe because Angular handles state management and localStorage is already thread-safe

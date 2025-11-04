@@ -10,10 +10,11 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PrivacySettings } from '../components/privacy-settings';
+import { UpgradePrompt } from '@blastoise/features-auth';
 
 @Component({
   selector: 'app-settings',
-  imports: [CommonModule, PrivacySettings],
+  imports: [CommonModule, PrivacySettings, UpgradePrompt],
   template: `
     <div class="min-h-screen bg-base-100 py-8">
       <div class="container mx-auto px-4 max-w-2xl">
@@ -61,9 +62,9 @@ import { PrivacySettings } from '../components/privacy-settings';
           }
 
           @if (activeTab() === 'account') {
-            <div class="text-center text-gray-500 py-8">
-              <p class="text-lg font-medium">Account Settings</p>
-              <p class="text-sm mt-2">Coming soon...</p>
+            <div class="flex flex-col items-center py-8">
+              <h2 class="text-lg font-medium mb-6">Account Settings</h2>
+              <lib-upgrade-prompt />
             </div>
           }
         </div>

@@ -2,6 +2,9 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthStateService } from '@blastoise/shared/auth-state';
+import { AuthService } from '@blastoise/features-auth';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectangle } from '@ng-icons/heroicons/outline';
 
 /**
  * T135: Main App Component with Navigation
@@ -15,10 +18,11 @@ import { AuthStateService } from '@blastoise/shared/auth-state';
  */
 
 @Component({
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NgIconComponent],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',
+  viewProviders: [provideIcons({ heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectangle })],
 })
 export class App {
   protected title = 'Blastoise';
@@ -29,6 +33,7 @@ export class App {
   // Injected services
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
+  private readonly authService = inject(AuthService);
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen.update((open) => !open);
@@ -44,5 +49,10 @@ export class App {
 
   get isAuthenticated(): boolean {
     return this.authState.isAuthenticated();
+  }
+
+  async onSignOut(): Promise<void> {
+    await this.authService.signOut();
+    this.closeMobileMenu();
   }
 }

@@ -1,0 +1,235 @@
+<div class="flex items-center justify-center min-h-screen bg-base-100">
+  <div class="shadow-xl card w-96 bg-base-200">
+    <div class="card-body">
+      <h2 class="mb-4 text-2xl font-bold text-center card-title">Create Account</h2>
+
+      <!-- Error Alert (T073) -->
+      @if (error() && !isLoading()) {
+        <div
+          class="mb-4 alert alert-error"
+          role="alert"
+          data-testid="register-error"
+          aria-live="assertive"
+        >
+          <ng-icon name="heroXCircle" size="32" class="shrink-0" />
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <!-- Registration Form (T067) -->
+      <form
+        [formGroup]="registrationForm"
+        (ngSubmit)="onSubmit()"
+        [attr.aria-busy]="isLoading()"
+        aria-label="Registration form"
+      >
+        <!-- Email Input -->
+        <div class="w-full mb-4 form-control">
+          <label class="label" for="email-input">
+            <span class="label-text">Email</span>
+          </label>
+          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="registrationForm.controls.email.invalid && registrationForm.controls.email.touched">
+            <ng-icon name="heroEnvelope" size="16" class="opacity-70" />
+            <input
+              id="email-input"
+              type="email"
+              formControlName="email"
+              class="grow"
+              placeholder="Enter your email"
+              data-testid="email-input"
+              [disabled]="isLoading()"
+              aria-label="Email"
+              aria-required="true"
+              [attr.aria-invalid]="registrationForm.controls.email.invalid && registrationForm.controls.email.touched"
+              [attr.aria-describedby]="registrationForm.controls.email.invalid && registrationForm.controls.email.touched ? 'email-error' : null"
+            />
+          </label>
+          <!-- Email Error Message (T069) -->
+          @if (registrationForm.controls.email.invalid && registrationForm.controls.email.touched) {
+            <div
+              class="mt-2 ml-2 text-sm label text-error"
+              role="alert"
+              id="email-error"
+              data-testid="email-error"
+              aria-live="polite"
+            >
+              @if (registrationForm.controls.email.errors?.['required']) {
+                <span>Email is required</span>
+              }
+              @if (registrationForm.controls.email.errors?.['email']) {
+                <span>Please enter a valid email address</span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Password Input -->
+        <div class="w-full mb-4 form-control">
+          <label class="label" for="password-input">
+            <span class="label-text">Password</span>
+          </label>
+          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="registrationForm.controls.password.invalid && registrationForm.controls.password.touched">
+            <ng-icon name="heroKey" size="16" class="opacity-70" />
+            <input
+              id="password-input"
+              type="password"
+              formControlName="password"
+              class="grow"
+              placeholder="Enter your password"
+              data-testid="password-input"
+              [disabled]="isLoading()"
+              aria-label="Password"
+              aria-required="true"
+              [attr.aria-invalid]="registrationForm.controls.password.invalid && registrationForm.controls.password.touched"
+              [attr.aria-describedby]="registrationForm.controls.password.invalid && registrationForm.controls.password.touched ? 'password-error' : null"
+            />
+          </label>
+          <!-- Password Error Message (T069) -->
+          @if (registrationForm.controls.password.invalid && registrationForm.controls.password.touched) {
+            <div
+              class="mt-2 ml-2 text-sm label text-error"
+              role="alert"
+              id="password-error"
+              data-testid="password-error"
+              aria-live="polite"
+            >
+              @if (registrationForm.controls.password.errors?.['required']) {
+                <span>Password is required</span>
+              }
+              @if (registrationForm.controls.password.errors?.['minlength']) {
+                <span>Password must be at least 8 characters</span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Password Strength Checklist (T068) -->
+        <div class="mb-4" role="status" aria-live="polite" aria-label="Password strength requirements">
+          <p class="mb-2 text-sm text-base-content/70">Password must have:</p>
+          <ul class="space-y-1 text-sm">
+            <li
+              class="flex items-center gap-2"
+              data-testid="checklist-min-length"
+              [class.text-success]="hasMinLength()"
+              [class.text-base-content/50]="!hasMinLength()"
+            >
+              <ng-icon [name]="hasMinLength() ? 'heroCheckCircle' : 'heroXCircle'" size="18" />
+              <span>At least 8 characters</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              data-testid="checklist-has-letter"
+              [class.text-success]="hasLetter()"
+              [class.text-base-content/50]="!hasLetter()"
+            >
+              <ng-icon [name]="hasLetter() ? 'heroCheckCircle' : 'heroXCircle'" size="18" />
+              <span>At least one letter (a-z)</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              data-testid="checklist-has-number"
+              [class.text-success]="hasNumber()"
+              [class.text-base-content/50]="!hasNumber()"
+            >
+              <ng-icon [name]="hasNumber() ? 'heroCheckCircle' : 'heroXCircle'" size="18" />
+              <span>At least one number (0-9)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Confirm Password Input -->
+        <div class="w-full mb-4 form-control">
+          <label class="label" for="confirm-password-input">
+            <span class="label-text">Confirm Password</span>
+          </label>
+          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="registrationForm.controls.confirmPassword.invalid && registrationForm.controls.confirmPassword.touched">
+            <ng-icon name="heroKey" size="16" class="opacity-70" />
+            <input
+              id="confirm-password-input"
+              type="password"
+              formControlName="confirmPassword"
+              class="grow"
+              placeholder="Re-enter your password"
+            data-testid="confirm-password-input"
+            [disabled]="isLoading()"
+            aria-label="Confirm password"
+            aria-required="true"
+            [attr.aria-invalid]="registrationForm.controls.confirmPassword.invalid && registrationForm.controls.confirmPassword.touched"
+            [attr.aria-describedby]="registrationForm.controls.confirmPassword.invalid && registrationForm.controls.confirmPassword.touched ? 'confirm-password-error' : null"
+          />
+          </label>
+          <!-- Confirm Password Error Message (T069) -->
+          @if (registrationForm.controls.confirmPassword.invalid && registrationForm.controls.confirmPassword.touched) {
+            <div
+              class="mt-2 ml-2 text-sm label text-error"
+              role="alert"
+              id="confirm-password-error"
+              data-testid="confirm-password-error"
+              aria-live="polite"
+            >
+              @if (registrationForm.controls.confirmPassword.errors?.['required']) {
+                <span>Please confirm your password</span>
+              }
+              @if (registrationForm.controls.confirmPassword.errors?.['passwordMatch']) {
+                <span>Passwords do not match</span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Terms Agreement Checkbox -->
+        <div class="mb-6 form-control">
+          <label class="justify-start gap-3 cursor-pointer label">
+            <input
+              type="checkbox"
+              formControlName="agreeToTerms"
+              class="checkbox checkbox-primary"
+              data-testid="agree-to-terms"
+              [disabled]="isLoading()"
+              aria-required="true"
+              aria-label="I agree to the Terms of Service and Privacy Policy"
+            />
+            <span class="label-text">
+              I agree to the <a href="/terms" class="link link-primary" target="_blank">Terms of Service</a> and <a href="/privacy" class="link link-primary" target="_blank">Privacy Policy</a>
+            </span>
+          </label>
+          <!-- Terms Error Message -->
+          @if (registrationForm.controls.agreeToTerms.invalid && registrationForm.controls.agreeToTerms.touched) {
+            <div
+              class="mt-1 ml-2 text-sm label text-error"
+              role="alert"
+              aria-live="polite"
+            >
+              <span>You must agree to the terms to create an account</span>
+            </div>
+          }
+        </div>
+
+        <!-- Submit Button (T070) -->
+        <button
+          type="submit"
+          class="w-full btn btn-primary"
+          [disabled]="registrationForm.invalid || isLoading()"
+          data-testid="register-submit"
+          aria-label="Create account"
+        >
+          @if (isLoading()) {
+            <span class="loading loading-spinner loading-sm"></span>
+            <span>Creating account...</span>
+          } @else {
+            <ng-icon name="heroUserPlus" size="24" />
+            <span>Create Account</span>
+          }
+        </button>
+
+        <!-- Sign In Link (T074) -->
+        <div class="mt-4 text-center">
+          <p class="text-sm text-base-content/70">
+            Already have an account?
+            <a href="/auth/login" class="link link-primary" aria-label="Go to sign in page">Sign in</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

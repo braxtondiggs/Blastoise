@@ -1,1 +1,210 @@
-<p>login works!</p>
+<div class="flex items-center justify-center min-h-screen bg-base-100">
+  <div class="shadow-xl card w-96 bg-base-200">
+    <div class="card-body">
+      <h2 class="mb-4 text-2xl font-bold card-title">Welcome to Blastoise</h2>
+      <p class="mb-6 text-base-content/70">
+        Track your brewery and winery visits automatically with privacy-first geofencing.
+      </p>
+
+      <!-- Continue as Guest Button -->
+      <button
+        type="button"
+        class="w-full btn btn-primary"
+        (click)="onContinueAsGuest()"
+        data-testid="continue-as-guest"
+        aria-label="Start using Blastoise without creating an account"
+      >
+        <ng-icon name="heroUserCircle" size="24" />
+        Continue as Guest
+      </button>
+
+      <div class="divider">OR</div>
+
+      <!-- Tab Navigation (T042) -->
+      <div role="tablist" class="mb-4 tabs tabs-border">
+        <button
+          role="tab"
+          type="button"
+          class="font-semibold tab tab-lg"
+          [class.tab-active]="mode() === 'password'"
+          (click)="mode.set('password')"
+          data-testid="password-tab"
+          aria-label="Sign in with password"
+        >
+          Password
+        </button>
+        <button
+          role="tab"
+          type="button"
+          class="font-semibold tab tab-lg"
+          [class.tab-active]="mode() === 'magic-link'"
+          (click)="mode.set('magic-link')"
+          data-testid="magic-link-tab"
+          aria-label="Sign in with magic link"
+        >
+          Magic Link
+        </button>
+      </div>
+
+      <!-- Email/Password Sign In Form -->
+      <form
+        [formGroup]="loginForm"
+        (ngSubmit)="onSubmit()"
+        novalidate
+        [attr.aria-busy]="isLoading()"
+      >
+        <!-- Success Alert for Magic Link (T046) -->
+        @if (showSuccessMessage()) {
+        <div
+          class="mb-4 alert alert-success"
+          role="alert"
+          data-testid="magic-link-success"
+          aria-live="polite"
+        >
+          <ng-icon name="heroCheckCircle" size="32" class="shrink-0" />
+          <span>Check your email for a sign-in link!</span>
+        </div>
+        }
+
+        <!-- Error Alert -->
+        @if (error()) {
+        <div
+          class="mb-4 alert alert-error"
+          role="alert"
+          data-testid="login-error"
+          aria-live="polite"
+        >
+          <ng-icon name="heroXCircle" size="32" class="shrink-0" />
+          <span>{{ error() }}</span>
+        </div>
+        }
+
+        <!-- Email Input -->
+        <div class="w-full mb-4 form-control">
+          <label class="label" for="email-input">
+            <span class="label-text">Email</span>
+          </label>
+          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="loginForm.controls.email.invalid && loginForm.controls.email.touched">
+            <ng-icon name="heroEnvelope" size="16" class="opacity-70" />
+            <input
+              id="email-input"
+              type="email"
+              formControlName="email"
+              class="grow"
+              placeholder="you@example.com"
+              data-testid="email-input"
+              [disabled]="isLoading()"
+              aria-label="Email address"
+              aria-required="true"
+              [attr.aria-invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
+              [attr.aria-describedby]="loginForm.controls.email.invalid && loginForm.controls.email.touched ? 'email-error' : null"
+            />
+          </label>
+          @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
+          <label class="label">
+            <span
+              id="email-error"
+              class="label-text-alt text-error mt-1 ml-2"
+              role="alert"
+              data-testid="email-error"
+            >
+              @if (loginForm.controls.email.errors?.['required']) { Email is required } @else if
+              (loginForm.controls.email.errors?.['email']) { Please enter a valid email address }
+            </span>
+          </label>
+          }
+        </div>
+
+        <!-- Password Input (T043 - Only show in password mode) -->
+        @if (mode() === 'password') {
+        <div class="w-full mb-4 form-control">
+          <label class="label" for="password-input">
+            <span class="label-text">Password</span>
+          </label>
+          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="loginForm.controls.password.invalid && loginForm.controls.password.touched">
+            <ng-icon name="heroKey" size="16" class="opacity-70" />
+            <input
+              id="password-input"
+              type="password"
+              formControlName="password"
+              class="grow"
+              placeholder="Enter your password"
+              data-testid="password-input"
+              [disabled]="isLoading()"
+              aria-label="Password"
+              aria-required="true"
+              [attr.aria-invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+              [attr.aria-describedby]="loginForm.controls.password.invalid && loginForm.controls.password.touched ? 'password-error' : null"
+            />
+          </label>
+          @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
+          <label class="label">
+            <span
+              id="password-error"
+              class="label-text-alt text-error mt-1 ml-2"
+              role="alert"
+              data-testid="password-error"
+            >
+              @if (loginForm.controls.password.errors?.['required']) { Password is required } @else if (loginForm.controls.password.errors?.['minlength']) { Password must be at least 8 characters }
+            </span>
+          </label>
+          }
+        </div>
+        }
+
+        <!-- Forgot Password Link -->
+        <div class="mb-4 text-right">
+          <a
+            href="/auth/password-reset"
+            class="text-sm link link-primary"
+            tabindex="0"
+            aria-label="Reset your password"
+          >
+            Forgot Password?
+          </a>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="w-full btn btn-outline"
+          [disabled]="loginForm.invalid || isLoading()"
+          data-testid="login-submit"
+          [attr.aria-label]="mode() === 'magic-link' ? 'Send magic link to email' : 'Sign in to your account'"
+        >
+          @if (isLoading()) {
+          <span class="loading loading-spinner"></span>
+          @if (mode() === 'magic-link') {
+            Sending link...
+          } @else {
+            Signing in...
+          }
+          } @else {
+          <ng-icon name="heroArrowRightOnRectangle" size="24" />
+          @if (mode() === 'magic-link') {
+            Send Magic Link
+          } @else {
+            Sign In
+          }
+          }
+        </button>
+      </form>
+
+      <!-- Create Account Link (T079) -->
+      <div class="mt-4 text-center">
+        <p class="text-sm text-base-content/70">
+          Don't have an account?
+          <a href="/auth/register" class="link link-primary" aria-label="Create a new account"
+            >Create Account</a
+          >
+        </p>
+      </div>
+
+      <p class="mt-4 text-sm text-center text-base-content/50">
+        Guest mode stores visits locally on your device.
+        <br />
+        Sign in to sync across devices.
+      </p>
+    </div>
+  </div>
+</div>

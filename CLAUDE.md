@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-28
 **Blastoise** is a privacy-first mobile and web application for tracking brewery and winery visits using automatic geofencing. Built with Angular 20+, Capacitor 7+, and Node.js 22, the application emphasizes on-device processing, minimal data storage (venue references only), and strict privacy controls.
 
 ## Active Technologies
+- TypeScript 5.x with Angular 20+ + Angular 20+ (standalone components, signals, reactive forms), DaisyUI/Tailwind CSS 4.x, Supabase JS Client 2.x, Angular Router (002-auth-ui)
+- localStorage for anonymous mode persistence, Supabase PostgreSQL for authenticated user data (002-auth-ui)
 
 ### Frontend
 
@@ -14,6 +16,7 @@ Auto-generated from all feature plans. Last updated: 2025-10-28
 - **Capacitor 7+**: Native iOS/Android wrapper for geolocation and background tracking
 - **Leaflet 1.9+**: Lightweight map library with marker clustering
 - **DaisyUI/Tailwind CSS 4.x**: Component library and utility-first CSS framework
+- **ng-icons/Heroicons**: Icon library for consistent iconography (official Tailwind CSS icons)
 - **TypeScript 5.x**: Type-safe development
 
 ### Backend
@@ -35,17 +38,16 @@ Auto-generated from all feature plans. Last updated: 2025-10-28
 
 ```text
 apps/
-├── web/                 # Angular PWA (Progressive Web App)
+├── web/                 # Angular PWA (Progressive Web App with Capacitor)
 │   ├── src/app/
 │   ├── project.json
 │   └── tailwind.config.js
 │
-├── mobile/              # Capacitor mobile wrapper (iOS/Android)
-│   ├── src/app/
-│   ├── capacitor.config.ts
-│   ├── ios/
-│   ├── android/
-│   └── project.json
+├── mobile/              # Capacitor wrapper serving web build (iOS/Android)
+│   ├── capacitor.config.ts  # Points to dist/apps/web/browser
+│   ├── ios/                 # iOS native project
+│   ├── android/             # Android native project
+│   └── project.json         # Nx targets for cap sync/run
 │
 └── api/                 # NestJS REST API (NestJS + Supabase + Redis)
     ├── src/
@@ -125,13 +127,15 @@ cd docker && docker-compose up -d
 # Start development servers (web + API)
 npx nx run-many --target=serve --projects=api,web --parallel
 
-# Start mobile app + API
-npx nx run-many --target=serve --projects=api,mobile --parallel
-
 # Run individual apps
 npx nx serve api      # http://localhost:3000
 npx nx serve web      # http://localhost:4200
-npx nx serve mobile   # http://localhost:4201
+
+# Mobile app (requires web build first)
+npx nx build web      # Build web app
+npx nx sync mobile    # Sync to iOS/Android
+npx nx run:ios mobile # Open in Xcode / run on iOS device
+npx nx run:android mobile # Open in Android Studio / run on device
 ```
 
 ### Testing
@@ -142,7 +146,6 @@ npx nx run-many --target=test --all
 
 # Test specific projects
 npx nx test web         # Jest tests for web app
-npx nx test mobile      # Jest tests for mobile app
 npx nx test api         # Jest tests for backend
 
 # Test feature libraries
@@ -157,7 +160,6 @@ npx nx test web --coverage
 
 # E2E tests (requires apps running)
 npx nx e2e web-e2e
-npx nx e2e mobile-e2e
 ```
 
 ### Code Quality
@@ -179,8 +181,8 @@ npx nx run-many --target=type-check --all
 # Build web PWA
 npx nx build web --configuration=production
 
-# Build mobile app
-npx nx build mobile --configuration=production
+# Build mobile app (builds web, then syncs to native)
+npx nx sync mobile --configuration=production
 
 # Build API
 npx nx build api --configuration=production
@@ -195,7 +197,7 @@ npx nx affected:build --base=origin/main
 
 - **Clean Code**: Modular, maintainable code with consistent structure
 - **Type Safety**: Leverage TypeScript for compile-time safety
-- **Testing**: Every feature MUST include comprehensive unit and integration tests
+- **Testing**: Tests are RECOMMENDED but not required for rapid prototyping (see Testing Standards below)
 - **Privacy by Design**: Never store or transmit precise GPS coordinates
 - **Accessibility**: WCAG 2.1 AA compliance required
 
@@ -206,6 +208,37 @@ npx nx affected:build --base=origin/main
 - Follow Angular style guide for file naming and structure
 - Use DaisyUI components for consistent UI
 - Lazy load feature modules via routing
+
+### Icon Usage with ng-icons/Heroicons
+
+- **ALWAYS use ng-icons with Heroicons** for iconography instead of inline SVGs
+- Import icons from `@ng-icons/heroicons` (solid, outline, or mini variants available)
+- Add `provideIcons()` to component imports with required icons
+- Use `<ng-icon>` component with `name` attribute for rendering
+- Heroicons variants:
+  - **heroicons/outline**: Outline (24x24) - Use for most UI elements
+  - **heroicons/solid**: Solid (24x24) - Use for emphasis or filled states
+  - **heroicons/mini**: Mini (20x20) - Use for compact spaces
+
+**Example - Icon Usage:**
+
+```typescript
+import { Component } from '@angular/core';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroEnvelope, heroKey, heroUser } from '@ng-icons/heroicons/outline';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [NgIconComponent],
+  viewProviders: [provideIcons({ heroEnvelope, heroKey, heroUser })],
+  template: `
+    <input type="email" />
+    <ng-icon name="heroEnvelope" class="w-4 h-4 opacity-70" />
+  `,
+})
+export class LoginComponent {}
+```
 
 ### Tailwind CSS v4 Conventions
 
@@ -267,11 +300,23 @@ npx nx affected:build --base=origin/main
 
 ### Testing Standards
 
-- Unit tests: Test business logic in isolation
-- Integration tests: Test API endpoints and data flow
-- E2E tests: Test critical user journeys
-- Minimum 80% code coverage for new code
-- Mock external dependencies (Supabase, Redis)
+**Testing Philosophy**: Tests are **RECOMMENDED** but not strictly required. Prioritize rapid iteration and MVP delivery over comprehensive test coverage.
+
+**When to Write Tests** (RECOMMENDED):
+- Unit tests: Test complex business logic in isolation
+- Integration tests: Test critical API endpoints and data flow
+- E2E tests: OPTIONAL - Test critical user journeys when features stabilize
+
+**When Tests Can Be Skipped**:
+- Rapid prototyping and MVP development
+- UI components with simple presentation logic
+- Features that will likely change significantly
+- Proof-of-concept implementations
+
+**Test Coverage**:
+- Coverage thresholds are aspirational (80% target)
+- Not blocking for merges or deployments
+- Mock external dependencies (Supabase, Redis) when testing
 
 ## Architecture Principles
 
@@ -279,12 +324,13 @@ npx nx affected:build --base=origin/main
 
 **Capacitor Usage Policy**:
 
-- Capacitor dependencies are **strictly contained** in `apps/web/` and `apps/mobile/` only
+- `apps/web/` contains the PWA with Capacitor support (works on web + mobile)
+- `apps/mobile/` is a thin wrapper that serves the `apps/web` build via Capacitor
+- Capacitor is OK in `apps/web/` because it works for PWAs
 - Shared feature libraries (`libs/features/`) MUST NOT import Capacitor directly
 - Use **provider pattern** for platform-specific functionality:
   - Abstract interface: `libs/shared/services/geolocation-provider.ts`
   - Capacitor implementation: `apps/web/providers/capacitor-geolocation.provider.ts`
-  - Capacitor implementation: `apps/mobile/providers/capacitor-geolocation.provider.ts`
 - Feature libraries inject `GeolocationProvider` abstract class
 - Apps provide platform-specific implementations via dependency injection
 
@@ -411,6 +457,7 @@ ENVIRONMENT=development
 - **API Reference**: `specs/001-venue-visit-tracker/contracts/api.openapi.yaml`
 
 ## Recent Changes
+- 002-auth-ui: Added TypeScript 5.x with Angular 20+ + Angular 20+ (standalone components, signals, reactive forms), DaisyUI/Tailwind CSS 4.x, Supabase JS Client 2.x, Angular Router
 
 - **2025-10-31**: User Story 3 COMPLETE (T145-T175 complete) 🎉
   - ✅ **Frontend Map Components** (T145-T156):
@@ -469,7 +516,6 @@ ENVIRONMENT=development
     - T144: E2E test for empty state display
   - 📊 **Progress**: 144/275 tasks complete (52%), User Story 2: 24/24 tasks (100%)
 
-- **2025-10-30**: User Story 1 COMPLETE (T001-T120 complete) 🎉
   - ✅ **Authentication**: Supabase integration with anonymous mode support
   - ✅ **Geolocation**: Platform-agnostic provider pattern isolating Capacitor to apps/
   - ✅ **Geofence Service**: Boundary detection (150m radius) with 10-min dwell time filtering
@@ -489,7 +535,6 @@ ENVIRONMENT=development
     - T120: E2E automatic visit detection test (Playwright)
   - 📊 **Progress**: 120/275 tasks complete (44%), User Story 1: 49/49 tasks (100%)
 
-- **2025-10-28**: Initial project setup and feature planning (001-venue-visit-tracker)
   - Established project constitution with 5 core principles
   - Created comprehensive feature specification with 42 functional requirements
   - Designed Nx monorepo structure with web, mobile, and API apps
@@ -497,7 +542,6 @@ ENVIRONMENT=development
   - Generated OpenAPI specification with 13 endpoints
   - Resolved all specification ambiguities through clarification session
 
-- **2025-11-02**: Phase 7 & 8 COMPLETE - Production-Ready (T217-T253) 🚀
   - ✅ **Notifications System** (T217-T225):
     - Browser Push Notifications with permission handling
     - 5 notification types: visit detected, visit ended, new venues, weekly summary, sharing

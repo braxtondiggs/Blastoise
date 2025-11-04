@@ -16,3 +16,5 @@ export * from './services/notification.service';
 export * from './utils/date.utils';
 export * from './utils/distance.utils';
 export * from './utils/privacy.utils';
+export * from './utils/error-messages';
+export * from './utils/loading-state';

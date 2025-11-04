@@ -19,7 +19,7 @@ Based on plan.md Nx monorepo structure:
 - **Apps**: `apps/web/`, `apps/mobile/`, `apps/api/`
 - **Libs**: `libs/shared/`, `libs/ui/`, `libs/features/`, `libs/data/`, `libs/workers/`
 - **Tests**: `apps/*/tests/`, `libs/*/tests/`
-- **E2E**: `e2e/web-e2e/`, `e2e/mobile-e2e/`
+- **E2E**: `apps/web-e2e/`, `apps/api-e2e/`
 
 ---
 

@@ -345,7 +345,7 @@ npx nx test web --coverage
 
 # E2E tests with Playwright (requires apps running)
 npx nx e2e web-e2e
-npx nx e2e mobile-e2e
+npx nx e2e api-e2e
 ```
 
 ### Code Quality

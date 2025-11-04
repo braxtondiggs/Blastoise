@@ -38,7 +38,9 @@ export class AuthService {
       this.loadAnonymousUser();
     } else {
       // Load current session
-      const { data: { session } } = await this.supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await this.supabase.auth.getSession();
       if (session) {
         this.authState.setSession(session);
         await this.loadUserProfile(session.user);
@@ -78,7 +80,8 @@ export class AuthService {
 
       const preferences: UserPreferences = data
         ? {
-            location_tracking_enabled: data.location_tracking_enabled ?? DEFAULT_USER_PREFERENCES.location_tracking_enabled,
+            location_tracking_enabled:
+              data.location_tracking_enabled ?? DEFAULT_USER_PREFERENCES.location_tracking_enabled,
             sharing_default: data.sharing_default ?? DEFAULT_USER_PREFERENCES.sharing_default,
             notification_settings: {
               ...DEFAULT_USER_PREFERENCES.notification_settings,
@@ -283,17 +286,15 @@ export class AuthService {
 
     try {
       // Update preferences in Supabase for authenticated users
-      const { error } = await this.supabase
-        .from('user_preferences')
-        .upsert({
-          user_id: user.id,
-          location_tracking_enabled: preferences.location_tracking_enabled,
-          sharing_default: preferences.sharing_default,
-          notification_settings: preferences.notification_settings,
-          privacy_settings: preferences.privacy_settings,
-          map_settings: preferences.map_settings,
-          updated_at: new Date().toISOString(),
-        });
+      const { error } = await this.supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        location_tracking_enabled: preferences.location_tracking_enabled,
+        sharing_default: preferences.sharing_default,
+        notification_settings: preferences.notification_settings,
+        privacy_settings: preferences.privacy_settings,
+        map_settings: preferences.map_settings,
+        updated_at: new Date().toISOString(),
+      });
 
       if (error) {
         return { error: new Error(error.message) };

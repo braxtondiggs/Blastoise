@@ -1,1 +1,88 @@
-<p>onboarding works!</p>
+<!-- T103: Onboarding Template with DaisyUI -->
+<div class="flex items-center justify-center min-h-screen bg-base-100 p-4">
+  <div class="card w-full max-w-lg bg-base-200 shadow-xl">
+    <div class="card-body">
+      <!-- T104: Progress Indicator with Dots -->
+      <div
+        class="flex justify-center gap-2 mb-6"
+        role="progressbar"
+        aria-valuenow="{{currentStep() + 1}}"
+        aria-valuemin="1"
+        aria-valuemax="{{totalSteps}}"
+        aria-label="Onboarding progress: Step {{currentStep() + 1}} of {{totalSteps}}"
+      >
+        @for (step of steps; track $index) {
+        <div
+          class="w-3 h-3 rounded-full transition-colors duration-200 {{$index === currentStep() ? 'bg-primary' : $index < currentStep() ? 'bg-primary/50' : 'bg-base-300'}}"
+          [attr.aria-label]="$index === currentStep() ? 'Current step: ' + step.title : $index < currentStep() ? 'Completed step: ' + step.title : 'Upcoming step: ' + step.title"
+        ></div>
+        }
+      </div>
+
+      <!-- Step Content -->
+      <h2 class="card-title text-2xl font-bold mb-4 text-center">
+        {{ steps[currentStep()].title }}
+      </h2>
+      <p class="text-base-content/80 text-center mb-8">{{ steps[currentStep()].content }}</p>
+
+      <!-- T108: Show auth options on final step -->
+      @if (currentStep() === totalSteps - 1) {
+      <div class="space-y-3 mb-6">
+        <button
+          type="button"
+          class="btn btn-primary w-full"
+          (click)="onSignIn()"
+          aria-label="Sign in to your account"
+        >
+          Sign In
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-outline w-full"
+          (click)="onContinueAsGuest()"
+          aria-label="Continue using the app without signing in"
+        >
+          Continue as Guest
+        </button>
+      </div>
+      }
+
+      <!-- T105-T106: Navigation Buttons -->
+      <div class="flex justify-between items-center mt-4">
+        <!-- T105: Show Back if not first step, else show Skip -->
+        @if (currentStep() > 0) {
+        <button
+          type="button"
+          class="btn btn-ghost"
+          (click)="previousStep()"
+          aria-label="Go back to previous step"
+        >
+          Back
+        </button>
+        } @else {
+        <button type="button" class="btn btn-ghost" (click)="skip()" aria-label="Skip onboarding">
+          Skip
+        </button>
+        }
+
+        <!-- T106: Show Next if not last step, else show Get Started -->
+        @if (currentStep() < totalSteps - 1) {
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="nextStep()"
+          aria-label="Continue to next step"
+        >
+          Next
+        </button>
+        }
+      </div>
+
+      <!-- Step Counter -->
+      <div class="text-center text-sm text-base-content/50 mt-4">
+        Step {{ currentStep() + 1 }} of {{ totalSteps }}
+      </div>
+    </div>
+  </div>
+</div>

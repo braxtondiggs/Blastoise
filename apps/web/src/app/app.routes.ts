@@ -12,7 +12,7 @@ import { Route } from '@angular/router';
 export const appRoutes: Route[] = [
   {
     path: '',
-    redirectTo: '/visits',
+    redirectTo: '/auth/login',
     pathMatch: 'full',
   },
   {
@@ -24,9 +24,24 @@ export const appRoutes: Route[] = [
           import('@blastoise/features-auth').then((m) => m.Login),
       },
       {
+        path: 'register',
+        loadComponent: () =>
+          import('./pages/auth/register-page').then((m) => m.default),
+      },
+      {
+        path: 'callback',
+        loadComponent: () =>
+          import('./pages/auth/callback-page').then((m) => m.default),
+      },
+      {
         path: 'onboarding',
         loadComponent: () =>
           import('@blastoise/features-auth').then((m) => m.Onboarding),
+      },
+      {
+        path: 'password-reset',
+        loadComponent: () =>
+          import('@blastoise/features-auth').then((m) => m.PasswordReset),
       },
     ],
   },
@@ -34,6 +49,7 @@ export const appRoutes: Route[] = [
     path: 'visits',
     canActivate: [
       () => import('@blastoise/features-auth').then((m) => m.authGuard),
+      () => import('@blastoise/features-auth').then((m) => m.onboardingGuard),
     ],
     loadChildren: () =>
       import('./pages/visits/visits.routes').then((m) => m.visitsRoutes),
@@ -42,6 +58,7 @@ export const appRoutes: Route[] = [
     path: 'map',
     canActivate: [
       () => import('@blastoise/features-auth').then((m) => m.authGuard),
+      () => import('@blastoise/features-auth').then((m) => m.onboardingGuard),
     ],
     loadChildren: () =>
       import('./pages/map/map.routes').then((m) => m.mapRoutes),
@@ -57,6 +74,7 @@ export const appRoutes: Route[] = [
     path: 'settings',
     canActivate: [
       () => import('@blastoise/features-auth').then((m) => m.authGuard),
+      () => import('@blastoise/features-auth').then((m) => m.onboardingGuard),
     ],
     loadChildren: () =>
       import('./pages/settings/settings.routes').then((m) => m.settingsRoutes),

@@ -1,1 +1,229 @@
-<p>upgrade-prompt works!</p>
+<!-- T088: Upgrade Prompt Template with DaisyUI -->
+<!-- T080: Only show when user is anonymous -->
+@if (visible()) {
+<div class="card w-full max-w-md bg-base-200 shadow-xl" data-testid="upgrade-prompt-card">
+  <div class="card-body">
+    <h2 class="card-title text-2xl font-bold mb-2">Upgrade Your Account</h2>
+
+    <!-- T086: Display local visit count -->
+    <div class="alert alert-info mb-4">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        class="stroke-current shrink-0 w-6 h-6"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        ></path>
+      </svg>
+      <div>
+        <p class="font-semibold">
+          You have <span data-testid="local-visit-count">{{ localVisitCount() }}</span> local visits
+        </p>
+        <p class="text-sm">Create an account to sync and backup your visits across devices</p>
+      </div>
+    </div>
+
+    <!-- T092: Error Alert -->
+    @if (error()) {
+    <div class="alert alert-error mb-4" role="alert" data-testid="upgrade-error">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="stroke-current shrink-0 h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <span>{{ error() }}</span>
+    </div>
+    }
+
+    <!-- T091: Migration Progress Indicator -->
+    @if (migrationStatus() === 'in-progress') {
+    <div class="alert alert-info mb-4" data-testid="migration-progress">
+      <span class="loading loading-spinner loading-sm"></span>
+      <span>Creating account and migrating visits...</span>
+    </div>
+    } @if (migrationStatus() === 'complete') {
+    <div class="alert alert-success mb-4" data-testid="migration-complete">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="stroke-current shrink-0 h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <span>Complete! Your visits have been synced.</span>
+    </div>
+    }
+
+    <!-- T088: Upgrade Form -->
+    <form
+      [formGroup]="upgradeForm"
+      (ngSubmit)="onSubmit()"
+      [attr.aria-busy]="isLoading()"
+      class="space-y-4"
+    >
+      <!-- Email Input -->
+      <div class="form-control w-full">
+        <label class="label" for="upgrade-email-input">
+          <span class="label-text">Email</span>
+        </label>
+        <input
+          id="upgrade-email-input"
+          data-testid="upgrade-email-input"
+          formControlName="email"
+          type="email"
+          placeholder="you@example.com"
+          class="input input-bordered w-full"
+          [disabled]="isLoading()"
+          [attr.aria-required]="true"
+          [attr.aria-invalid]="emailInvalid"
+          [attr.aria-describedby]="emailInvalid ? 'email-error' : null"
+        />
+        @if (emailInvalid) {
+        <label class="label">
+          <span id="email-error" class="label-text-alt text-error" role="alert">
+            @if (upgradeForm.controls.email.errors?.['required']) { Email is required } @if
+            (upgradeForm.controls.email.errors?.['email']) { Please enter a valid email address }
+          </span>
+        </label>
+        }
+      </div>
+
+      <!-- Password Input -->
+      <div class="form-control w-full">
+        <label class="label" for="upgrade-password-input">
+          <span class="label-text">Password</span>
+        </label>
+        <input
+          id="upgrade-password-input"
+          data-testid="upgrade-password-input"
+          formControlName="password"
+          type="password"
+          placeholder="••••••••"
+          class="input input-bordered w-full"
+          [disabled]="isLoading()"
+          [attr.aria-required]="true"
+          [attr.aria-invalid]="passwordInvalid"
+          [attr.aria-describedby]="passwordInvalid ? 'password-error' : null"
+        />
+        @if (passwordInvalid) {
+        <label class="label">
+          <span id="password-error" class="label-text-alt text-error" role="alert">
+            @if (upgradeForm.controls.password.errors?.['required']) { Password is required } @if
+            (upgradeForm.controls.password.errors?.['minlength']) { Password must be at least 8
+            characters } @if (passwordErrors?.['passwordStrength']) { Password must contain at least
+            one letter and one number }
+          </span>
+        </label>
+        }
+      </div>
+
+      <!-- Confirm Password Input -->
+      <div class="form-control w-full">
+        <label class="label" for="upgrade-confirm-password-input">
+          <span class="label-text">Confirm Password</span>
+        </label>
+        <input
+          id="upgrade-confirm-password-input"
+          data-testid="upgrade-confirm-password-input"
+          formControlName="confirmPassword"
+          type="password"
+          placeholder="••••••••"
+          class="input input-bordered w-full"
+          [disabled]="isLoading()"
+          [attr.aria-required]="true"
+          [attr.aria-invalid]="confirmPasswordInvalid"
+          [attr.aria-describedby]="confirmPasswordInvalid ? 'confirm-password-error' : null"
+        />
+        @if (confirmPasswordInvalid) {
+        <label class="label">
+          <span id="confirm-password-error" class="label-text-alt text-error" role="alert">
+            @if (upgradeForm.errors?.['passwordsMismatch']) { Passwords do not match }
+          </span>
+        </label>
+        }
+      </div>
+
+      <!-- T089: Submit Button with Loading State -->
+      @if (migrationStatus() === 'failed') {
+      <!-- T092: Retry Button -->
+      <button
+        type="button"
+        class="btn btn-warning w-full"
+        (click)="retry()"
+        data-testid="migration-retry"
+      >
+        Retry
+      </button>
+      } @else {
+      <button
+        type="submit"
+        class="btn btn-primary w-full"
+        [disabled]="upgradeForm.invalid || isLoading()"
+        data-testid="upgrade-submit"
+        [attr.aria-label]="isLoading() ? 'Upgrading account...' : 'Upgrade to authenticated account'"
+      >
+        @if (isLoading()) {
+        <span class="loading loading-spinner loading-sm"></span>
+        } Upgrade Account
+      </button>
+      }
+    </form>
+
+    <!-- Benefits List -->
+    <div class="mt-4">
+      <p class="text-sm font-semibold mb-2">Benefits of upgrading:</p>
+      <ul class="text-sm text-base-content/70 space-y-1">
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 mt-0.5 text-success" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span>Sync visits across all your devices</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 mt-0.5 text-success" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span>Secure cloud backup of your visit history</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 mt-0.5 text-success" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span>Share your favorite spots with friends</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+}
