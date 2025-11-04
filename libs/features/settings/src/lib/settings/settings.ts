@@ -9,74 +9,95 @@
 
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroShieldCheck, heroBell, heroUser, heroCog6Tooth } from '@ng-icons/heroicons/outline';
 import { PrivacySettings } from '../components/privacy-settings';
-import { UpgradePrompt } from '@blastoise/features-auth';
+import { NotificationSettingsComponent } from '../components/notification-settings.component';
+import { AccountSettingsComponent } from '../components/account-settings.component';
 
 @Component({
   selector: 'app-settings',
-  imports: [CommonModule, PrivacySettings, UpgradePrompt],
+  imports: [CommonModule, NgIconComponent, PrivacySettings, NotificationSettingsComponent, AccountSettingsComponent],
+  viewProviders: [provideIcons({ heroShieldCheck, heroBell, heroUser, heroCog6Tooth })],
   template: `
-    <div class="min-h-screen bg-base-100 py-8">
-      <div class="container mx-auto px-4 max-w-2xl">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="text-3xl font-bold">Settings</h1>
+    <div class="min-h-screen bg-linear-to-br from-base-100 to-base-200 py-8">
+      <div class="container mx-auto px-4 max-w-4xl">
+        <!-- Header Card -->
+        <div class="card bg-base-200 shadow-xl mb-6">
+          <div class="card-body">
+            <div class="flex items-center gap-4">
+              <div class="avatar placeholder">
+                <div class="bg-primary text-primary-content rounded-full w-16 flex items-center justify-center">
+                  <ng-icon name="heroCog6Tooth" size="32" />
+                </div>
+              </div>
+              <div>
+                <h1 class="text-3xl font-bold card-title">Settings</h1>
+                <p class="text-base-content/70">Manage your preferences and account</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs tabs-boxed mb-6">
+        <!-- Tabs with Icons -->
+        <div class="tabs tabs-boxed bg-base-200 shadow-lg mb-6 p-2 gap-2">
           <button
-            class="tab"
+            class="tab gap-2 flex-1"
             [class.tab-active]="activeTab() === 'privacy'"
             (click)="activeTab.set('privacy')"
           >
-            Privacy
+            <ng-icon name="heroShieldCheck" size="20" />
+            <span class="hidden sm:inline">Privacy</span>
           </button>
           <button
-            class="tab"
+            class="tab gap-2 flex-1"
             [class.tab-active]="activeTab() === 'notifications'"
             (click)="activeTab.set('notifications')"
           >
-            Notifications
+            <ng-icon name="heroBell" size="20" />
+            <span class="hidden sm:inline">Notifications</span>
           </button>
           <button
-            class="tab"
+            class="tab gap-2 flex-1"
             [class.tab-active]="activeTab() === 'account'"
             (click)="activeTab.set('account')"
           >
-            Account
+            <ng-icon name="heroUser" size="20" />
+            <span class="hidden sm:inline">Account</span>
           </button>
         </div>
 
         <!-- Tab Content -->
-        <div class="bg-base-200 rounded-lg p-6">
-          @if (activeTab() === 'privacy') {
-            <app-privacy-settings />
-          }
+        <div class="card bg-base-200 shadow-xl">
+          <div class="card-body">
+            @if (activeTab() === 'privacy') {
+              <app-privacy-settings />
+            }
 
-          @if (activeTab() === 'notifications') {
-            <div class="text-center text-gray-500 py-8">
-              <p class="text-lg font-medium">Notification Settings</p>
-              <p class="text-sm mt-2">Coming soon...</p>
-            </div>
-          }
+            @if (activeTab() === 'notifications') {
+              <app-notification-settings />
+            }
 
-          @if (activeTab() === 'account') {
-            <div class="flex flex-col items-center py-8">
-              <h2 class="text-lg font-medium mb-6">Account Settings</h2>
-              <lib-upgrade-prompt />
-            </div>
-          }
+            @if (activeTab() === 'account') {
+              <app-account-settings />
+            }
+          </div>
         </div>
 
-        <!-- Version Info -->
-        <div class="text-center text-sm text-gray-500 mt-8">
-          <p>Blastoise v1.0.0</p>
-          <p class="mt-2">
-            <a href="/privacy" class="link link-primary">Privacy Policy</a>
-            <span class="mx-2">·</span>
-            <a href="/terms" class="link link-primary">Terms of Service</a>
-          </p>
+        <!-- Footer Info Card -->
+        <div class="card bg-base-200/50 shadow-md mt-6">
+          <div class="card-body py-4">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-base-content/60">
+              <div class="flex items-center gap-2">
+                <img src="/assets/icons/icon-72x72.png" alt="Blastoise" class="w-6 h-6 rounded" />
+                <span class="font-medium">Blastoise v1.0.0</span>
+              </div>
+              <div class="flex gap-4">
+                <a href="/privacy" class="link link-primary link-hover">Privacy Policy</a>
+                <a href="/terms" class="link link-primary link-hover">Terms of Service</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -74,6 +74,15 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
     try {
       this.isLoading.set(true);
 
+      // Fix Leaflet default icon paths (webpack/bundler issue)
+      // @ts-ignore
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+
       // T244: Create map instance with keyboard navigation
       this.map = L.map('venue-map', {
         center: this.getInitialCenter(),
@@ -84,11 +93,12 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
         keyboardPanDelta: 80, // T244: Pan distance with arrow keys (pixels)
       });
 
-      // Add OpenStreetMap tile layer with attribution
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Add dark theme tile layer from CartoDB Dark Matter
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
       }).addTo(this.map);
 
       // T150, T239: Initialize MarkerCluster group with optimized threshold

@@ -23,13 +23,10 @@ export class Login implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   // Reactive form for email/password login
-  readonly loginForm = this.fb.group(
-    {
-      email: ['', [Validators.required, emailValidator]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
-    },
-    { updateOn: 'blur' }
-  );
+  readonly loginForm = this.fb.group({
+    email: ['', [Validators.required, emailValidator]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+  });
 
   // Loading state signal
   readonly isLoading = signal(false);

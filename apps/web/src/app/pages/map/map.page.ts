@@ -15,23 +15,26 @@ import { VisitsLocalRepository } from '@blastoise/data';
   selector: 'app-map-page',
   imports: [CommonModule, VenueMap],
   template: `
-    <div class="h-screen flex flex-col">
-      <h1 class="text-2xl font-bold mb-4">Discover Venues</h1>
+    <div class="flex flex-col h-full">
+      <div class="p-4 bg-base-200">
+        <h1 class="text-2xl font-bold">Discover Venues</h1>
+      </div>
 
       @if (errorMessage()) {
-      <div class="alert alert-error mb-4">
+      <div class="alert alert-error m-4">
         <span>{{ errorMessage() }}</span>
       </div>
       }
 
-      <app-venue-map
-        class="flex-1 min-h-0"
-        [venues]="venues()"
-        [visitedVenueIds]="visitedVenueIds()"
-        [userLocation]="userLocation()"
-        (venueSelected)="onVenueSelected($event)"
-        (boundsChanged)="onMapBoundsChanged($event)"
-      />
+      <div class="flex-1 relative">
+        <app-venue-map
+          [venues]="venues()"
+          [visitedVenueIds]="visitedVenueIds()"
+          [userLocation]="userLocation()"
+          (venueSelected)="onVenueSelected($event)"
+          (boundsChanged)="onMapBoundsChanged($event)"
+        />
+      </div>
     </div>
   `,
   standalone: true,

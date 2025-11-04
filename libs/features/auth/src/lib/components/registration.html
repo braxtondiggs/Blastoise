@@ -1,7 +1,11 @@
 <div class="flex items-center justify-center min-h-screen bg-base-100">
   <div class="shadow-xl card w-96 bg-base-200">
     <div class="card-body">
-      <h2 class="mb-4 text-2xl font-bold text-center card-title">Create Account</h2>
+      <!-- App Logo and Title -->
+      <div class="flex flex-col items-center mb-4">
+        <img src="/assets/icons/icon-128x128.png" alt="Blastoise Logo" class="w-20 h-20 mb-4 rounded-xl" />
+        <h2 class="text-2xl font-bold text-center card-title">Create Account</h2>
+      </div>
 
       <!-- Error Alert (T073) -->
       @if (error() && !isLoading()) {
@@ -28,7 +32,7 @@
           <label class="label" for="email-input">
             <span class="label-text">Email</span>
           </label>
-          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="registrationForm.controls.email.invalid && registrationForm.controls.email.touched">
+          <label class="flex items-center w-full gap-2 input input-bordered" [class.input-error]="registrationForm.controls.email.invalid && registrationForm.controls.email.touched">
             <ng-icon name="heroEnvelope" size="16" class="opacity-70" />
             <input
               id="email-input"
@@ -68,7 +72,7 @@
           <label class="label" for="password-input">
             <span class="label-text">Password</span>
           </label>
-          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="registrationForm.controls.password.invalid && registrationForm.controls.password.touched">
+          <label class="flex items-center w-full gap-2 input input-bordered" [class.input-error]="registrationForm.controls.password.invalid && registrationForm.controls.password.touched">
             <ng-icon name="heroKey" size="16" class="opacity-70" />
             <input
               id="password-input"
@@ -142,7 +146,7 @@
           <label class="label" for="confirm-password-input">
             <span class="label-text">Confirm Password</span>
           </label>
-          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="registrationForm.controls.confirmPassword.invalid && registrationForm.controls.confirmPassword.touched">
+          <label class="flex items-center w-full gap-2 input input-bordered" [class.input-error]="registrationForm.controls.confirmPassword.invalid && registrationForm.controls.confirmPassword.touched">
             <ng-icon name="heroKey" size="16" class="opacity-70" />
             <input
               id="confirm-password-input"

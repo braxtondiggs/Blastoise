@@ -17,7 +17,8 @@
             <ng-icon name="heroBars3" size="20" />
           </label>
         </div>
-        <div class="flex-1">
+        <div class="flex-1 flex items-center gap-2">
+          <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="w-8 h-8" />
           <a class="btn btn-ghost text-xl">{{ title }}</a>
         </div>
       </div>
@@ -33,9 +34,14 @@
       <label for="mobile-drawer" class="drawer-overlay"></label>
       <aside class="menu bg-base-200 min-h-full w-80 p-4">
         <!-- Logo -->
-        <div class="mb-8">
-          <h1 class="text-2xl font-bold px-4">{{ title }}</h1>
-          <p class="text-sm text-base-content/70 px-4">Track your visits</p>
+        <div class="mb-8 px-4">
+          <div class="flex items-center gap-3 mb-2">
+            <img src="/assets/icons/icon-96x96.png" alt="Blastoise Logo" class="w-12 h-12 rounded-lg" />
+            <div>
+              <h1 class="text-2xl font-bold">{{ title }}</h1>
+              <p class="text-sm text-base-content/70">Track your visits</p>
+            </div>
+          </div>
         </div>
 
         <!-- Navigation links -->
