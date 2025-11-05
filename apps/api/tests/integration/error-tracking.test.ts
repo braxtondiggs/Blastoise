@@ -1,6 +1,4 @@
 /**
- * T235: Error Tracking Integration Tests
- *
  * Verifies that error tracking (Sentry) does not log sensitive data:
  * - No GPS coordinates in error logs
  * - No auth tokens or passwords

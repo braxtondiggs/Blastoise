@@ -1,5 +1,5 @@
 /**
- * T162: Venue Cache Worker
+ * Venue Cache Worker
  *
  * Background worker for venue data management:
  * - Periodic cache warming for popular venues
@@ -92,7 +92,7 @@ export class VenueCacheWorker {
   }
 
   /**
-   * T158: Update Redis geospatial index with all venues
+   * Update Redis geospatial index with all venues
    */
   private async updateGeospatialIndex(): Promise<void> {
     console.log('[VenueCacheWorker] Updating geospatial index...');

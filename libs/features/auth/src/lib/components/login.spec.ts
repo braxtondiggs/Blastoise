@@ -116,7 +116,7 @@ describe('Login', () => {
     });
   });
 
-  describe('Email/Password Sign In (T023, T024)', () => {
+  describe('Email/Password Sign In', () => {
     it('should create reactive form with email and password controls', () => {
       // Assert - Form should exist on component
       expect(component.loginForm).toBeTruthy();
@@ -309,7 +309,7 @@ describe('Login', () => {
     });
   });
 
-  describe('Magic Link Authentication (T037, T038)', () => {
+  describe('Magic Link Authentication', () => {
     beforeEach(() => {
       // Add signInWithMagicLink to the mock
       authServiceMock.signInWithMagicLink = jest.fn() as any;

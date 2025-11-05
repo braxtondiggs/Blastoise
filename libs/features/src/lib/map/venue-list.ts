@@ -10,8 +10,6 @@ import { CommonModule } from '@angular/common';
 import type { Venue } from '@blastoise/shared';
 
 /**
- * T147: Venue List Component
- *
  * Alternative list view for venues (instead of map).
  * Displays venues in a scrollable list with:
  * - Venue name, type, and address

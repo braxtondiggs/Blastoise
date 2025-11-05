@@ -1,5 +1,5 @@
 /**
- * T222: Weekly Visit Summary Notification Script
+ * Weekly Visit Summary Notification Script
  *
  * Sends weekly visit summary notifications to users.
  * Should be run via cron job (e.g., every Monday morning).

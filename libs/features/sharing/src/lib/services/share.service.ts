@@ -1,6 +1,4 @@
 /**
- * T179-T180: Share Service
- *
  * Handles share link generation and sharing via standard channels.
  * Ensures privacy by only including venue name and approximate date.
  * NO GPS coordinates or user identity exposed.
@@ -41,7 +39,7 @@ export class ShareService {
   private readonly apiUrl = '/api/v1'; // Will be replaced with environment config
 
   /**
-   * T180: Generate a shareable link for a visit
+   * Generate a shareable link for a visit
    * Privacy: Only venue name and approximate date are shared
    */
   generateShareLink(
@@ -73,7 +71,6 @@ export class ShareService {
   }
 
   /**
-   * T181: Share via standard channels (Web Share API)
    * Falls back to clipboard copy if Web Share API not available
    */
   async shareViaChannel(shareUrl: string, venueName: string): Promise<boolean> {
@@ -138,7 +135,7 @@ export class ShareService {
   }
 
   /**
-   * T183: Validate that shared data contains NO sensitive information
+   * Validate that shared data contains NO sensitive information
    * This is a client-side check, but the real privacy protection happens on backend
    */
   validateSharedData(data: SharedVisitData): boolean {

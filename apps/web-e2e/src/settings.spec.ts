@@ -1,7 +1,5 @@
 /* eslint-disable playwright/no-skipped-test */
 /**
- * T216: E2E Tests for Sharing Preferences in Settings
- *
  * Tests for user preferences configuration:
  * - Privacy settings (sharing defaults)
  * - Notification preferences

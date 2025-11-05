@@ -17,8 +17,6 @@ import { of, throwError, BehaviorSubject } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
 /**
- * T118: Integration Test for Offline Sync Flow
- *
  * Tests the complete offline-to-online synchronization workflow:
  * 1. User visits venue (offline)
  * 2. Visit stored locally in IndexedDB

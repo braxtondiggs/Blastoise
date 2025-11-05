@@ -1,5 +1,5 @@
 /**
- * T197: User Module
+ * User Module
  *
  * Manages user preferences and settings
  */

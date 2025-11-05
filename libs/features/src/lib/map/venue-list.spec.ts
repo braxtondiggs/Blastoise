@@ -3,8 +3,6 @@ import { VenueList } from './venue-list';
 import type { Venue } from '@blastoise/shared';
 
 /**
- * T165: Unit Tests for Venue List Component
- *
  * Tests for sorting, filtering, search, and distance display
  */
 describe('VenueList Component', () => {

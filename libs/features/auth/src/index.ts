@@ -1,5 +1,3 @@
-// T143: Export all components for use in web and mobile apps
-
 // Core services
 export * from './lib/services/auth';
 export * from './lib/services/form-validators';

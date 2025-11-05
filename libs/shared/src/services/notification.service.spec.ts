@@ -1,6 +1,4 @@
 /**
- * T233, T234: Notification Service Tests
- *
  * Tests for notification permission handling and preferences persistence:
  * - Permission request handling
  * - Permission denial tracking

@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
- * T243: Modal Component with ARIA accessibility
+ * Modal Component with ARIA accessibility
  */
 @Component({
   selector: 'lib-app-modal',

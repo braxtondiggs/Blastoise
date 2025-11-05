@@ -124,7 +124,7 @@ export class Login implements OnInit {
         result = await this.authService.signInWithMagicLink(email as string);
 
         if (!result.error) {
-          // Show success message for magic link (T046, T047)
+          // Show success message for magic link
           this.showSuccessMessage.set(true);
 
           // Auto-dismiss after 5 seconds (T047)

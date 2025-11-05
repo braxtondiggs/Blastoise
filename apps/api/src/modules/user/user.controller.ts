@@ -1,5 +1,5 @@
 /**
- * T198-T199: User Controller
+ * User Controller
  *
  * Endpoints for user preferences management:
  * - GET /user/preferences: Get current preferences
@@ -33,7 +33,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   /**
-   * T198: GET /user/preferences
+   * GET /user/preferences
    * Returns current user preferences
    */
   @Get('preferences')
@@ -54,7 +54,7 @@ export class UserController {
   }
 
   /**
-   * T199: PATCH /user/preferences
+   * PATCH /user/preferences
    * Updates user preferences
    */
   @Patch('preferences')

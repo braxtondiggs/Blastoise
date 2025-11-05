@@ -5,8 +5,6 @@ import { of, throwError } from 'rxjs';
 import type { Venue } from '@blastoise/shared';
 
 /**
- * T164: Unit Tests for Venue Search Service
- *
  * Tests for text search, proximity search, caching, and distance calculations
  */
 describe('VenueSearchService', () => {

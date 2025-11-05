@@ -1,6 +1,4 @@
 /**
- * T206-T207: Share Service Unit Tests
- *
  * Tests for share link generation and anonymization validation.
  * Ensures no user data, GPS coordinates, or precise timestamps are leaked.
  */

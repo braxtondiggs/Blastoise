@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { BullModule } from '@nestjs/bullmq';
+import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -9,8 +11,12 @@ import { VisitsModule } from '../modules/visits/visits.module';
 import { VenuesModule } from '../modules/venues/venues.module';
 import { SharingModule } from '../modules/sharing/sharing.module';
 import { UserModule } from '../modules/user/user.module';
+import { ImportModule } from '../modules/import/import.module';
 import { HealthModule } from '../common/health/health.module';
 import { SentryModule } from '../common/sentry/sentry.module';
+
+// Configuration
+import { pinoLoggerConfig } from './pino.config';
 
 // Global providers
 import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
@@ -20,6 +26,15 @@ import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
 
 @Module({
   imports: [
+    // BullMQ configuration (must be before any queue registration)
+    BullModule.forRoot({
+      connection: {
+        host: process.env['REDIS_HOST'] || 'localhost',
+        port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
+      },
+    }),
+    // Global logging with Pino
+    LoggerModule.forRoot(pinoLoggerConfig),
     // Global modules
     SentryModule,
     HealthModule,
@@ -29,6 +44,7 @@ import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
     VenuesModule,
     SharingModule,
     UserModule,
+    ImportModule,
   ],
   controllers: [AppController],
   providers: [

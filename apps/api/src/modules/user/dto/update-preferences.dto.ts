@@ -1,5 +1,5 @@
 /**
- * T200: Update Preferences DTO
+ * Update Preferences DTO
  *
  * Validates user preference updates
  */

@@ -16,8 +16,6 @@ import * as L from 'leaflet';
 import 'leaflet.markercluster';
 
 /**
- * T146: Venue Map Component with Leaflet
- *
  * Interactive map displaying nearby breweries and wineries with:
  * - User location marker
  * - Venue markers (clustered)
@@ -68,7 +66,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * T154: Initialize Leaflet map with OpenStreetMap tiles
+   * Initialize Leaflet map with OpenStreetMap tiles
    */
   private initializeMap(): void {
     try {
@@ -83,14 +81,14 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
 
-      // T244: Create map instance with keyboard navigation
+      // Create map instance with keyboard navigation
       this.map = L.map('venue-map', {
         center: this.getInitialCenter(),
         zoom: this.initialZoom,
         zoomControl: true,
         attributionControl: true,
-        keyboard: true, // T244: Enable keyboard navigation
-        keyboardPanDelta: 80, // T244: Pan distance with arrow keys (pixels)
+        keyboard: true,
+        keyboardPanDelta: 80,
       });
 
       // Add dark theme tile layer from CartoDB Dark Matter
@@ -101,7 +99,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
         maxZoom: 20,
       }).addTo(this.map);
 
-      // T150, T239: Initialize MarkerCluster group with optimized threshold
+      // Initialize MarkerCluster group with optimized threshold
       this.markerClusterGroup = L.markerClusterGroup({
         maxClusterRadius: 50, // Radius in pixels for clustering
         spiderfyOnMaxZoom: true, // Spread out markers at max zoom
@@ -121,7 +119,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
         }
       });
 
-      // T155: Add user location marker if available
+      // Add user location marker if available
       if (this.userLocation) {
         this.updateUserLocation(this.userLocation);
       }
@@ -150,7 +148,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * T155: Update user location marker
+   * Update user location marker
    */
   updateUserLocation(location: Coordinates): void {
     if (!this.map) return;
@@ -182,7 +180,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * T152: Update venue markers with custom icons for visited/unvisited
+   * Update venue markers with custom icons for visited/unvisited
    */
   updateVenueMarkers(): void {
     if (!this.map || !this.markerClusterGroup) return;
@@ -203,7 +201,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * T152: Create venue marker with custom icon
+   * Create venue marker with custom icon
    */
   private createVenueMarker(venue: Venue, isVisited: boolean): L.Marker {
     // Custom icon for visited vs unvisited
@@ -223,7 +221,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
       icon,
     });
 
-    // T153: Add venue popup with basic info
+    // Add venue popup with basic info
     marker.bindPopup(this.createVenuePopup(venue, isVisited));
 
     // Emit venue selection on marker click
@@ -235,7 +233,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * T153: Create venue popup HTML
+   * Create venue popup HTML
    */
   private createVenuePopup(venue: Venue, isVisited: boolean): string {
     const visitedBadge = isVisited
@@ -260,7 +258,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * T151: Update venues based on current viewport
+   * Update venues based on current viewport
    */
   loadVenuesInViewport(venues: Venue[]): void {
     this.venues = venues;

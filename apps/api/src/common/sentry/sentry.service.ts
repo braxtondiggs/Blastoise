@@ -1,5 +1,5 @@
 /**
- * T226, T231: Sentry Service for Error Tracking and Alerting
+ * Sentry Service for Error Tracking and Alerting
  *
  * Provides error tracking, performance monitoring, and alerting using @sentry/nestjs.
  * Integrates with Sentry.io for production error management.
@@ -41,7 +41,7 @@ export class SentryService {
   }
 
   /**
-   * T227: Capture error with context (user ID, timestamp, request details)
+   * Capture error with context (user ID, timestamp, request details)
    */
   captureException(error: Error, context?: ErrorContext): void {
     // Track error for rate monitoring
@@ -103,7 +103,7 @@ export class SentryService {
   }
 
   /**
-   * T231: Implement error rate alerting
+   * Implement error rate alerting
    * Checks if error rate exceeds threshold
    */
   checkErrorRate(): { exceeded: boolean; rate: number; count: number } {

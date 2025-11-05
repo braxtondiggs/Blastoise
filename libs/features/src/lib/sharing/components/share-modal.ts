@@ -1,6 +1,4 @@
 /**
- * T177, T181-T182: Share Modal Component
- *
  * Modal for generating and sharing visit links with:
  * - Share link generation
  * - Optional expiration time selection
@@ -42,7 +40,7 @@ import { ShareService, type ShareLinkResponse } from '../services/share.service'
         </div>
 
         @if (!shareLink()) {
-          <!-- T182: Expiration Time Selection -->
+          <!-- Expiration Time Selection -->
           <div class="form-control mb-4">
             <label class="label">
               <span class="label-text">Link expiration</span>
@@ -101,7 +99,7 @@ import { ShareService, type ShareLinkResponse } from '../services/share.service'
             }
           </div>
 
-          <!-- T181: Share via Standard Channels -->
+          <!-- Share via Standard Channels -->
           <button
             class="btn btn-secondary w-full mb-4"
             (click)="shareViaChannels()"
@@ -150,7 +148,7 @@ export class ShareModal {
   expirationHours: number | null = 72; // Default: 3 days
 
   /**
-   * T180: Generate share link
+   * Generate share link
    */
   generateLink(): void {
     if (!this.visit) {
@@ -201,7 +199,7 @@ export class ShareModal {
   }
 
   /**
-   * T181: Share via standard channels (Web Share API)
+   * Share via standard channels (Web Share API)
    */
   async shareViaChannels(): Promise<void> {
     const link = this.shareLink();

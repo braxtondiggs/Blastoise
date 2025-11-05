@@ -15,8 +15,6 @@ import { Subject, takeUntil, debounceTime} from 'rxjs';
 import { VisitCard } from './visit-card';
 
 /**
- * Timeline Component (T121, T123, T124, T125)
- *
  * Displays visits in chronological order with:
  * - Date grouping with headers (T124)
  * - Chronological sorting by arrival time (T123)
@@ -70,7 +68,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
     // Setup infinite scroll listener
     this.setupInfiniteScroll();
 
-    // T136: Setup pull-to-refresh for mobile
+    // Setup pull-to-refresh for mobile
     this.setupPullToRefresh();
   }
 
@@ -80,7 +78,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * T123: Load visits sorted chronologically by arrival time (descending)
+   * Load visits sorted chronologically by arrival time (descending)
    */
   async loadMoreVisits(): Promise<void> {
     if (this.isLoading() || !this.hasMore()) {
@@ -137,7 +135,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * T124: Group visits by date with headers
+   * Group visits by date with headers
    */
   private groupVisitsByDate(
     visits: (Visit & { venue?: Venue })[]
@@ -204,7 +202,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * T125: Setup infinite scroll listener
+   * Setup infinite scroll listener
    */
   private setupInfiniteScroll(): void {
     // Listen for scroll events (debounced)
@@ -243,7 +241,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * T136: Setup pull-to-refresh gesture for mobile
+   * Setup pull-to-refresh gesture for mobile
    */
   private setupPullToRefresh(): void {
     let startY = 0;

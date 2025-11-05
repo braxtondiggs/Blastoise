@@ -258,7 +258,6 @@ export class AuthService {
     }
 
     // TODO: Migrate local visits to cloud (will be handled in visit sync service)
-    // This will be implemented in T089 (visit sync service)
 
     return {};
   }

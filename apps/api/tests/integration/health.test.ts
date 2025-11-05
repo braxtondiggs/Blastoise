@@ -1,6 +1,4 @@
 /**
- * T236: Health Check Endpoint Integration Tests
- *
  * Verifies health check endpoints work correctly:
  * - GET /health: Overall system health
  * - GET /health/db: Database health

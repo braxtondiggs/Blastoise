@@ -35,7 +35,7 @@ export class VisitTrackerService {
   private geofenceSubscription: Subscription | null = null;
   private venuesMap = new Map<string, Venue>();
 
-  // T229: Visit detection success rate tracking
+  // Visit detection success rate tracking
   private detectionMetrics = {
     totalGeofenceEvents: 0,
     successfulVisits: 0,
@@ -82,7 +82,7 @@ export class VisitTrackerService {
    * Handle geofence transition events
    */
   private handleGeofenceTransition(transition: GeofenceTransition): void {
-    // T229: Track all geofence events
+    // Track all geofence events
     this.detectionMetrics.totalGeofenceEvents++;
 
     const venue = this.venuesMap.get(transition.venue_id);
@@ -151,10 +151,10 @@ export class VisitTrackerService {
       visit,
     });
 
-    // T219: Send visit detected notification
+    // Send visit detected notification
     this.notificationService.notifyVisitDetected(venue.name, venue.id);
 
-    // T229: Track successful visit detection
+    // Track successful visit detection
     this.detectionMetrics.successfulVisits++;
 
     console.log(
@@ -205,7 +205,7 @@ export class VisitTrackerService {
       visit: updatedVisit,
     });
 
-    // T220: Send visit ended notification
+    // Send visit ended notification
     this.notificationService.notifyVisitEnded(venue.name, durationMinutes, updatedVisit.id);
 
     console.log(
@@ -332,14 +332,14 @@ export class VisitTrackerService {
       visit,
     });
 
-    // T229: Track manual visit creation
+    // Track manual visit creation
     this.detectionMetrics.manualVisits++;
 
     return visit;
   }
 
   /**
-   * T229: Get visit detection success rate metrics
+   * Get visit detection success rate metrics
    */
   getDetectionMetrics(): {
     totalGeofenceEvents: number;
@@ -361,7 +361,7 @@ export class VisitTrackerService {
   }
 
   /**
-   * T229: Reset detection metrics
+   * Reset detection metrics
    */
   resetDetectionMetrics(): void {
     this.detectionMetrics = {

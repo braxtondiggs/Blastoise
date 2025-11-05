@@ -1,5 +1,5 @@
 /**
- * T165: Map Page
+ * Map Page
  *
  * Integrates the venue map component with user location and visited venues tracking
  */
@@ -128,7 +128,7 @@ export class MapPage implements OnInit {
   }
 
   onMapBoundsChanged(bounds: any): void {
-    // T151: Load venues based on viewport
+    // Load venues based on viewport
     // Could fetch venues for the visible map area
     console.log('Map bounds changed:', bounds);
   }

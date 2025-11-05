@@ -1,5 +1,5 @@
 /**
- * T203: Public shared visit page (no authentication required)
+ * Public shared visit page (no authentication required)
  *
  * Displays anonymized visit information via public share link.
  * This route does NOT require authentication - anyone with the link can view.

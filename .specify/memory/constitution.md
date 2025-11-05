@@ -61,6 +61,11 @@ the codebase grows.
 - Use automated formatters (Prettier, ESLint, etc.)
 - Maintain clear module boundaries and separation of concerns
 - Document architectural decisions in code when non-obvious
+- **NEVER include task numbers in code comments** (e.g., T001, T093, etc.)
+  - Task numbers create confusion for AI assistants and humans alike
+  - Code comments should describe what/why, not reference external task tracking
+  - Task tracking belongs in project management tools (tasks.md, GitHub Issues, etc.)
+  - Existing task number comments must be removed during code cleanup
 
 ### II. Testing Excellence
 
@@ -208,7 +213,8 @@ members MUST adhere to these principles without exception.
 - Project leads are responsible for constitutional enforcement
 - Team members have duty to flag constitutional violations
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-28 | **Last Amended**: 2025-11-03
+**Version**: 1.2.0 | **Ratified**: 2025-10-28 | **Last Amended**: 2025-11-05
 
 **Amendment History**:
+- **1.2.0** (2025-11-05): Updated Principle I (Code Quality & Structure) to prohibit task numbers in code comments. Task numbers (T001-T999) confuse AI assistants and humans. Code comments should describe what/why, not reference external task tracking systems.
 - **1.1.0** (2025-11-03): Updated Principle II (Testing Excellence) to make tests RECOMMENDED instead of REQUIRED. E2E tests are now OPTIONAL. Quality gates updated to reflect testing is optional for rapid prototyping and MVP development.

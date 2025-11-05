@@ -1,6 +1,4 @@
 /**
- * T169: Unit Tests for Haversine Distance Calculation
- *
  * Tests for distance utility functions including:
  * - Haversine distance calculation
  * - Unit conversions (km, meters, miles)

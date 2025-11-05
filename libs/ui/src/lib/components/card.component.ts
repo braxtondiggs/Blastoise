@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
- * T243: Card Component with ARIA accessibility
+ * Card Component with ARIA accessibility
  */
 @Component({
   selector: 'lib-card',
@@ -46,7 +46,7 @@ export class CardComponent {
   @Input() variant: 'normal' | 'compact' | 'side' = 'normal';
   @Input() hasActions = false;
 
-  // T243: Generate unique ID for ARIA labelledby
+  // Generate unique ID for ARIA labelledby
   cardId = Math.random().toString(36).substring(2, 9);
 
   get cardClasses(): string {

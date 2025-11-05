@@ -17,18 +17,17 @@
     "baseUrl": ".",
     "paths": {
       "@blastoise/shared": ["libs/shared/src/index.ts"],
+      "@blastoise/shared/auth-state": ["libs/shared/auth-state/src/index.ts"],
       "@blastoise/ui": ["libs/ui/src/index.ts"],
       "@blastoise/data": ["libs/data/src/index.ts"],
       "@blastoise/data-backend": ["libs/data-backend/src/index.ts"],
       "@blastoise/data-frontend": ["libs/data-frontend/src/index.ts"],
+      "@blastoise/features": ["libs/features/src/index.ts"],
       "@blastoise/features-auth": ["libs/features/auth/src/index.ts"],
       "@blastoise/features-visits": ["libs/features/visits/src/index.ts"],
-      "@blastoise/features/map": ["libs/features/src/index.ts"],
-      "@blastoise/features/sharing": ["libs/features/src/index.ts"],
-      "@blastoise/workers": ["libs/workers/src/index.ts"],
       "@blastoise/features-settings": ["libs/features/settings/src/index.ts"],
       "@blastoise/features-sharing": ["libs/features/sharing/src/index.ts"],
-      "@blastoise/shared/auth-state": ["libs/shared/auth-state/src/index.ts"]
+      "@blastoise/workers": ["libs/workers/src/index.ts"]
     },
     "strict": true,
     "noImplicitOverride": true,

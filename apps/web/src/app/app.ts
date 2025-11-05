@@ -8,7 +8,7 @@ import { heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectan
 import { Capacitor } from '@capacitor/core';
 
 /**
- * T135: Main App Component with Navigation
+ * Main App Component with Navigation
  *
  * Root component with navigation to:
  * - Timeline (visits)

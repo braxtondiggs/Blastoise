@@ -2,8 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * T142-T144: E2E Tests for Visual Timeline (User Story 2)
- *
  * Test the chronological timeline with date grouping, visit detail navigation,
  * and empty state display.
  */

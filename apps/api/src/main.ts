@@ -17,13 +17,12 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
-  // T256: Configure Swagger/OpenAPI documentation
   const config = new DocumentBuilder()
     .setTitle('Blastoise API')
     .setDescription(
       'Privacy-first venue visit tracking API for breweries and wineries. ' +
-      'This API supports automatic geofence-based visit detection, anonymized sharing, ' +
-      'and proximity-based venue discovery.'
+        'This API supports automatic geofence-based visit detection, anonymized sharing, ' +
+        'and proximity-based venue discovery.'
     )
     .setVersion('1.0')
     .setContact(
@@ -62,8 +61,8 @@ async function bootstrap() {
     },
   });
 
-  // T251, T252: Configure Helmet for security headers (CSP, HSTS, etc.)
-  // T256: Relaxed CSP for Swagger UI (disable in production or use separate CSP for /api-docs)
+  // Configure Helmet for security headers (CSP, HSTS, etc.)
+  // Relaxed CSP for Swagger UI (disable in production or use separate CSP for /api-docs)
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -95,7 +94,6 @@ async function bootstrap() {
     })
   );
 
-  // T251: Enable CORS for web/mobile clients
   app.enableCors({
     origin: process.env['CORS_ORIGINS']?.split(',') || [
       'http://localhost:4200',
@@ -129,9 +127,7 @@ async function bootstrap() {
 
   await app.listen(port, host);
 
-  Logger.log(
-    `🚀 Blastoise API is running on: http://${host}:${port}/${globalPrefix}`
-  );
+  Logger.log(`🚀 Blastoise API is running on: http://${host}:${port}/${globalPrefix}`);
   Logger.log(`📚 API Documentation (Swagger): http://${host}:${port}/api-docs`);
   Logger.log(`📝 Environment: ${process.env['NODE_ENV'] || 'development'}`);
 }

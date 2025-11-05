@@ -1,6 +1,4 @@
 /**
- * T178: Shared Visit View Component (Public)
- *
  * Public view for shared visits accessible without authentication.
  * Displays only anonymized data: venue name, city, date (no GPS, no user info)
  */

@@ -161,7 +161,7 @@ describe('AuthService', () => {
     });
   });
 
-  describe('Email/Password Sign In (T025, T026)', () => {
+  describe('Email/Password Sign In', () => {
     beforeEach(() => {
       // Mock Supabase auth methods
       jest.spyOn(service['supabase'].auth, 'signInWithPassword').mockResolvedValue({
@@ -327,7 +327,7 @@ describe('AuthService', () => {
     });
   });
 
-  describe('Account Creation (T059, T060)', () => {
+  describe('Account Creation', () => {
     beforeEach(() => {
       // Mock Supabase signUp method
       jest.spyOn(service['supabase'].auth, 'signUp').mockResolvedValue({

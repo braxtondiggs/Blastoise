@@ -1,5 +1,5 @@
 /**
- * T212-T213: User Preferences API Integration Tests
+ * User Preferences API Integration Tests
  *
  * Tests for GET /user/preferences and PATCH /user/preferences endpoints
  */

@@ -1,6 +1,4 @@
 /**
- * T208: Unit Test for Preferences Service
- *
  * Tests preferences management with local and cloud storage:
  * - Default preferences initialization
  * - Update preferences with local storage

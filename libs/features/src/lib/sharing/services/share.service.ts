@@ -1,6 +1,4 @@
 /**
- * T179-T183: Share Service
- *
  * Handles generation and management of anonymized share links:
  * - Generate share links for visits
  * - Ensure no GPS coordinates or user info in shared data
@@ -56,7 +54,7 @@ export class ShareService {
   private readonly apiBaseUrl = '/api/v1'; // TODO: Get from environment
 
   /**
-   * T180: Generate share link for a visit
+   * Generate share link for a visit
    */
   createShareLink(request: CreateShareRequest): Observable<ApiResponse<ShareLinkResponse>> {
     return this.http.post<ApiResponse<ShareLinkResponse>>(
@@ -75,7 +73,7 @@ export class ShareService {
   }
 
   /**
-   * T181: Share via standard channels (Web Share API)
+   * Share via standard channels (Web Share API)
    * Falls back to clipboard if Web Share API not available
    */
   async shareViaStandardChannels(shareUrl: string, venueName: string): Promise<boolean> {
@@ -108,7 +106,7 @@ export class ShareService {
   }
 
   /**
-   * T183: Verify no user-identifying information in shared data
+   * Verify no user-identifying information in shared data
    * Returns validation errors if any sensitive data is present
    */
   validateAnonymizedData(data: any): string[] {
@@ -141,7 +139,7 @@ export class ShareService {
   }
 
   /**
-   * T180: Generate full share URL
+   * Generate full share URL
    */
   generateShareUrl(shareId: string): string {
     const baseUrl = window.location.origin;
