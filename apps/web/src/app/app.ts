@@ -1,10 +1,11 @@
-import { Component, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, PLATFORM_ID, OnInit } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthStateService } from '@blastoise/shared/auth-state';
-import { AuthService } from '@blastoise/features-auth';
+import { AuthService, WebLimitationNotice } from '@blastoise/features-auth';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectangle } from '@ng-icons/heroicons/outline';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * T135: Main App Component with Navigation
@@ -18,22 +19,35 @@ import { heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectan
  */
 
 @Component({
-  imports: [CommonModule, RouterModule, NgIconComponent],
+  imports: [CommonModule, RouterModule, NgIconComponent, WebLimitationNotice],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',
   viewProviders: [provideIcons({ heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectangle })],
 })
-export class App {
+export class App implements OnInit {
   protected title = 'Blastoise';
 
   // Mobile menu state
   readonly isMobileMenuOpen = signal(false);
 
+  // Platform detection: show web limitation notice only on web platforms
+  readonly showWebNotice = signal(false);
+
   // Injected services
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
   private readonly authService = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  ngOnInit(): void {
+    // Detect platform: show web limitation notice only on web (not iOS/Android)
+    if (isPlatformBrowser(this.platformId)) {
+      const platform = Capacitor.getPlatform();
+      const isWeb = platform === 'web';
+      this.showWebNotice.set(isWeb);
+    }
+  }
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen.update((open) => !open);

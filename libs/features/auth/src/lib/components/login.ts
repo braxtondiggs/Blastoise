@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit, effect } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, effect, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
@@ -7,6 +8,7 @@ import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 import { emailValidator } from '../services/form-validators';
 import { mapSupabaseError } from '@blastoise/shared';
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'lib-login',
@@ -21,6 +23,7 @@ export class Login implements OnInit {
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly platformId = inject(PLATFORM_ID);
 
   // Reactive form for email/password login
   readonly loginForm = this.fb.group({
@@ -39,6 +42,9 @@ export class Login implements OnInit {
 
   // Success message signal for magic link (T045)
   readonly showSuccessMessage = signal(false);
+
+  // Platform detection: show anonymous button only on native mobile platforms
+  readonly showAnonymousButton = signal(false);
 
   constructor() {
     // Watch mode changes and update password field validators
@@ -61,8 +67,15 @@ export class Login implements OnInit {
   /**
    * Check if user is already authenticated on component initialization
    * If authenticated, redirect to main app
+   * Also detect platform to show/hide anonymous button
    */
   ngOnInit(): void {
+    // Detect platform: show anonymous button only on native mobile (iOS/Android)
+    if (isPlatformBrowser(this.platformId)) {
+      const platform = Capacitor.getPlatform();
+      this.showAnonymousButton.set(platform === 'ios' || platform === 'android');
+    }
+
     if (this.authState.isAuthenticated()) {
       this.router.navigate(['/visits']);
     }

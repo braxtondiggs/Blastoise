@@ -23,6 +23,13 @@
         </div>
       </div>
 
+      <!-- Web Limitation Notice (Web Only, After Login) -->
+      @if (showWebNotice()) {
+        <div class="p-4">
+          <lib-web-limitation-notice />
+        </div>
+      }
+
       <!-- Page content -->
       <main class="flex-1">
         <router-outlet></router-outlet>

@@ -10,7 +10,8 @@
         </p>
       </div>
 
-      <!-- Continue as Guest Button -->
+      <!-- Continue as Guest Button (Mobile Only) -->
+      @if (showAnonymousButton()) {
       <button
         type="button"
         class="w-full btn btn-primary"
@@ -23,6 +24,7 @@
       </button>
 
       <div class="divider">OR</div>
+      }
 
       <!-- Tab Navigation (T042) -->
       <div role="tablist" class="mb-4 tabs tabs-border">
@@ -204,11 +206,13 @@
         </p>
       </div>
 
+      @if (showAnonymousButton()) {
       <p class="mt-4 text-sm text-center text-base-content/50">
         Guest mode stores visits locally on your device.
         <br />
         Sign in to sync across devices.
       </p>
+      }
     </div>
   </div>
 </div>
