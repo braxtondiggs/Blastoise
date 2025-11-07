@@ -1,5 +1,13 @@
 <!-- T135: App Navigation -->
-@if (isAuthenticated) {
+@if (!isAuthInitialized) {
+  <!-- Loading state while auth initializes -->
+  <div class="flex items-center justify-center min-h-screen bg-base-100">
+    <div class="text-center">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="mt-4 text-base-content/70">Loading...</p>
+    </div>
+  </div>
+} @else if (isAuthenticated) {
   <div class="drawer lg:drawer-open">
     <input
       id="mobile-drawer"

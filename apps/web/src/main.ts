@@ -4,12 +4,20 @@ import { App } from './app/app';
 import { initializeSyncWorker } from '@blastoise/workers';
 import { initSupabaseClient } from '@blastoise/data';
 import { environment } from './environments/environment';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 // Initialize Supabase client for browser
 initSupabaseClient({
   url: environment.supabaseUrl,
   anonKey: environment.supabaseAnonKey,
 });
+
+// Configure StatusBar for native platforms (iOS/Android)
+if (Capacitor.isNativePlatform()) {
+  StatusBar.setStyle({ style: Style.Light }).catch(err => console.warn('StatusBar style error:', err));
+  StatusBar.setBackgroundColor({ color: '#1f2937' }).catch(err => console.warn('StatusBar bg error:', err));
+}
 
 // Bootstrap Angular application
 bootstrapApplication(App, appConfig).catch((err) => console.error(err));

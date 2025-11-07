@@ -7,6 +7,19 @@
         <h2 class="text-2xl font-bold text-center card-title">Create Account</h2>
       </div>
 
+      <!-- Success Alert -->
+      @if (successMessage() && !isLoading()) {
+        <div
+          class="mb-4 alert alert-success"
+          role="alert"
+          data-testid="register-success"
+          aria-live="polite"
+        >
+          <ng-icon name="heroCheckCircle" size="32" class="shrink-0" />
+          <span>{{ successMessage() }}</span>
+        </div>
+      }
+
       <!-- Error Alert (T073) -->
       @if (error() && !isLoading()) {
         <div

@@ -34,6 +34,7 @@ export class Registration {
   // Loading and error state signals
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly successMessage = signal<string | null>(null);
 
   // Password signal for real-time strength checking
   private readonly passwordValue = signal('');
@@ -97,6 +98,7 @@ export class Registration {
     this.isLoading.set(true);
     this.registrationForm.disable();
     this.error.set(null);
+    this.successMessage.set(null);
 
     try {
       const result = await this.authService.signUp(email as string, password as string);
@@ -104,8 +106,14 @@ export class Registration {
       if (result.error) {
         // Map Supabase errors to user-friendly messages (T073)
         this.error.set(mapSupabaseError(result.error));
+      } else if (result.needsEmailConfirmation) {
+        // Show success message and keep user on registration page
+        this.successMessage.set(
+          'Registration successful! Please check your email to confirm your account before signing in.'
+        );
+        this.registrationForm.reset();
       } else {
-        // Redirect to visits page after successful registration
+        // Email confirmation not required, redirect to visits
         await this.router.navigate(['/visits']);
       }
     } catch (err) {

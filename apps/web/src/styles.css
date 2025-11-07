@@ -7,6 +7,23 @@
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
+/* Safe Area Insets for Mobile (iOS/Android notches and status bars) */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  padding-top: var(--safe-area-inset-top);
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+
+/* Drawer sidebar safe area (for side navigation on mobile) */
+.drawer-side aside {
+  padding-top: calc(1rem + var(--safe-area-inset-top)) !important;
+  padding-bottom: calc(1rem + var(--safe-area-inset-bottom)) !important;
+}
+
 /* Map Container Styles - Dark Theme */
 .venue-map-container {
   position: relative;

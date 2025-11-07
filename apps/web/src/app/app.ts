@@ -51,6 +51,10 @@ export class App {
     return this.authState.isAuthenticated();
   }
 
+  get isAuthInitialized(): boolean {
+    return this.authState.isInitialized();
+  }
+
   async onSignOut(): Promise<void> {
     await this.authService.signOut();
     this.closeMobileMenu();

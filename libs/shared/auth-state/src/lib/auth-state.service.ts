@@ -22,12 +22,14 @@ export class AuthStateService {
   private readonly currentUserSignal = signal<User | null>(null);
   private readonly sessionSignal = signal<Session | null>(null);
   private readonly anonymousModeSignal = signal<boolean>(false);
+  private readonly isInitializedSignal = signal<boolean>(false);
 
   // Public computed signals (read-only)
   readonly isAuthenticated = computed(() => this.currentUserSignal() !== null);
   readonly isAnonymous = computed(() => this.anonymousModeSignal());
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly session = this.sessionSignal.asReadonly();
+  readonly isInitialized = this.isInitializedSignal.asReadonly();
 
   /**
    * Update current user (called by AuthService)
@@ -48,6 +50,13 @@ export class AuthStateService {
    */
   setAnonymousMode(isAnonymous: boolean): void {
     this.anonymousModeSignal.set(isAnonymous);
+  }
+
+  /**
+   * Mark auth as initialized (called by AuthService after initial load)
+   */
+  setInitialized(initialized: boolean): void {
+    this.isInitializedSignal.set(initialized);
   }
 
   /**

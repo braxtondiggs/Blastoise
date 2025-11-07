@@ -4,6 +4,7 @@ import { getSupabaseClient } from '@blastoise/data';
 import type { User as SupabaseUser, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { User, DEFAULT_USER_PREFERENCES, UserPreferences } from '@blastoise/shared';
 import { AuthStateService } from '@blastoise/shared/auth-state';
+import { Capacitor } from '@capacitor/core';
 
 const ANONYMOUS_USER_KEY = 'anonymous_user_id';
 const ANONYMOUS_MODE_KEY = 'anonymous_mode';
@@ -46,6 +47,12 @@ export class AuthService {
         await this.loadUserProfile(session.user);
       }
     }
+
+    // Wait a tick for Angular change detection to process the auth state
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Mark as initialized after state has settled
+    this.authState.setInitialized(true);
 
     // Listen for auth state changes
     this.supabase.auth.onAuthStateChange(
@@ -191,21 +198,36 @@ export class AuthService {
   /**
    * Sign up with email and password
    */
-  async signUp(email: string, password: string): Promise<{ error?: Error }> {
+  async signUp(
+    email: string,
+    password: string
+  ): Promise<{ error?: Error; needsEmailConfirmation?: boolean }> {
     try {
-      const { error } = await this.supabase.auth.signUp({
+      // Determine redirect URL based on platform
+      const redirectUrl = Capacitor.isNativePlatform()
+        ? 'com.blastoise.app://auth/callback' // Deep link for mobile
+        : `${window.location.origin}/auth/callback`; // Web URL
+
+      const { data, error } = await this.supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
       });
 
       if (error) {
         return { error: new Error(error.message) };
       }
 
+      // Check if email confirmation is required
+      // If session is null but user exists, email confirmation is required
+      const needsEmailConfirmation = !data.session && !!data.user;
+
       // Disable anonymous mode after successful sign up
       this.disableAnonymousMode();
 
-      return {};
+      return { needsEmailConfirmation };
     } catch (error) {
       return { error: error instanceof Error ? error : new Error('Unknown error') };
     }
