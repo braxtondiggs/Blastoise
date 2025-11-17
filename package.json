@@ -38,7 +38,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.8",
     "@nestjs/platform-express": "^11.1.8",
-    "@nestjs/swagger": "^11.2.1",
+    "@nestjs/swagger": "^11.2.2",
     "@nestjs/terminus": "^11.0.0",
     "@ng-icons/core": "^32.2.0",
     "@ng-icons/heroicons": "^32.2.0",
