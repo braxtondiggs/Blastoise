@@ -52,7 +52,7 @@ import { PreferencesService, type UserPreferences } from '../services/preference
                 />
                 <span class="label-text">
                   <div class="font-medium">Enable automatic visit detection</div>
-                  <div class="text-sm text-base-content/60">Track brewery and winery visits automatically</div>
+                  <div class="text-sm text-base-content/60">Track brewery visits automatically</div>
                 </span>
               </label>
             </div>

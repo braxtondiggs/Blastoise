@@ -9,10 +9,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import type { Visit, Venue } from '@blastoise/shared';
-import { VisitsLocalRepository } from '@blastoise/data';
-import { VenuesApiService } from '@blastoise/data';
-import { Subject, takeUntil, debounceTime} from 'rxjs';
+import { VisitsRepository, VisitsLocalRepository } from '@blastoise/data';
+import { AuthStateService } from '@blastoise/shared/auth-state';
+import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { VisitCard } from './visit-card';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroArrowPath, heroMapPin } from '@ng-icons/heroicons/outline';
 
 /**
  * Displays visits in chronological order with:
@@ -32,14 +34,21 @@ interface GroupedVisits {
 
 @Component({
   selector: 'app-timeline',
-  imports: [CommonModule, VisitCard],
+  imports: [CommonModule, VisitCard, NgIconComponent],
   templateUrl: './timeline.html',
   standalone: true,
+  viewProviders: [
+    provideIcons({
+      heroArrowPath,
+      heroMapPin,
+    }),
+  ],
 })
 export class TimelineComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
-  private readonly localRepository = inject(VisitsLocalRepository);
-  private readonly venuesApi = inject(VenuesApiService);
+  private readonly visitsRepo = inject(VisitsRepository);
+  private readonly localRepo = inject(VisitsLocalRepository);
+  private readonly authState = inject(AuthStateService);
   private readonly destroy$ = new Subject<void>();
 
   // Pagination state
@@ -79,6 +88,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
 
   /**
    * Load visits sorted chronologically by arrival time (descending)
+   * Hybrid approach: Try Supabase first (for imports), fallback to local (offline)
    */
   async loadMoreVisits(): Promise<void> {
     if (this.isLoading() || !this.hasMore()) {
@@ -89,14 +99,35 @@ export class TimelineComponent implements OnInit, OnDestroy {
 
     try {
       const offset = this.currentPage() * this.pageSize;
+      let visits: Visit[] = [];
 
-      // Load visits from local repository with pagination
-      const visits = await this.localRepository.getVisits({
-        limit: this.pageSize,
-        offset,
-        orderBy: 'arrival_time',
-        order: 'desc', // Most recent first
-      });
+      // Try Supabase first (has all visits including imports)
+      if (this.authState.isAuthenticated()) {
+        const userId = this.authState.currentUser()?.id;
+        if (userId) {
+          try {
+            visits = await this.visitsRepo.findByUserId(userId, this.pageSize, offset);
+            console.log(visits)
+
+            // Cache to local for offline access
+            if (visits.length > 0) {
+              await this.cacheVisitsLocally(visits);
+            }
+          } catch (error) {
+            console.warn('Failed to load from Supabase, falling back to local:', error);
+          }
+        }
+      }
+
+      // Fallback to local if Supabase failed or offline
+      if (visits.length === 0) {
+        visits = await this.localRepo.getVisits({
+          limit: this.pageSize,
+          offset,
+          orderBy: 'arrival_time',
+          order: 'desc',
+        });
+      }
 
       if (visits.length === 0) {
         this.hasMore.set(false);
@@ -109,21 +140,12 @@ export class TimelineComponent implements OnInit, OnDestroy {
         this.hasMore.set(false);
       }
 
-      // Fetch venue details for each visit
-      const visitsWithVenues = await Promise.all(
-        visits.map(async (visit: Visit) => {
-          try {
-            const venue = await this.venuesApi.getVenue(visit.venue_id).toPromise();
-            return { ...visit, venue };
-          } catch (error) {
-            console.error(`Failed to fetch venue ${visit.venue_id}:`, error);
-            return visit; // Return visit without venue if fetch fails
-          }
-        })
-      );
+      // Visits already include venue data from the Supabase join query
+      // No need to make individual API calls for each venue
+      console.log('Visits with venues:', visits);
 
       // Append to existing visits
-      this.allVisits.update((current) => [...current, ...visitsWithVenues]);
+      this.allVisits.update((current) => [...current, ...visits]);
 
       this.currentPage.update((page) => page + 1);
     } catch (error) {
@@ -296,12 +318,41 @@ export class TimelineComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Cache visits to local IndexedDB for offline access
+   */
+  private async cacheVisitsLocally(visits: Visit[]): Promise<void> {
+    try {
+      // Use batchSave for efficiency
+      await this.localRepo.batchSave(visits);
+    } catch (error) {
+      // Silent fail - caching is not critical
+      console.debug('Failed to cache visits locally:', error);
+    }
+  }
+
+  /**
    * Refresh timeline (pull-to-refresh)
+   * Clears local cache and forces sync from Supabase
    */
   async refresh(): Promise<void> {
-    this.currentPage.set(0);
-    this.hasMore.set(true);
-    this.allVisits.set([]);
-    await this.loadMoreVisits();
+    try {
+      // Clear local cache to force fresh data from Supabase
+      await this.localRepo.clearAll();
+
+      // Reset pagination state
+      this.currentPage.set(0);
+      this.hasMore.set(true);
+      this.allVisits.set([]);
+
+      // Load fresh data from Supabase
+      await this.loadMoreVisits();
+    } catch (error) {
+      console.error('Error refreshing timeline:', error);
+      // Still try to load data even if clear fails
+      this.currentPage.set(0);
+      this.hasMore.set(true);
+      this.allVisits.set([]);
+      await this.loadMoreVisits();
+    }
   }
 }

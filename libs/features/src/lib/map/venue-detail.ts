@@ -201,7 +201,7 @@ export class VenueDetail implements OnInit {
     const parts = [
       this.venue.address,
       this.venue.city,
-      this.venue.state,
+      this.venue.state_province,
       this.venue.postal_code
     ].filter(Boolean);
     return parts.join(', ');

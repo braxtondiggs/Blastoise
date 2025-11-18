@@ -65,7 +65,7 @@ interface ImportHistoryItem {
         <!-- Header -->
         <div class="mb-6 flex items-center gap-4">
           <button class="btn btn-ghost btn-circle" (click)="goBack()">
-            <ng-icon name="heroArrowLeft" class="w-6 h-6" />
+            <ng-icon name="heroArrowLeft" size="24" />
           </button>
           <div>
             <h1 class="text-3xl font-bold">Import History</h1>
@@ -86,7 +86,7 @@ interface ImportHistoryItem {
         @if (!isLoading() && imports().length === 0) {
           <div class="card bg-base-200 shadow-xl">
             <div class="card-body items-center text-center py-12">
-              <ng-icon name="heroDocumentText" class="w-16 h-16 text-base-content/30 mb-4" />
+              <ng-icon name="heroDocumentText" size="64" class="text-base-content/30 mb-4" />
               <h3 class="text-xl font-bold">No Import History</h3>
               <p class="text-base-content/70 mb-4">
                 You haven't imported any Timeline data yet.
@@ -111,7 +111,7 @@ interface ImportHistoryItem {
                     <!-- Left: Import Info -->
                     <div class="flex-1">
                       <div class="flex items-center gap-2 mb-2">
-                        <ng-icon name="heroDocumentText" class="w-5 h-5 text-primary" />
+                        <ng-icon name="heroDocumentText" size="20" class="text-primary" />
                         <h3 class="font-bold text-lg">
                           {{ import.file_name || 'Google Timeline Import' }}
                         </h3>
@@ -120,12 +120,12 @@ interface ImportHistoryItem {
                       <!-- Date and Time -->
                       <div class="flex items-center gap-4 text-sm text-base-content/70 mb-3">
                         <div class="flex items-center gap-1">
-                          <ng-icon name="heroCalendar" class="w-4 h-4" />
+                          <ng-icon name="heroCalendar" size="16" />
                           <span>{{ formatDate(import.imported_at) }}</span>
                         </div>
                         @if (import.processing_time_ms) {
                           <div class="flex items-center gap-1">
-                            <ng-icon name="heroClock" class="w-4 h-4" />
+                            <ng-icon name="heroClock" size="16" />
                             <span>{{ formatProcessingTime(import.processing_time_ms) }}</span>
                           </div>
                         }
@@ -154,12 +154,12 @@ interface ImportHistoryItem {
                       <!-- Success/Error Badge -->
                       @if (hasErrors(import)) {
                         <div class="badge badge-warning gap-1 mt-3">
-                          <ng-icon name="heroXCircle" class="w-3 h-3" />
+                          <ng-icon name="heroXCircle" size="12" />
                           {{ import.metadata!.errors!.length }} errors
                         </div>
                       } @else {
                         <div class="badge badge-success gap-1 mt-3">
-                          <ng-icon name="heroCheckCircle" class="w-3 h-3" />
+                          <ng-icon name="heroCheckCircle" size="12" />
                           Success
                         </div>
                       }
@@ -167,7 +167,7 @@ interface ImportHistoryItem {
 
                     <!-- Right: View Details Arrow -->
                     <div class="ml-4">
-                      <ng-icon name="heroChevronRight" class="w-6 h-6 text-base-content/50" />
+                      <ng-icon name="heroChevronRight" size="24" class="text-base-content/50" />
                     </div>
                   </div>
                 </div>
@@ -276,7 +276,7 @@ interface ImportHistoryItem {
               @if (selectedImport()!.metadata?.errors && selectedImport()!.metadata!.errors!.length > 0) {
                 <div class="divider">Errors</div>
                 <div class="alert alert-warning mb-6">
-                  <ng-icon name="heroXCircle" class="w-5 h-5" />
+                  <ng-icon name="heroXCircle" size="20" />
                   <span>{{ selectedImport()!.metadata!.errors!.length }} places failed to import</span>
                 </div>
                 <div class="max-h-64 overflow-y-auto space-y-2">

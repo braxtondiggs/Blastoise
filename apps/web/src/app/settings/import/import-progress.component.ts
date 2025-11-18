@@ -49,7 +49,7 @@ import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
       }
 
       @if (jobStatus()?.status === 'completed') {
-        <ng-icon name="heroCheckCircle" class="w-16 h-16 text-success mb-4" />
+        <ng-icon name="heroCheckCircle" size="64" class="text-success mb-4" />
         <p class="text-lg font-semibold text-success">Import Complete!</p>
         <p class="text-sm text-base-content/70 mt-2">
           Redirecting to results...
@@ -57,10 +57,10 @@ import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
       }
 
       @if (jobStatus()?.status === 'failed') {
-        <ng-icon name="heroXCircle" class="w-16 h-16 text-error mb-4" />
+        <ng-icon name="heroXCircle" size="64" class="text-error mb-4" />
         <p class="text-lg font-semibold text-error">Import Failed</p>
         <div class="alert alert-error mt-4 max-w-md">
-          <ng-icon name="heroExclamationTriangle" class="w-5 h-5" />
+          <ng-icon name="heroExclamationTriangle" size="20" />
           <span>{{ jobStatus()?.error || 'Unknown error occurred' }}</span>
         </div>
       }

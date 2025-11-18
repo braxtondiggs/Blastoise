@@ -6,7 +6,7 @@
 
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { VenueMap } from '@blastoise/features/map';
+import { VenueMap } from '@blastoise/features';
 import type { Venue, Coordinates } from '@blastoise/shared';
 import { VenuesApiService } from '@blastoise/data';
 import { VisitsLocalRepository } from '@blastoise/data';

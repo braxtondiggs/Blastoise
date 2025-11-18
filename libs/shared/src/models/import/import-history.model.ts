@@ -15,6 +15,7 @@ export interface TierStatistics {
 }
 
 export interface ImportMetadata {
+  existing_venues_matched?: number; // Venues matched by Place ID or proximity
   errors?: ImportError[];
   tier_statistics?: TierStatistics;
   processing_notes?: string[];

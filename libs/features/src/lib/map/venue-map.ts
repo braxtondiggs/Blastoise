@@ -73,7 +73,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
       this.isLoading.set(true);
 
       // Fix Leaflet default icon paths (webpack/bundler issue)
-      // @ts-ignore
+      // @ts-expect-error Leaflet type definitions don't include _getIconUrl
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -241,7 +241,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
       : '';
 
     const addressLine = venue.address || '';
-    const cityState = [venue.city, venue.state].filter(Boolean).join(', ');
+    const cityState = [venue.city, venue.state_province].filter(Boolean).join(', ');
     const fullAddress = [addressLine, cityState, venue.postal_code].filter(Boolean).join('<br>');
 
     return `

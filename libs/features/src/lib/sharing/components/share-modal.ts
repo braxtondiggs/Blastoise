@@ -25,8 +25,8 @@ import { ShareService, type ShareLinkResponse } from '../services/share.service'
           <div class="mb-6">
             <p class="text-sm text-gray-600">Sharing your visit to:</p>
             <p class="font-semibold text-lg">{{ venue.name }}</p>
-            @if (venue.city || venue.state) {
-              <p class="text-sm text-gray-500">{{ venue.city }}@if (venue.city && venue.state) {, }{{ venue.state }}</p>
+            @if (venue.city || venue.state_province) {
+              <p class="text-sm text-gray-500">{{ venue.city }}@if (venue.city && venue.state_province) {, }{{ venue.state_province }}</p>
             }
           </div>
         }

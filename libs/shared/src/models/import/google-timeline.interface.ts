@@ -1,41 +1,15 @@
 /**
  * Google Timeline Data Interfaces
- * Supports both legacy (Google Takeout) and new (mobile export) formats
+ * Supports mobile export formats (Android/iOS)
+ * Note: Google Takeout Timeline has been discontinued
  */
 
 // ============================================
-// GoogleTimelineData interface (both formats)
+// GoogleTimelineData interface (mobile formats)
 // ============================================
 
 /**
- * Legacy Google Takeout format (desktop/web export)
- * Example: { "timelineObjects": [{ "placeVisit": {...} }, ...] }
- */
-export interface LegacyTimelineFormat {
-  timelineObjects: Array<{
-    placeVisit?: LegacyPlaceVisit;
-    // Other types exist (activitySegment, etc.) but we only care about placeVisits
-  }>;
-}
-
-export interface LegacyPlaceVisit {
-  location: {
-    placeId?: string; // Google Place ID
-    name?: string;
-    address?: string;
-    locationConfidence?: number;
-    latitudeE7?: number; // Latitude * 10^7 (legacy format)
-    longitudeE7?: number; // Longitude * 10^7 (legacy format)
-  };
-  duration: {
-    startTimestamp: string; // ISO 8601
-    endTimestamp: string; // ISO 8601
-  };
-  placeConfidence?: 'LOW_CONFIDENCE' | 'MEDIUM_CONFIDENCE' | 'HIGH_CONFIDENCE' | 'USER_CONFIRMED';
-}
-
-/**
- * New mobile export format (Android/iOS Google Maps export)
+ * Mobile export format (older Android/iOS Google Maps export)
  * Example: { "placeVisits": [{ "location": {...}, "duration": {...} }, ...] }
  */
 export interface NewTimelineFormat {
@@ -57,9 +31,46 @@ export interface NewPlaceVisit {
 }
 
 /**
- * Union type for both Timeline formats
+ * Semantic Segments format (Android Timeline export)
+ * Example: { "semanticSegments": [{ "visit": {...} }, { "activity": {...} }, ...] }
  */
-export type GoogleTimelineData = LegacyTimelineFormat | NewTimelineFormat;
+export interface SemanticSegmentsFormat {
+  semanticSegments: Array<{
+    startTime?: string; // ISO 8601
+    endTime?: string; // ISO 8601
+    startTimeTimezoneUtcOffsetMinutes?: number;
+    endTimeTimezoneUtcOffsetMinutes?: number;
+    visit?: {
+      hierarchyLevel?: number;
+      probability?: number;
+      topCandidate?: {
+        placeId?: string;
+        semanticType?: string;
+        probability?: number;
+        placeLocation?: {
+          latLng?: string; // Format: "45.5231°, -122.6765°"
+          name?: string; // Often missing in real exports
+          address?: string; // Often missing in real exports
+        };
+      };
+    };
+    activity?: {
+      // Activity segments (walking, driving, etc.) - we skip these
+      start?: { latLng?: string };
+      end?: { latLng?: string };
+      topCandidate?: {
+        type?: string;
+        probability?: number;
+      };
+    };
+  }>;
+}
+
+/**
+ * Union type for all supported Timeline formats
+ * Legacy Google Takeout format has been removed (discontinued by Google)
+ */
+export type GoogleTimelineData = NewTimelineFormat | SemanticSegmentsFormat;
 
 // ============================================
 // PlaceVisit interface (normalized format)
@@ -67,11 +78,11 @@ export type GoogleTimelineData = LegacyTimelineFormat | NewTimelineFormat;
 
 /**
  * Normalized PlaceVisit interface used internally after parsing
- * Combines both legacy and new formats into a common structure
+ * Combines all formats into a common structure
  */
 export interface PlaceVisit {
   place_id?: string; // Google Place ID (for exact matching)
-  name: string; // Required - place name
+  name: string | null; // Optional - may be missing in real exports
   address?: string;
   latitude: number; // Decimal degrees
   longitude: number; // Decimal degrees
@@ -85,15 +96,6 @@ export interface PlaceVisit {
 // ============================================
 
 export const TimelineFormatDetection = {
-  isLegacyFormat: (data: unknown): data is LegacyTimelineFormat => {
-    return (
-      typeof data === 'object' &&
-      data !== null &&
-      'timelineObjects' in data &&
-      Array.isArray((data as LegacyTimelineFormat).timelineObjects)
-    );
-  },
-
   isNewFormat: (data: unknown): data is NewTimelineFormat => {
     return (
       typeof data === 'object' &&
@@ -103,7 +105,33 @@ export const TimelineFormatDetection = {
     );
   },
 
+  isSemanticSegmentsFormat: (data: unknown): data is SemanticSegmentsFormat => {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'semanticSegments' in data &&
+      Array.isArray((data as SemanticSegmentsFormat).semanticSegments)
+    );
+  },
+
   convertE7ToDecimal: (e7: number): number => {
     return e7 / 10000000;
+  },
+
+  /**
+   * Parse latLng string to decimal degrees
+   * Format: "45.5231°, -122.6765°" → { lat: 45.5231, lng: -122.6765 }
+   */
+  parseLatLngString: (latLng: string): { lat: number; lng: number } | null => {
+    const match = latLng.match(/^([-+]?\d+\.?\d*)°?,?\s*([-+]?\d+\.?\d*)°?$/);
+    if (!match) {
+      return null;
+    }
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+    return { lat, lng };
   },
 };

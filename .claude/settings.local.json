@@ -1,11 +1,11 @@
 {
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "nx-mcp"
-  ],
   "permissions": {
     "allow": [
       "Bash(npx nx run-many:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "nx-mcp"
+  ]
 }

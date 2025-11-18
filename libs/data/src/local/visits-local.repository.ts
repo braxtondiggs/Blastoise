@@ -83,4 +83,11 @@ export class VisitsLocalRepository {
 
     return sortedVisits.slice(offset, offset + limit);
   }
+
+  /**
+   * Clear all visits from local storage
+   */
+  async clearAll(): Promise<void> {
+    await this.db.clear(this.storeName);
+  }
 }

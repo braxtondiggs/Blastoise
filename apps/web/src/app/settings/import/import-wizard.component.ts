@@ -10,6 +10,7 @@ import {
   heroArrowLeft,
   heroArrowRight,
   heroCheckCircle,
+  heroShieldCheck,
   heroXCircle,
   heroCloudArrowUp,
   heroDocumentText,
@@ -35,6 +36,7 @@ interface FileValidationResult {
     provideIcons({
       heroArrowLeft,
       heroArrowRight,
+      heroShieldCheck,
       heroCheckCircle,
       heroXCircle,
       heroCloudArrowUp,
@@ -73,100 +75,109 @@ interface FileValidationResult {
               <p class="mb-6 text-base-content/70">
                 Select where you want to import your visit history from:
               </p>
+
               <button
-                class="btn btn-primary btn-lg w-full mb-4"
+                class="btn btn-primary btn-lg w-full"
                 (click)="selectGoogleTimeline()"
               >
-                <ng-icon name="heroDocumentText" class="w-6 h-6" />
-                Google Timeline
+                <ng-icon name="heroDocumentText" size="24" />
+                Import visits from your Google Maps Timeline
               </button>
-              <div class="alert alert-info">
-                <ng-icon name="heroExclamationTriangle" class="w-5 h-5" />
-                <span>
-                  Only Google Timeline imports are supported in this version. Apple Maps
-                  support coming soon.
-                </span>
-              </div>
             }
 
             <!-- Step 2: Export Instructions (T048) -->
             @if (currentStep() === 2) {
               <h2 class="card-title mb-4">Export Your Timeline Data</h2>
               <p class="mb-4 text-base-content/70">
-                Follow these instructions to export your Google Timeline data:
+                Before importing, you need to export your Google Timeline data. Choose your platform:
               </p>
 
-              <div class="tabs tabs-boxed mb-4">
-                <a
-                  class="tab"
+              <div class="tabs tabs-border bg-base-200/50 mb-4">
+                <button
+                  class="tab tab-sm"
+                  [class.tab-active]="selectedPlatform() === 'takeout'"
+                  (click)="selectedPlatform.set('takeout')"
+                >
+                  Web (Google Takeout)
+                </button>
+                <button
+                  class="tab tab-sm"
                   [class.tab-active]="selectedPlatform() === 'android'"
                   (click)="selectedPlatform.set('android')"
                 >
                   Android
-                </a>
-                <a
-                  class="tab"
+                </button>
+                <button
+                  class="tab tab-sm"
                   [class.tab-active]="selectedPlatform() === 'ios'"
                   (click)="selectedPlatform.set('ios')"
                 >
                   iOS
-                </a>
-                <a
-                  class="tab"
-                  [class.tab-active]="selectedPlatform() === 'takeout'"
-                  (click)="selectedPlatform.set('takeout')"
-                >
-                  Google Takeout
-                </a>
+                </button>
               </div>
+
+              <!-- Web Instructions (No longer available) -->
+              @if (selectedPlatform() === 'takeout') {
+                <div class="bg-base-200/50 rounded-lg p-4">
+                  <div class="alert alert-warning mb-4">
+                    <ng-icon name="heroExclamationTriangle" size="20" />
+                    <div class="text-sm">
+                      <strong>Timeline Not Available on Web</strong>
+                      <p class="mt-1">Since the data shown on your Google Maps Timeline comes directly from your device, Timeline is not available for Maps on your computer. To use Google Maps Timeline, download the Google Maps app on your Android or iOS device.</p>
+                    </div>
+                  </div>
+                  <p class="text-sm text-base-content/70">
+                    Please use the Android or iOS tabs above to learn how to export your Timeline data from your mobile device.
+                  </p>
+                </div>
+              }
 
               <!-- Android Instructions -->
               @if (selectedPlatform() === 'android') {
-                <div class="prose max-w-none">
-                  <ol>
-                    <li>Open Google Maps app on your Android device</li>
-                    <li>Tap your profile picture in the top right</li>
-                    <li>Select "Your Timeline"</li>
-                    <li>Tap the three dots (⋮) menu</li>
-                    <li>Select "Settings and privacy"</li>
-                    <li>Scroll to "Location History" section</li>
-                    <li>Tap "Download your Timeline data"</li>
-                    <li>Choose JSON format and download</li>
+                <div class="bg-base-200/50 rounded-lg p-4">
+                  <h4 class="font-bold text-sm mb-3">Export from Settings App</h4>
+                  <ol class="list-decimal list-inside space-y-2 text-sm">
+                    <li>On your Android phone or tablet, open the Settings app</li>
+                    <li>Tap "Location"</li>
+                    <li>Tap "Location services"</li>
+                    <li>Tap "Timeline"</li>
+                    <li>Under "Timeline," tap "Export Timeline data"</li>
+                    <li>Tap "Continue"</li>
+                    <li>Select your preferred storage location</li>
+                    <li>Tap "Save"</li>
+                    <li>Wait for the "Export complete" notification</li>
                   </ol>
                 </div>
               }
 
               <!-- iOS Instructions -->
               @if (selectedPlatform() === 'ios') {
-                <div class="prose max-w-none">
-                  <ol>
-                    <li>Open Google Maps app on your iPhone</li>
-                    <li>Tap your profile picture in the top right</li>
-                    <li>Select "Your Timeline"</li>
-                    <li>Tap the settings gear icon</li>
-                    <li>Select "Export Timeline data"</li>
-                    <li>Choose JSON format and share to Files app</li>
-                    <li>Save the file and note its location</li>
+                <div class="bg-base-200/50 rounded-lg p-4">
+                  <h4 class="font-bold text-sm mb-3">Export from Google Maps App</h4>
+                  <ol class="list-decimal list-inside space-y-2 text-sm">
+                    <li>On your iPhone or iPad, open the Google Maps app</li>
+                    <li>Tap your profile picture or initial</li>
+                    <li>Tap "Settings"</li>
+                    <li>Under "Account Settings," tap "Personal content"</li>
+                    <li>Under "Location settings," tap "Export Timeline data"</li>
+                    <li>On the iOS share sheet, tap "Save to Files"</li>
+                    <li>Select your preferred storage location</li>
+                    <li>At the top right, tap "Save"</li>
+                    <li>Your exported Timeline data is saved as "location-history.json"</li>
                   </ol>
                 </div>
               }
 
-              <!-- Google Takeout Instructions -->
-              @if (selectedPlatform() === 'takeout') {
-                <div class="prose max-w-none">
-                  <ol>
-                    <li>Visit <a href="https://takeout.google.com" target="_blank" class="link link-primary">takeout.google.com</a></li>
-                    <li>Deselect all products, then select only "Location History"</li>
-                    <li>Click "Next step"</li>
-                    <li>Choose delivery method (email or Drive)</li>
-                    <li>Select file type: ZIP and size: 2GB</li>
-                    <li>Click "Create export"</li>
-                    <li>Wait for email notification (can take hours/days for large exports)</li>
-                    <li>Download and extract the ZIP file</li>
-                    <li>Locate the JSON file in "Location History" folder</li>
-                  </ol>
+              <!-- Privacy Notice -->
+              <div class="bg-success/10 border border-success/20 rounded-lg p-3 mt-4">
+                <div class="flex items-start gap-2">
+                  <ng-icon name="heroShieldCheck" size="16" class="text-success mt-0.5" />
+                  <div class="text-xs text-base-content/80">
+                    <strong class="text-success">Privacy First:</strong> Your Timeline data is processed locally and on our servers.
+                    We only store venue IDs and rounded timestamps—never your precise GPS coordinates.
+                  </div>
                 </div>
-              }
+              </div>
             }
 
             <!-- Step 3: File Upload -->
@@ -178,12 +189,12 @@ interface FileValidationResult {
 
               <!-- Info about intelligent matching -->
               <div class="alert alert-info mb-4">
-                <ng-icon name="heroCheckCircle" class="w-5 h-5" />
+                <ng-icon name="heroCheckCircle" size="20" />
                 <div>
-                  <div class="font-bold">Duplicate Detection Active</div>
+                  <div class="font-bold">Smart Venue Matching</div>
                   <div class="text-sm">
-                    We'll automatically match venues by Place ID and proximity to prevent duplicates.
-                    You can safely re-upload the same file.
+                    We use a 3-tier verification system (OpenStreetMap → Brewery DB → Google Search) to accurately identify breweries and wineries.
+                    Duplicate visits are automatically detected within a 15-minute window.
                   </div>
                 </div>
               </div>
@@ -196,7 +207,7 @@ interface FileValidationResult {
                 <input
                   type="file"
                   accept=".json"
-                  class="file-input file-input-bordered w-full"
+                  class="file-input file-input-secondary w-full"
                   (change)="onFileSelected($event)"
                 />
               </div>
@@ -204,7 +215,7 @@ interface FileValidationResult {
               <!-- File Info -->
               @if (selectedFile()) {
                 <div class="alert" [class.alert-success]="fileValidation().valid" [class.alert-error]="!fileValidation().valid">
-                  <ng-icon [name]="fileValidation().valid ? 'heroCheckCircle' : 'heroXCircle'" class="w-5 h-5" />
+                  <ng-icon [name]="fileValidation().valid ? 'heroCheckCircle' : 'heroXCircle'" size="20" />
                   <div>
                     <div class="font-bold">{{ selectedFile()?.name }}</div>
                     <div class="text-sm">
@@ -226,7 +237,7 @@ interface FileValidationResult {
                   (click)="startUpload()"
                   [disabled]="isUploading()"
                 >
-                  <ng-icon name="heroCloudArrowUp" class="w-5 h-5" />
+                  <ng-icon name="heroCloudArrowUp" size="20" />
                   Start Import
                 </button>
               }
@@ -261,7 +272,7 @@ interface FileValidationResult {
 
               @if (uploadError()) {
                 <div class="alert alert-error mt-4">
-                  <ng-icon name="heroXCircle" class="w-5 h-5" />
+                  <ng-icon name="heroXCircle" size="20" />
                   <div>
                     <div class="font-bold">Import Failed</div>
                     <div class="text-sm">{{ uploadError() }}</div>
@@ -299,7 +310,7 @@ interface FileValidationResult {
 
                 <!-- Processing Time -->
                 <div class="alert alert-info mb-4">
-                  <ng-icon name="heroCheckCircle" class="w-5 h-5" />
+                  <ng-icon name="heroCheckCircle" size="20" />
                   <span>
                     Processing completed in {{ formatProcessingTime(importResult()!.processing_time_ms) }}
                   </span>
@@ -331,7 +342,7 @@ interface FileValidationResult {
                   <div class="collapse collapse-arrow bg-base-300 mb-4">
                     <input type="checkbox" />
                     <div class="collapse-title font-medium">
-                      <ng-icon name="heroExclamationTriangle" class="w-5 h-5 inline" />
+                      <ng-icon name="heroExclamationTriangle" size="20" class="inline" />
                       View Errors ({{ importResult()!.errors.length }})
                     </div>
                     <div class="collapse-content">
@@ -372,7 +383,7 @@ interface FileValidationResult {
             <div class="card-actions justify-between mt-8">
               @if (currentStep() > 1 && currentStep() < 4) {
                 <button class="btn btn-ghost" (click)="previousStep()">
-                  <ng-icon name="heroArrowLeft" class="w-4 h-4" />
+                  <ng-icon name="heroArrowLeft" size="16" />
                   Back
                 </button>
               }
@@ -384,7 +395,7 @@ interface FileValidationResult {
               @if (currentStep() === 2) {
                 <button class="btn btn-primary" (click)="nextStep()">
                   Next
-                  <ng-icon name="heroArrowRight" class="w-4 h-4" />
+                  <ng-icon name="heroArrowRight" size="16" />
                 </button>
               }
             </div>
@@ -477,24 +488,24 @@ export class ImportWizardComponent {
         const content = e.target?.result as string;
         const json = JSON.parse(content);
 
-        // Check for valid Timeline format
-        const isLegacy = json.timelineObjects && Array.isArray(json.timelineObjects);
-        const isNew = json.placeVisits && Array.isArray(json.placeVisits);
+        // Check for valid Timeline format (iOS or Android)
+        const isIOS = json.placeVisits && Array.isArray(json.placeVisits);
+        const isAndroid = json.semanticSegments && Array.isArray(json.semanticSegments);
 
-        if (!isLegacy && !isNew) {
+        if (!isIOS && !isAndroid) {
           this.fileValidation.set({
             valid: false,
-            error: 'Invalid Timeline format. Expected timelineObjects or placeVisits array.',
+            error: 'Invalid Timeline format. Expected placeVisits (iOS) or semanticSegments (Android) array.',
           });
           return;
         }
 
         // Count places
         let placeCount = 0;
-        if (isLegacy) {
-          placeCount = json.timelineObjects.filter((obj: any) => obj.placeVisit).length;
-        } else {
+        if (isIOS) {
           placeCount = json.placeVisits.length;
+        } else if (isAndroid) {
+          placeCount = json.semanticSegments.filter((seg: any) => seg.visit).length;
         }
 
         this.fileValidation.set({
@@ -502,7 +513,7 @@ export class ImportWizardComponent {
           fileSize: file.size,
           placeCount,
         });
-      } catch (error) {
+      } catch {
         this.fileValidation.set({
           valid: false,
           error: 'Invalid JSON file. Please check the file format.',
@@ -544,12 +555,12 @@ export class ImportWizardComponent {
             this.currentStep.set(5); // Move to results step
           }
         },
-        error: (error) => {
-          this.uploadError.set(error.message || 'Upload failed');
+        error: (err) => {
+          this.uploadError.set(err.message || 'Upload failed');
           this.isUploading.set(false);
         },
       });
-    } catch (error) {
+    } catch {
       this.uploadError.set('Failed to read file');
       this.isUploading.set(false);
     }

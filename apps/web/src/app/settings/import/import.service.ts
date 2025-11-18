@@ -4,9 +4,10 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable, throwError, from } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { getSupabaseClient } from '@blastoise/data';
 
 export interface ImportSummary {
   success: boolean;
@@ -76,11 +77,11 @@ export class ImportService {
       file_name: fileName,
     };
 
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-    });
-
-    return this.http.post<ImportSummary | AsyncImportResponse>(url, body, { headers }).pipe(
+    // Get auth token and make request
+    return from(this.getAuthHeaders()).pipe(
+      switchMap((headers) =>
+        this.http.post<ImportSummary | AsyncImportResponse>(url, body, { headers })
+      ),
       map((response) => {
         // If it's an async response, return as-is
         if ('job_id' in response && !('success' in response)) {
@@ -108,12 +109,31 @@ export class ImportService {
   getJobStatus(jobId: string): Observable<JobStatus> {
     const url = `${this.apiBaseUrl}/import/status/${jobId}`;
 
-    return this.http.get<JobStatus>(url).pipe(
+    return from(this.getAuthHeaders()).pipe(
+      switchMap((headers) => this.http.get<JobStatus>(url, { headers })),
       catchError((error) => {
         console.error('Failed to fetch job status:', error);
         return throwError(() => new Error(this.extractErrorMessage(error)));
       })
     );
+  }
+
+  /**
+   * Get auth headers with Supabase session token
+   */
+  private async getAuthHeaders(): Promise<HttpHeaders> {
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
+
+    if (session?.access_token) {
+      return headers.set('Authorization', `Bearer ${session.access_token}`);
+    }
+
+    return headers;
   }
 
   /**

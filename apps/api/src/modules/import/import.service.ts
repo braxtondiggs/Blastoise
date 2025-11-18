@@ -16,6 +16,9 @@ import { VenueClassifierService } from './services/venue-classifier.service';
 import { VisitCreationService } from './services/visit-creation.service';
 import { VenueMatchingService } from './services/venue-matching.service';
 import { BreweryDbVerifierService } from './services/brewery-db-verifier.service';
+import { OverpassApiService } from './services/overpass-api.service';
+import { GooglePlacesApiService } from './services/google-places-api.service';
+import { NominatimGeocodeService } from './services/nominatim-geocode.service';
 import { GoogleSearchVerifierService } from './services/google-search-verifier.service';
 import { ImportSummaryDto, ImportErrorDto, TierStatisticsDto } from './dto/import-summary.dto';
 import { PlaceVisit, GoogleTimelineData, ImportHistory } from '@blastoise/shared';
@@ -38,6 +41,9 @@ export class ImportService {
     private readonly visitCreation: VisitCreationService,
     private readonly venueMatching: VenueMatchingService,
     private readonly breweryDbVerifier: BreweryDbVerifierService,
+    private readonly overpassApi: OverpassApiService,
+    private readonly googlePlacesApi: GooglePlacesApiService,
+    private readonly nominatimGeocode: NominatimGeocodeService,
     private readonly googleSearchVerifier: GoogleSearchVerifierService,
     @InjectQueue('import-queue') private readonly importQueue: Queue
   ) {
@@ -127,100 +133,212 @@ export class ImportService {
       // Process each place visit
       for (const placeVisit of placeVisits) {
         try {
-          // Tier 1: Classify as brewery/winery using keywords
-          const classification = this.venueClassifier.classify(
-            placeVisit.name,
-            placeVisit.address
-          );
-
-          let finalVenueType: 'brewery' | 'winery' | null = classification.venue_type;
+          let finalVenueType: 'brewery' | 'winery' | null = null;
           let verificationTier: 1 | 2 | 3 = 1;
+          let enrichedName: string | null = placeVisit.name;
+          let enrichedAddress: string | undefined = placeVisit.address;
+          let googlePlacesMetadata: Record<string, unknown> | null = null;
 
-          // Try Tier 2/3 for low confidence or failed Tier 1
-          if (!classification.is_brewery_or_winery || !classification.venue_type || classification.confidence < 0.7) {
-            // Tier 1 uncertain - try Tier 2 (Open Brewery DB)
-            if (placeVisit.latitude && placeVisit.longitude) {
-              const tier2Result = await this.breweryDbVerifier.searchNearby(
-                placeVisit.name,
-                placeVisit.latitude,
-                placeVisit.longitude
+          // TIER 0: Check own DB for Place ID match
+          if (placeVisit.place_id) {
+            const existingVenue = await this.venueMatching.matchByPlaceId(placeVisit.place_id);
+            if (existingVenue) {
+              // Found existing venue by Place ID - skip all verification tiers
+              this.logger.debug(`Tier 0: Matched existing venue by Place ID: ${existingVenue.name}`);
+
+              // Create visit directly
+              const isDuplicate = await this.visitCreation.detectDuplicateVisit(
+                userId,
+                existingVenue.id,
+                placeVisit.arrival_time
               );
 
-              if (tier2Result.verified && tier2Result.venue_type) {
-                finalVenueType = tier2Result.venue_type;
-                verificationTier = 2;
-                tierStats.tier2_matches++;
-                this.logger.log(`Tier 2 verified: ${placeVisit.name} (${tier2Result.confidence.toFixed(2)} confidence)`);
-              } else {
-                // Tier 2 failed - try Tier 3 (Google Search)
-                const tier3Result = await this.googleSearchVerifier.verifyVenue(
-                  placeVisit.name,
-                  placeVisit.address
+              if (!isDuplicate) {
+                await this.visitCreation.createImportedVisit(
+                  userId,
+                  existingVenue.id,
+                  placeVisit.arrival_time,
+                  placeVisit.departure_time
                 );
-
-                if (tier3Result.verified && tier3Result.venue_type) {
-                  finalVenueType = tier3Result.venue_type;
-                  verificationTier = 3;
-                  tierStats.tier3_matches++;
-                  this.logger.log(`Tier 3 verified: ${placeVisit.name} via Google Search (keywords: ${tier3Result.keywords_found?.join(', ')})`);
-                } else {
-                  // All tiers failed
-                  visits_skipped++;
-                  tierStats.unverified++;
-                  this.logger.debug(`All tiers failed for: ${placeVisit.name}`);
-                  continue;
-                }
-              }
-            } else {
-              // No coordinates - can't use Tier 2, try Tier 3
-              const tier3Result = await this.googleSearchVerifier.verifyVenue(
-                placeVisit.name,
-                placeVisit.address
-              );
-
-              if (tier3Result.verified && tier3Result.venue_type) {
-                finalVenueType = tier3Result.venue_type;
-                verificationTier = 3;
-                tierStats.tier3_matches++;
-                this.logger.log(`Tier 3 verified: ${placeVisit.name} (no coordinates)`);
+                visits_created++;
+                existing_venues_matched++;
+                this.logger.debug(`Created visit for existing venue: ${existingVenue.name}`);
               } else {
-                // All tiers failed
                 visits_skipped++;
-                tierStats.unverified++;
-                errors.push({
-                  place_name: placeVisit.name,
-                  address: placeVisit.address,
-                  timestamp: placeVisit.arrival_time,
-                  error: 'Could not verify as brewery or winery (all tiers failed)',
-                  error_code: 'VERIFICATION_FAILED',
-                });
-                continue;
+                this.logger.debug(`Skipped duplicate visit: ${existingVenue.name}`);
               }
+              continue;
             }
-          } else {
-            // Tier 1 succeeded with high confidence
-            tierStats.tier1_matches++;
           }
 
+          // TIER 1: Overpass API (OpenStreetMap) by coordinates
+          if (placeVisit.latitude && placeVisit.longitude) {
+            const osmResult = await this.overpassApi.searchByCoordinates(
+              placeVisit.latitude,
+              placeVisit.longitude
+            );
+
+            if (osmResult.found && osmResult.name) {
+              enrichedName = osmResult.name;
+              enrichedAddress = osmResult.address || enrichedAddress;
+
+              const classification = this.venueClassifier.classify(
+                enrichedName,
+                enrichedAddress
+              );
+
+              if (classification.is_brewery_or_winery && classification.confidence >= 0.7) {
+                // HIGH CONFIDENCE from OSM
+                finalVenueType = classification.venue_type;
+                verificationTier = 1;
+                tierStats.tier1_matches++;
+                this.logger.log(`Tier 1 (OSM): High confidence match - ${enrichedName} (${classification.confidence.toFixed(2)})`);
+              } else if (classification.confidence > 0 && placeVisit.place_id && this.googlePlacesApi.isAvailable()) {
+                // LOW/MEDIUM CONFIDENCE - Verify with Google Places API
+                const googleResult = await this.googlePlacesApi.lookupPlaceId(placeVisit.place_id);
+
+                if (googleResult.found && this.googlePlacesApi.isBreweryOrWinery(googleResult.types || [])) {
+                  // Re-classify with Google data
+                  enrichedName = googleResult.name || enrichedName;
+                  enrichedAddress = googleResult.formatted_address || enrichedAddress;
+
+                  // Store ALL Google Places metadata for later use
+                  googlePlacesMetadata = this.extractGooglePlacesMetadata(googleResult);
+
+                  const googleClassification = this.venueClassifier.classify(enrichedName, enrichedAddress);
+                  if (googleClassification.is_brewery_or_winery) {
+                    finalVenueType = googleClassification.venue_type;
+                    verificationTier = 3;
+                    tierStats.tier3_matches++;
+                    this.logger.log(`Tier 3 (Google): Verified OSM low-confidence match - ${enrichedName}`);
+                  }
+                }
+              }
+            }
+          }
+
+          // TIER 2: Open Brewery DB (if Tier 1 didn't find anything)
+          if (!finalVenueType && placeVisit.latitude && placeVisit.longitude) {
+            const breweryDbResult = await this.breweryDbVerifier.searchNearby(
+              enrichedName || '',
+              placeVisit.latitude,
+              placeVisit.longitude
+            );
+
+            if (breweryDbResult.verified && breweryDbResult.venue_type) {
+              if (breweryDbResult.confidence >= 0.8) {
+                // HIGH CONFIDENCE from Brewery DB
+                finalVenueType = breweryDbResult.venue_type;
+                verificationTier = 2;
+                tierStats.tier2_matches++;
+                enrichedName = breweryDbResult.matched_brewery?.name || enrichedName;
+                this.logger.log(`Tier 2 (Brewery DB): High confidence - ${enrichedName} (${breweryDbResult.confidence.toFixed(2)})`);
+              } else if (placeVisit.place_id && this.googlePlacesApi.isAvailable()) {
+                // LOW/MEDIUM CONFIDENCE - Verify with Google Places API
+                const googleResult = await this.googlePlacesApi.lookupPlaceId(placeVisit.place_id);
+
+                if (googleResult.found && this.googlePlacesApi.isBreweryOrWinery(googleResult.types || [])) {
+                  enrichedName = googleResult.name || enrichedName;
+                  enrichedAddress = googleResult.formatted_address || enrichedAddress;
+
+                  // Store ALL Google Places metadata for later use
+                  googlePlacesMetadata = this.extractGooglePlacesMetadata(googleResult);
+
+                  finalVenueType = breweryDbResult.venue_type;
+                  verificationTier = 3;
+                  tierStats.tier3_matches++;
+                  this.logger.log(`Tier 3 (Google): Verified Brewery DB low-confidence match - ${enrichedName}`);
+                } else {
+                  // Google says it's not a brewery/winery - skip
+                  visits_skipped++;
+                  tierStats.unverified++;
+                  this.logger.debug(`Google Places rejected Brewery DB match for ${enrichedName}`);
+                  continue;
+                }
+              } else {
+                // No Google API available, use Brewery DB data anyway
+                finalVenueType = breweryDbResult.venue_type;
+                verificationTier = 2;
+                tierStats.tier2_matches++;
+                enrichedName = breweryDbResult.matched_brewery?.name || enrichedName;
+                this.logger.log(`Tier 2 (Brewery DB): Medium confidence (no verification available) - ${enrichedName}`);
+              }
+            }
+          }
+
+          // TIER 2.5: Reverse Geocode + Google Search (if Tier 1 & 2 failed)
+          if (!finalVenueType && placeVisit.latitude && placeVisit.longitude && placeVisit.place_id) {
+            this.logger.debug(`Tier 1 & 2 failed, attempting Tier 2.5: Reverse geocode + Google Search`);
+
+            // Step 1: Reverse geocode coordinates to address
+            const geocodeResult = await this.nominatimGeocode.reverseGeocode(
+              placeVisit.latitude,
+              placeVisit.longitude
+            );
+
+            if (geocodeResult.found && geocodeResult.formatted_address) {
+              // Step 2: Google Search the address only (no keywords)
+              const searchResult = await this.googleSearchVerifier.searchByAddress(
+                geocodeResult.formatted_address
+              );
+
+              if (searchResult.verified && searchResult.confidence >= 0.7) {
+                // Found a brewery/winery at this address!
+                // Now use Google Places API to get full details
+                const googleResult = await this.googlePlacesApi.lookupPlaceId(placeVisit.place_id);
+
+                if (googleResult.found && this.googlePlacesApi.isBreweryOrWinery(googleResult.types || [])) {
+                  enrichedName = googleResult.name || geocodeResult.formatted_address;
+                  enrichedAddress = googleResult.formatted_address || geocodeResult.formatted_address;
+
+                  // Store ALL Google Places metadata
+                  googlePlacesMetadata = this.extractGooglePlacesMetadata(googleResult);
+
+                  finalVenueType = searchResult.venue_type || 'brewery';
+                  verificationTier = 3; // Tier 2.5 uses Google Places API, so it's Tier 3
+                  tierStats.tier3_matches++;
+                  this.logger.log(
+                    `Tier 2.5: Found ${finalVenueType} via reverse geocode + search - ${enrichedName} (confidence: ${searchResult.confidence.toFixed(2)})`
+                  );
+                } else {
+                  // Google Places says it's not a brewery/winery - trust that over search
+                  this.logger.debug(
+                    `Tier 2.5: Google Search found ${searchResult.venue_type}, but Places API rejected - skipping`
+                  );
+                }
+              } else {
+                this.logger.debug(
+                  `Tier 2.5: No brewery/winery found at address: ${geocodeResult.formatted_address}`
+                );
+              }
+            }
+          }
+
+          // If all tiers failed, skip this entry
           if (!finalVenueType) {
-            // Should not reach here, but safety check
             visits_skipped++;
             tierStats.unverified++;
+            this.logger.debug(`All tiers failed for coordinates: (${placeVisit.latitude}, ${placeVisit.longitude}), Place ID: ${placeVisit.place_id || 'none'}`);
             continue;
           }
 
+          // Update placeVisit with enriched data
+          if (enrichedName) placeVisit.name = enrichedName;
+          if (enrichedAddress) placeVisit.address = enrichedAddress;
+
           // Find or create venue using intelligent matching
-          // Strategy: Place ID → Proximity + Fuzzy Name → Create New
+          // Strategy: Place ID → Proximity → Create New
           const matchResult = await this.venueMatching.findOrCreateVenue(
             placeVisit,
             finalVenueType,
-            verificationTier // Pass actual verification tier used (1, 2, or 3)
+            verificationTier, // Pass actual verification tier used (1, 2, or 3)
+            googlePlacesMetadata // Pass Google Places metadata if available
           );
 
           if (!matchResult.venue) {
             visits_skipped++;
             errors.push({
-              place_name: placeVisit.name,
+              place_name: placeVisit.name || 'Unknown',
               address: placeVisit.address,
               timestamp: placeVisit.arrival_time,
               error: 'Failed to create venue',
@@ -279,10 +397,10 @@ export class ImportService {
           });
 
           // Log error but continue processing other visits
-          this.logger.error(`Error processing place visit "${placeVisit.name}": ${error}`);
+          this.logger.error(`Error processing place visit "${placeVisit.name || 'Unknown'}": ${error}`);
           visits_skipped++;
           errors.push({
-            place_name: placeVisit.name,
+            place_name: placeVisit.name || 'Unknown',
             address: placeVisit.address,
             timestamp: placeVisit.arrival_time,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -382,7 +500,7 @@ export class ImportService {
   /**
 
    */
-  private validateImportData(timelineData: unknown, fileName?: string): void {
+  private validateImportData(timelineData: unknown, _fileName?: string): void {
     // Validate JSON structure
     if (!timelineData || typeof timelineData !== 'object') {
       throw new BadRequestException('Invalid Timeline data: must be a JSON object');
@@ -428,9 +546,9 @@ export class ImportService {
         visits_created: visitsCreated,
         visits_skipped: visitsSkipped,
         new_venues_created: newVenuesCreated,
-        existing_venues_matched: existingVenuesMatched,
         processing_time_ms: processingTimeMs,
         metadata: {
+          existing_venues_matched: existingVenuesMatched, // Store in metadata since no dedicated column
           errors: errors.map((e) => ({
             place_name: e.place_name,
             address: e.address,
@@ -643,5 +761,92 @@ export class ImportService {
       this.logger.error(`Failed to count import history for user ${userId}: ${error}`);
       throw new BadRequestException('Failed to count import history');
     }
+  }
+
+  /**
+   * Extract valuable metadata from Google Places API result
+   * Store all Basic Data fields that could be useful later
+   */
+  private extractGooglePlacesMetadata(googleResult: any): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
+
+    // Extract structured address components (city, state, country, postal_code)
+    if (googleResult.address_components) {
+      const components = googleResult.address_components;
+
+      // City (locality)
+      const city = components.find((c: any) => c.types.includes('locality'));
+      if (city) metadata.city = city.long_name;
+
+      // State (administrative_area_level_1)
+      const state = components.find((c: any) => c.types.includes('administrative_area_level_1'));
+      if (state) metadata.state = state.short_name;
+
+      // Country (country)
+      const country = components.find((c: any) => c.types.includes('country'));
+      if (country) metadata.country = country.short_name;
+
+      // Postal code
+      const postal = components.find((c: any) => c.types.includes('postal_code'));
+      if (postal) metadata.postal_code = postal.long_name;
+    }
+
+    // Contact information
+    if (googleResult.formatted_phone_number) {
+      metadata.phone = googleResult.formatted_phone_number;
+    }
+    if (googleResult.international_phone_number) {
+      metadata.international_phone = googleResult.international_phone_number;
+    }
+    if (googleResult.website) {
+      metadata.website = googleResult.website;
+    }
+    if (googleResult.url) {
+      metadata.google_maps_url = googleResult.url;
+    }
+
+    // Business information
+    if (googleResult.business_status) {
+      metadata.business_status = googleResult.business_status;
+    }
+    if (googleResult.price_level !== undefined) {
+      metadata.price_level = googleResult.price_level;
+    }
+
+    // Ratings and reviews
+    if (googleResult.rating !== undefined) {
+      metadata.rating = googleResult.rating;
+    }
+    if (googleResult.user_ratings_total !== undefined) {
+      metadata.user_ratings_total = googleResult.user_ratings_total;
+    }
+
+    // Opening hours
+    if (googleResult.opening_hours) {
+      metadata.opening_hours = {
+        open_now: googleResult.opening_hours.open_now,
+        weekday_text: googleResult.opening_hours.weekday_text,
+      };
+    }
+
+    // Place types (categorization)
+    if (googleResult.types && googleResult.types.length > 0) {
+      metadata.google_types = googleResult.types;
+    }
+
+    // Vicinity (simplified address)
+    if (googleResult.vicinity) {
+      metadata.vicinity = googleResult.vicinity;
+    }
+
+    // Google coordinates (for comparison with Timeline coordinates)
+    if (googleResult.geometry?.location) {
+      metadata.google_coordinates = {
+        lat: googleResult.geometry.location.lat,
+        lng: googleResult.geometry.location.lng,
+      };
+    }
+
+    return metadata;
   }
 }

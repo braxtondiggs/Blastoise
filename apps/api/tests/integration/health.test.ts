@@ -7,7 +7,7 @@
  * Phase 7: Notifications & Observability
  */
 
-/* eslint-disable @nx/enforce-module-boundaries */
+ 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Test, TestingModule } from '@nestjs/testing';

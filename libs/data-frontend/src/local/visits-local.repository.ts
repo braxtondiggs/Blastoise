@@ -39,4 +39,55 @@ export class VisitsLocalRepository {
       await this.save(visit);
     }
   }
+
+  /**
+   * Clear all visits from local storage
+   */
+  async clearAll(): Promise<void> {
+    await this.db.clear(this.storeName);
+  }
+
+  /**
+   * Get visits with pagination and sorting
+   */
+  async getVisits(options: {
+    limit?: number;
+    offset?: number;
+    orderBy?: 'arrival_time' | 'created_at';
+    order?: 'asc' | 'desc';
+  }): Promise<Visit[]> {
+    const allVisits = await this.findAll();
+
+    // Sort visits
+    const sortedVisits = allVisits.sort((a, b) => {
+      const field = options.orderBy || 'arrival_time';
+      const aValue = new Date(a[field]).getTime();
+      const bValue = new Date(b[field]).getTime();
+
+      if (options.order === 'asc') {
+        return aValue - bValue;
+      }
+      return bValue - aValue; // desc is default
+    });
+
+    // Apply pagination
+    const offset = options.offset || 0;
+    const limit = options.limit || sortedVisits.length;
+
+    return sortedVisits.slice(offset, offset + limit);
+  }
+
+  /**
+   * Get a single visit by ID (alias for findById)
+   */
+  async getVisit(id: string): Promise<Visit | null> {
+    return this.findById(id);
+  }
+
+  /**
+   * Delete visit (alias for delete)
+   */
+  async deleteVisit(id: string): Promise<void> {
+    return this.delete(id);
+  }
 }

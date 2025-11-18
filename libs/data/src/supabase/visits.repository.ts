@@ -35,13 +35,32 @@ export class VisitsRepository {
   async findByUserId(userId: string, limit = 50, offset = 0): Promise<Visit[]> {
     const { data, error } = await this.supabase
       .from('visits')
-      .select('*')
+      .select(`
+        *,
+        venue:venues(*)
+      `)
       .eq('user_id', userId)
       .order('arrival_time', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw new Error(`Failed to find visits: ${error.message}`);
-    return data as Visit[];
+
+    // Flatten venue metadata into top-level properties
+    const visitsWithFlattenedVenues = data?.map((visit: any) => {
+      if (visit.venue && visit.venue.metadata) {
+        return {
+          ...visit,
+          venue: {
+            ...visit.venue,
+            address: visit.venue.metadata.address,
+            postal_code: visit.venue.metadata.postal_code,
+          }
+        };
+      }
+      return visit;
+    }) || [];
+
+    return visitsWithFlattenedVenues as Visit[];
   }
 
   async update(id: string, updates: Partial<UpdateVisitDto>): Promise<Visit> {

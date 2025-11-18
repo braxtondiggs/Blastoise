@@ -66,14 +66,25 @@ export class VenueClassifierService {
   /**
    * Classify place as brewery/winery with confidence score
    * Returns classification result with venue type and confidence
+   * Can handle missing names (returns low/no confidence)
    */
-  classify(name: string, address?: string): ClassificationResult {
-    const searchText = this.prepareSearchText(name, address);
+  classify(name: string | null, address?: string): ClassificationResult {
+    // Handle missing name - can't classify without text
+    if (!name && !address) {
+      return {
+        is_brewery_or_winery: false,
+        venue_type: null,
+        confidence: 0,
+        matched_keywords: [],
+      };
+    }
+
+    const searchText = this.prepareSearchText(name || '', address);
 
     // Check for exclusion keywords first
     const excludeMatches = this.matchKeywords(searchText, this.EXCLUDE_KEYWORDS);
     if (excludeMatches.length > 0) {
-      this.logger.debug(`Excluded "${name}" due to keywords: ${excludeMatches.join(', ')}`);
+      this.logger.debug(`Excluded "${name || 'coordinate-only entry'}" due to keywords: ${excludeMatches.join(', ')}`);
       return {
         is_brewery_or_winery: false,
         venue_type: null,
@@ -119,7 +130,7 @@ export class VenueClassifierService {
     }
 
     this.logger.debug(
-      `Classified "${name}" as ${venueType} (confidence: ${confidence.toFixed(2)}, keywords: ${matchedKeywords.join(', ')})`
+      `Classified "${name || 'coordinate-only entry'}" as ${venueType} (confidence: ${confidence.toFixed(2)}, keywords: ${matchedKeywords.join(', ')})`
     );
 
     return {

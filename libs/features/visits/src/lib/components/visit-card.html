@@ -1,1 +1,58 @@
-<p>visit-card works!</p>
+<div class="relative transition-colors card bg-base-200 hover:bg-base-300">
+  <div class="p-4 card-body">
+    <!-- Source Badge (top right corner) -->
+    @if (visit.source && visit.source !== 'auto_detect') {
+      <div class="absolute top-2 right-2">
+        <div class="badge badge-sm" [ngClass]="getSourceBadgeColor(visit.source)">
+          {{ getSourceLabel(visit.source) }}
+        </div>
+      </div>
+    }
+    
+    <!-- Venue Name -->
+    <h3 class="text-lg card-title">
+      {{ venue?.name || 'Unknown Venue' }}
+    </h3>
+
+    <!-- Venue Type Badge -->
+    @if (venue?.venue_type) {
+      <div class="badge badge-primary badge-sm">
+        {{ venue?.venue_type === 'brewery' ? '🍺 Brewery' : '🍷 Winery' }}
+      </div>
+    }
+
+    <!-- Visit Time -->
+    <div class="flex items-center gap-2 mt-2 text-sm text-base-content/70">
+      <ng-icon name="heroClock" size="16" />
+      <span>{{ formatTime(visit.arrival_time) }}</span>
+
+      @if (visit.departure_time) {
+        <span class="mx-1">→</span>
+        <span>{{ formatTime(visit.departure_time) }}</span>
+      }
+    </div>
+
+    <!-- Duration -->
+    @if (getDuration()) {
+      <div class="flex items-center gap-2 text-sm text-base-content/70">
+        <ng-icon name="heroBolt" size="16" />
+        <span>{{ getDuration() }}</span>
+      </div>
+    }
+
+    <!-- Location -->
+    @if (venue?.city || venue?.state_province) {
+      <div class="flex items-center gap-2 text-sm text-base-content/70">
+        <ng-icon name="heroMapPin" size="16" />
+        <span>{{ getLocation() }}</span>
+      </div>
+    }
+
+    <!-- Active Badge -->
+    @if (visit.is_active) {
+      <div class="mt-2 badge badge-success badge-sm">
+        Currently Visiting
+      </div>
+    }
+  </div>
+</div>

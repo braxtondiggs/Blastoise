@@ -13,6 +13,13 @@ export class VenuesApiService {
     return this.apiClient.get<Venue>(`/venues/${venueId}`);
   }
 
+  /**
+   * Get venue by ID (alias for getById)
+   */
+  getVenue(venueId: string): Observable<ApiResponse<Venue>> {
+    return this.getById(venueId);
+  }
+
   search(query: string): Observable<ApiResponse<Venue[]>> {
     return this.apiClient.get<Venue[]>(`/venues/search?q=${encodeURIComponent(query)}`);
   }

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.venues (
   state_province VARCHAR(100),
   country VARCHAR(100),
   venue_type VARCHAR(20) NOT NULL CHECK (venue_type IN ('brewery', 'winery')),
-  source VARCHAR(20) NOT NULL CHECK (source IN ('osm', 'brewerydb', 'manual')),
+  source VARCHAR(20) NOT NULL CHECK (source IN ('osm', 'brewerydb', 'manual', 'google_import')),
   external_id VARCHAR(255),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -56,4 +56,4 @@ CREATE TRIGGER update_venues_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE public.venues IS 'Brewery and winery venue information';
-COMMENT ON COLUMN public.venues.source IS 'Data source: osm (OpenStreetMap), brewerydb (Open Brewery DB), manual (user-added)';
+COMMENT ON COLUMN public.venues.source IS 'Data source: osm (OpenStreetMap), brewerydb (Open Brewery DB), manual (user-added), google_import (Google Timeline import)';

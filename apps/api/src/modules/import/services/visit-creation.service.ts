@@ -81,8 +81,8 @@ export class VisitCreationService {
         arrival_time: roundedArrival,
         departure_time: roundedDeparture,
         is_active: false, // Imported visits are always complete
-        detection_method: 'manual', // Imported data treated as manual
-        // source and imported_at will be set by repository based on Visit model
+        source: 'google_import', // Mark as imported from Google Timeline
+        imported_at: new Date(),
       } as any);
 
       this.logger.debug(`Created imported visit ${visit.id} for venue ${venueId}`);

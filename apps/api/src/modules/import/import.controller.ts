@@ -9,21 +9,18 @@ import {
   Get,
   Body,
   Param,
-  UseGuards,
   Request,
   Logger,
   HttpStatus,
   HttpException,
   Header,
 } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
 import { ImportService } from './import.service';
 import { GoogleTimelineImportDto } from './dto/google-timeline-import.dto';
 import { ImportSummaryDto } from './dto/import-summary.dto';
 import { GoogleTimelineData } from '@blastoise/shared';
 
 @Controller('import')
-@UseGuards(AuthGuard)
 export class ImportController {
   private readonly logger = new Logger(ImportController.name);
 
@@ -44,9 +41,11 @@ export class ImportController {
     @Request() req: any,
     @Body() dto: GoogleTimelineImportDto
   ): Promise<ImportSummaryDto | { job_id: string }> {
-    const userId = req.user?.id || req.user?.sub; // JWT payload userId
+    // Supabase user object has 'id' field
+    const userId = req.user?.id;
 
     if (!userId) {
+      this.logger.error('User object:', req.user);
       throw new HttpException(
         'User ID not found in request',
         HttpStatus.UNAUTHORIZED
@@ -62,7 +61,7 @@ export class ImportController {
       let timelineData: GoogleTimelineData;
       try {
         timelineData = JSON.parse(dto.timeline_data) as GoogleTimelineData;
-      } catch (error) {
+      } catch {
         throw new HttpException(
           'Invalid JSON format',
           HttpStatus.BAD_REQUEST

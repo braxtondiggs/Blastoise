@@ -12,7 +12,7 @@ export interface Venue {
   name: string; // max 200 chars
   address?: string; // max 500 chars
   city?: string; // max 100 chars
-  state?: string; // max 50 chars
+  state_province?: string; // max 50 chars (column name in DB)
   country?: string; // ISO 3166-1 alpha-2, max 50 chars
   postal_code?: string; // max 20 chars
   latitude: number; // -90 to 90

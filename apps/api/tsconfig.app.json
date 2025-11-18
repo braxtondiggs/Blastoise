@@ -17,10 +17,10 @@
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "references": [
     {
-      "path": "../../libs/shared"
+      "path": "../../libs/shared/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/data-backend"
+      "path": "../../libs/data-backend/tsconfig.lib.json"
     }
   ]
 }
