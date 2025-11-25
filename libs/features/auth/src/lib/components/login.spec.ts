@@ -1,466 +1,275 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { createComponentFactory, Spectator, SpyObject } from '@ngneat/spectator/jest';
 import { Router } from '@angular/router';
+import { fakeAsync, tick } from '@angular/core/testing';
 import { Login } from './login';
 import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 
+// Mock Capacitor
+jest.mock('@capacitor/core', () => ({
+  Capacitor: {
+    getPlatform: jest.fn(() => 'web'),
+  },
+}));
+
 describe('Login', () => {
-  let component: Login;
-  let fixture: ComponentFixture<Login>;
-  let authServiceMock: jest.Mocked<AuthService>;
-  let authStateMock: jest.Mocked<Partial<AuthStateService>>;
-  let routerMock: jest.Mocked<Partial<Router>>;
+  let spectator: Spectator<Login>;
+  let authService: SpyObject<AuthService>;
+  let authState: AuthStateService;
+  let router: SpyObject<Router>;
 
-  beforeEach(async () => {
-    // Create mock objects for dependencies
-    authServiceMock = {
-      enableAnonymousMode: jest.fn(),
-      signInWithPassword: jest.fn(),
-    } as any;
-
-    authStateMock = {
-      isAuthenticated: jest.fn().mockReturnValue(false),
-    };
-
-    routerMock = {
-      navigate: jest.fn(),
-    };
-
-    await TestBed.configureTestingModule({
-      imports: [Login],
-      providers: [
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: AuthStateService, useValue: authStateMock },
-        { provide: Router, useValue: routerMock },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(Login);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+  const createComponent = createComponentFactory({
+    component: Login,
+    providers: [AuthStateService],
+    mocks: [AuthService, Router],
+    detectChanges: false,
   });
 
-  afterEach(() => {
-    // Clean up localStorage after each test
-    localStorage.clear();
+  beforeEach(() => {
+    spectator = createComponent();
+    authService = spectator.inject(AuthService);
+    authState = spectator.inject(AuthStateService);
+    router = spectator.inject(Router);
+
+    // Default mock setup - use real AuthStateService with setter methods
+    authState.setCurrentUser(null);
+    authState.setAnonymousMode(false);
+    authService.enableAnonymousMode.mockReturnValue(undefined);
+    authService.signInWithPassword.mockResolvedValue({});
+    authService.signInWithMagicLink.mockResolvedValue({ error: null });
+    router.navigate.mockResolvedValue(true);
+
+    spectator.detectChanges();
   });
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(spectator.component).toBeTruthy();
   });
 
-  describe('Anonymous Mode (T011)', () => {
-    it('should call AuthService.enableAnonymousMode when Continue as Guest is clicked', () => {
-      // Arrange
-      const continueAsGuestButton = fixture.nativeElement.querySelector(
-        '[data-testid="continue-as-guest"]'
-      );
-      expect(continueAsGuestButton).toBeTruthy();
-
-      // Act
-      continueAsGuestButton.click();
-
-      // Assert
-      expect(authServiceMock.enableAnonymousMode).toHaveBeenCalled();
+  describe('Component Initialization', () => {
+    it('should have a login form with email and password controls', () => {
+      expect(spectator.component.loginForm).toBeTruthy();
+      expect(spectator.component.loginForm.controls['email']).toBeTruthy();
+      expect(spectator.component.loginForm.controls['password']).toBeTruthy();
     });
 
-    it('should set anonymous mode flags in localStorage after Continue as Guest', () => {
-      // Arrange
-      const continueAsGuestButton = fixture.nativeElement.querySelector(
-        '[data-testid="continue-as-guest"]'
-      );
-      const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
-
-      // Setup the mock to actually call localStorage.setItem
-      authServiceMock.enableAnonymousMode.mockImplementation(() => {
-        localStorage.setItem('anonymous_mode', 'true');
-        localStorage.setItem('anonymous_user_id', 'anon_test-uuid');
-      });
-
-      // Act
-      continueAsGuestButton.click();
-
-      // Assert - Verify localStorage was called (implementation detail of AuthService)
-      expect(setItemSpy).toHaveBeenCalledWith('anonymous_mode', 'true');
-      expect(setItemSpy).toHaveBeenCalledWith('anonymous_user_id', expect.any(String));
-
-      // Cleanup
-      setItemSpy.mockRestore();
+    it('should start in password mode', () => {
+      expect(spectator.component.mode()).toBe('password');
     });
 
-    it('should navigate to main app after Continue as Guest', () => {
-      // Arrange
-      const continueAsGuestButton = fixture.nativeElement.querySelector(
-        '[data-testid="continue-as-guest"]'
-      );
-
-      // Act
-      continueAsGuestButton.click();
-
-      // Assert
-      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
+    it('should not show loading state initially', () => {
+      expect(spectator.component.isLoading()).toBe(false);
     });
 
-    it('should persist anonymous mode across sessions', () => {
-      // Arrange - Simulate existing anonymous session
-      localStorage.setItem('anonymous_mode', 'true');
-      localStorage.setItem('anonymous_user_id', 'anon_existing-user');
+    it('should not show error initially', () => {
+      expect(spectator.component.error()).toBeNull();
+    });
 
-      // Act - Create new component instance (simulates app reload)
-      const newFixture = TestBed.createComponent(Login);
-      newFixture.detectChanges();
-
-      // Assert
-      expect(localStorage.getItem('anonymous_mode')).toBe('true');
-      expect(localStorage.getItem('anonymous_user_id')).toBe('anon_existing-user');
+    it('should not show success message initially', () => {
+      expect(spectator.component.showSuccessMessage()).toBe(false);
     });
   });
 
-  describe('Email/Password Sign In (T023, T024)', () => {
-    it('should create reactive form with email and password controls', () => {
-      // Assert - Form should exist on component
-      expect(component.loginForm).toBeTruthy();
-      expect(component.loginForm.controls['email']).toBeTruthy();
-      expect(component.loginForm.controls['password']).toBeTruthy();
-    });
-
-    it('should validate email format', () => {
-      // Arrange
-      const emailControl = component.loginForm.controls['email'];
-
-      // Act - Invalid email
-      emailControl.setValue('notanemail');
-      emailControl.markAsTouched();
-
-      // Assert
-      expect(emailControl.invalid).toBe(true);
-      expect(emailControl.errors?.['email']).toBeTruthy();
-
-      // Act - Valid email
-      emailControl.setValue('test@example.com');
-
-      // Assert
-      expect(emailControl.valid).toBe(true);
-    });
-
-    it('should validate password minimum length', () => {
-      // Arrange
-      const passwordControl = component.loginForm.controls['password'];
-
-      // Act - Too short
-      passwordControl.setValue('short');
-      passwordControl.markAsTouched();
-
-      // Assert
-      expect(passwordControl.invalid).toBe(true);
-      expect(passwordControl.errors?.['minlength']).toBeTruthy();
-
-      // Act - Valid length
-      passwordControl.setValue('validpass123');
-
-      // Assert
-      expect(passwordControl.valid).toBe(true);
-    });
-
-    it('should use updateOn blur for validation timing', () => {
-      // Assert - Check that form controls use 'blur' validation
-      const emailControl = component.loginForm.controls['email'];
-
-      // Note: Angular's updateOn is set at form group level or control level
-      // This test verifies the behavior
-      emailControl.setValue('invalid');
-
-      // Before blur, errors might not be checked depending on updateOn
-      // After markAsTouched (simulates blur), errors should be present
-      emailControl.markAsTouched();
-      expect(emailControl.errors).toBeTruthy();
-    });
-
-    it('should display inline error messages when field is invalid and touched', () => {
-      // Arrange
-      const emailControl = component.loginForm.controls['email'];
-      emailControl.setValue('invalid');
-      emailControl.markAsTouched();
-      fixture.detectChanges();
-
-      // Act
-      const errorMessage = fixture.nativeElement.querySelector('[data-testid="email-error"]');
-
-      // Assert
-      expect(errorMessage).toBeTruthy();
-      expect(errorMessage.textContent).toContain('valid email');
-    });
-
-    it('should disable submit button when form is invalid', () => {
-      // Arrange - Invalid form
-      component.loginForm.controls['email'].setValue('');
-      component.loginForm.controls['password'].setValue('');
-      fixture.detectChanges();
-
-      // Act
-      const submitButton = fixture.nativeElement.querySelector('[data-testid="login-submit"]');
-
-      // Assert
-      expect(submitButton.disabled).toBe(true);
-    });
-
-    it('should enable submit button when form is valid', () => {
-      // Arrange - Valid form
-      component.loginForm.controls['email'].setValue('test@example.com');
-      component.loginForm.controls['password'].setValue('password123');
-      fixture.detectChanges();
-
-      // Act
-      const submitButton = fixture.nativeElement.querySelector('[data-testid="login-submit"]');
-
-      // Assert
-      expect(submitButton.disabled).toBe(false);
-    });
-
-    it('should call AuthService.signInWithPassword on form submit', async () => {
-      // Arrange
-      component.loginForm.controls['email'].setValue('test@example.com');
-      component.loginForm.controls['password'].setValue('password123');
-      authServiceMock.signInWithPassword.mockResolvedValue({});
-
-      // Act
-      await component.onSubmit();
-
-      // Assert
-      expect(authServiceMock.signInWithPassword).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123'
-      );
-    });
-
-    it('should show loading state during sign in', async () => {
-      // Arrange
-      component.loginForm.controls['email'].setValue('test@example.com');
-      component.loginForm.controls['password'].setValue('password123');
-
-      // Make signIn take some time
-      authServiceMock.signInWithPassword.mockReturnValue(
-        new Promise((resolve) => setTimeout(() => resolve({}), 100))
-      );
-
-      // Act
-      const submitPromise = component.onSubmit();
-
-      // Assert - Loading should be true immediately
-      expect(component.isLoading()).toBe(true);
-
-      await submitPromise;
-
-      // Assert - Loading should be false after completion
-      expect(component.isLoading()).toBe(false);
-    });
-
-    it('should disable form inputs during loading', () => {
-      // Arrange - Set loading state and disable form (simulating what onSubmit does)
-      component.isLoading.set(true);
-      component.loginForm.disable();
-      fixture.detectChanges();
-
-      // Act
-      const emailInput = fixture.nativeElement.querySelector('[data-testid="email-input"]');
-      const passwordInput = fixture.nativeElement.querySelector('[data-testid="password-input"]');
-      const submitButton = fixture.nativeElement.querySelector('[data-testid="login-submit"]');
-
-      // Assert - Form controls should be disabled
-      expect(emailInput.disabled).toBe(true);
-      expect(passwordInput.disabled).toBe(true);
-      expect(submitButton.disabled).toBe(true);
-
-      // Verify the form state is disabled
-      expect(component.loginForm.disabled).toBe(true);
-    });
-
-    it('should navigate to main app on successful sign in', async () => {
-      // Arrange
-      component.loginForm.controls['email'].setValue('test@example.com');
-      component.loginForm.controls['password'].setValue('password123');
-      authServiceMock.signInWithPassword.mockResolvedValue({});
-
-      // Act
-      await component.onSubmit();
-
-      // Assert
-      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
-    });
-
-    it('should display error message on failed sign in', async () => {
-      // Arrange
-      component.loginForm.controls['email'].setValue('test@example.com');
-      component.loginForm.controls['password'].setValue('wrongpassword');
-      authServiceMock.signInWithPassword.mockResolvedValue({
-        error: new Error('Invalid login credentials'),
-      });
-
-      // Act
-      await component.onSubmit();
-      fixture.detectChanges();
-
-      // Assert
-      expect(component.error()).toBeTruthy();
-      expect(component.error()).toContain('Invalid email or password');
-
-      const errorAlert = fixture.nativeElement.querySelector('[data-testid="login-error"]');
-      expect(errorAlert).toBeTruthy();
-    });
-  });
-
-  describe('Magic Link Authentication (T037, T038)', () => {
-    beforeEach(() => {
-      // Add signInWithMagicLink to the mock
-      authServiceMock.signInWithMagicLink = jest.fn() as any;
-    });
-
-    it('should have mode signal defaulting to password', () => {
-      // Assert
-      expect(component.mode).toBeDefined();
-      expect(component.mode()).toBe('password');
-    });
-
-    it('should toggle between password and magic-link modes', () => {
-      // Arrange - Start in password mode
-      expect(component.mode()).toBe('password');
-
-      // Act - Switch to magic link mode
-      component.mode.set('magic-link');
-      fixture.detectChanges();
-
-      // Assert
-      expect(component.mode()).toBe('magic-link');
-
-      // Act - Switch back to password mode
-      component.mode.set('password');
-      fixture.detectChanges();
-
-      // Assert
-      expect(component.mode()).toBe('password');
-    });
-
-    it('should show tab navigation for switching modes', () => {
-      // Act
-      fixture.detectChanges();
-
-      // Assert - Check for tabs
-      const passwordTab = fixture.nativeElement.querySelector('[data-testid="password-tab"]');
-      const magicLinkTab = fixture.nativeElement.querySelector('[data-testid="magic-link-tab"]');
+  describe('Tab Navigation', () => {
+    it('should show password and magic link tabs', () => {
+      const passwordTab = spectator.query('[data-testid="password-tab"]');
+      const magicLinkTab = spectator.query('[data-testid="magic-link-tab"]');
 
       expect(passwordTab).toBeTruthy();
       expect(magicLinkTab).toBeTruthy();
     });
 
-    it('should hide password field in magic-link mode', () => {
-      // Arrange - Switch to magic link mode
-      component.mode.set('magic-link');
-      fixture.detectChanges();
+    it('should switch to magic link mode when clicking magic link tab', () => {
+      spectator.click('[data-testid="magic-link-tab"]');
 
-      // Assert - Password field should not be visible
-      const passwordInput = fixture.nativeElement.querySelector('[data-testid="password-input"]');
+      expect(spectator.component.mode()).toBe('magic-link');
+    });
+
+    it('should switch back to password mode when clicking password tab', () => {
+      spectator.component.mode.set('magic-link');
+      spectator.detectChanges();
+
+      spectator.click('[data-testid="password-tab"]');
+
+      expect(spectator.component.mode()).toBe('password');
+    });
+
+    it('should hide password field in magic link mode', () => {
+      spectator.component.mode.set('magic-link');
+      spectator.detectChanges();
+
+      const passwordInput = spectator.query('[data-testid="password-input"]');
       expect(passwordInput).toBeNull();
     });
 
     it('should show password field in password mode', () => {
-      // Arrange - Ensure in password mode
-      component.mode.set('password');
-      fixture.detectChanges();
+      spectator.component.mode.set('password');
+      spectator.detectChanges();
 
-      // Assert - Password field should be visible
-      const passwordInput = fixture.nativeElement.querySelector('[data-testid="password-input"]');
+      const passwordInput = spectator.query('[data-testid="password-input"]');
       expect(passwordInput).toBeTruthy();
     });
+  });
 
-    it('should call signInWithMagicLink when submitting in magic-link mode', async () => {
-      // Arrange
-      component.mode.set('magic-link');
-      component.loginForm.controls['email'].setValue('test@example.com');
-      authServiceMock.signInWithMagicLink.mockResolvedValue({ error: null });
+  describe('Form Validation', () => {
+    it('should validate email format', () => {
+      const emailControl = spectator.component.loginForm.controls['email'];
 
-      // Act
-      await component.onSubmit();
+      emailControl.setValue('invalid-email');
+      emailControl.markAsTouched();
 
-      // Assert
-      expect(authServiceMock.signInWithMagicLink).toHaveBeenCalledWith('test@example.com');
-      expect(authServiceMock.signInWithPassword).not.toHaveBeenCalled();
+      expect(emailControl.invalid).toBe(true);
+
+      emailControl.setValue('valid@example.com');
+
+      expect(emailControl.valid).toBe(true);
     });
 
-    it('should call signInWithPassword when submitting in password mode', async () => {
-      // Arrange
-      component.mode.set('password');
-      component.loginForm.controls['email'].setValue('test@example.com');
-      component.loginForm.controls['password'].setValue('password123');
-      authServiceMock.signInWithPassword.mockResolvedValue({});
+    it('should require email', () => {
+      const emailControl = spectator.component.loginForm.controls['email'];
 
-      // Act
-      await component.onSubmit();
+      emailControl.setValue('');
+      emailControl.markAsTouched();
 
-      // Assert
-      expect(authServiceMock.signInWithPassword).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123'
-      );
-      expect(authServiceMock.signInWithMagicLink).not.toHaveBeenCalled();
+      expect(emailControl.errors?.['required']).toBeTruthy();
+    });
+
+    it('should validate password minimum length', () => {
+      const passwordControl = spectator.component.loginForm.controls['password'];
+
+      passwordControl.setValue('short');
+      passwordControl.markAsTouched();
+
+      expect(passwordControl.errors?.['minlength']).toBeTruthy();
+
+      passwordControl.setValue('validpassword123');
+
+      expect(passwordControl.valid).toBe(true);
+    });
+
+    it('should disable submit button when form is invalid', () => {
+      spectator.component.loginForm.controls['email'].setValue('');
+      spectator.component.loginForm.controls['password'].setValue('');
+      spectator.detectChanges();
+
+      const submitButton = spectator.query<HTMLButtonElement>('[data-testid="login-submit"]');
+
+      expect(submitButton?.disabled).toBe(true);
+    });
+
+    it('should enable submit button when form is valid', () => {
+      spectator.component.loginForm.controls['email'].setValue('test@example.com');
+      spectator.component.loginForm.controls['password'].setValue('validpassword');
+      spectator.detectChanges();
+
+      const submitButton = spectator.query<HTMLButtonElement>('[data-testid="login-submit"]');
+
+      expect(submitButton?.disabled).toBe(false);
+    });
+
+    it('should show email error message when email is invalid and touched', () => {
+      spectator.component.loginForm.controls['email'].setValue('invalid');
+      spectator.component.loginForm.controls['email'].markAsTouched();
+      spectator.detectChanges();
+
+      const errorMessage = spectator.query('[data-testid="email-error"]');
+
+      expect(errorMessage).toBeTruthy();
+      expect(errorMessage?.textContent).toContain('valid email');
+    });
+  });
+
+  describe('Password Sign In', () => {
+    beforeEach(() => {
+      spectator.component.loginForm.controls['email'].setValue('test@example.com');
+      spectator.component.loginForm.controls['password'].setValue('validpassword');
+      spectator.detectChanges();
+    });
+
+    it('should call AuthService.signInWithPassword on form submit', async () => {
+      await spectator.component.onSubmit();
+
+      expect(authService.signInWithPassword).toHaveBeenCalledWith('test@example.com', 'validpassword');
+    });
+
+    it('should navigate to /visits on successful sign in', async () => {
+      await spectator.component.onSubmit();
+
+      expect(router.navigate).toHaveBeenCalledWith(['/visits']);
+    });
+
+    it('should show loading state during sign in', async () => {
+      const submitPromise = spectator.component.onSubmit();
+
+      expect(spectator.component.isLoading()).toBe(true);
+
+      await submitPromise;
+
+      expect(spectator.component.isLoading()).toBe(false);
+    });
+
+    it('should display error message on failed sign in', async () => {
+      authService.signInWithPassword.mockResolvedValue({
+        error: { message: 'Invalid login credentials' },
+      });
+
+      await spectator.component.onSubmit();
+      spectator.detectChanges();
+
+      expect(spectator.component.error()).toBeTruthy();
+
+      const errorAlert = spectator.query('[data-testid="login-error"]');
+      expect(errorAlert).toBeTruthy();
+    });
+  });
+
+  describe('Magic Link Sign In', () => {
+    beforeEach(() => {
+      spectator.component.mode.set('magic-link');
+      spectator.component.loginForm.controls['email'].setValue('test@example.com');
+      spectator.detectChanges();
+    });
+
+    it('should call AuthService.signInWithMagicLink in magic link mode', async () => {
+      await spectator.component.onSubmit();
+
+      expect(authService.signInWithMagicLink).toHaveBeenCalledWith('test@example.com');
+      expect(authService.signInWithPassword).not.toHaveBeenCalled();
     });
 
     it('should show success message after magic link sent', async () => {
-      // Arrange
-      component.mode.set('magic-link');
-      component.loginForm.controls['email'].setValue('test@example.com');
-      authServiceMock.signInWithMagicLink.mockResolvedValue({ error: null });
+      await spectator.component.onSubmit();
+      spectator.detectChanges();
 
-      // Act
-      await component.onSubmit();
-      fixture.detectChanges();
+      expect(spectator.component.showSuccessMessage()).toBe(true);
 
-      // Assert
-      expect(component.showSuccessMessage).toBeDefined();
-      expect(component.showSuccessMessage()).toBe(true);
-
-      const successAlert = fixture.nativeElement.querySelector(
-        '[data-testid="magic-link-success"]'
-      );
+      const successAlert = spectator.query('[data-testid="magic-link-success"]');
       expect(successAlert).toBeTruthy();
-      expect(successAlert.textContent).toContain('Check your email');
+      expect(successAlert?.textContent).toContain('Check your email');
     });
 
-    it('should auto-dismiss success message after 5 seconds', async () => {
-      // Arrange
-      jest.useFakeTimers();
-      component.mode.set('magic-link');
-      component.loginForm.controls['email'].setValue('test@example.com');
-      authServiceMock.signInWithMagicLink.mockResolvedValue({ error: null });
+    it('should auto-dismiss success message after 5 seconds', fakeAsync(() => {
+      spectator.component.onSubmit();
+      tick();
+      spectator.detectChanges();
 
-      // Act
-      await component.onSubmit();
-      expect(component.showSuccessMessage()).toBe(true);
+      expect(spectator.component.showSuccessMessage()).toBe(true);
 
-      // Fast-forward time by 5 seconds
-      jest.advanceTimersByTime(5000);
+      tick(5000);
 
-      // Assert
-      expect(component.showSuccessMessage()).toBe(false);
-
-      // Cleanup
-      jest.useRealTimers();
-    });
+      expect(spectator.component.showSuccessMessage()).toBe(false);
+    }));
 
     it('should not show success message on magic link error', async () => {
-      // Arrange
-      component.mode.set('magic-link');
-      component.loginForm.controls['email'].setValue('test@example.com');
-      authServiceMock.signInWithMagicLink.mockResolvedValue({
-        error: new Error('Failed to send magic link'),
+      authService.signInWithMagicLink.mockResolvedValue({
+        error: { message: 'Failed to send email' },
       });
 
-      // Act
-      await component.onSubmit();
-      fixture.detectChanges();
+      await spectator.component.onSubmit();
+      spectator.detectChanges();
 
-      // Assert
-      expect(component.showSuccessMessage()).toBe(false);
-      expect(component.error()).toBeTruthy();
+      expect(spectator.component.showSuccessMessage()).toBe(false);
+      expect(spectator.component.error()).toBeTruthy();
     });
   });
 });

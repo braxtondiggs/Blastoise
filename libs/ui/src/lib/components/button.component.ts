@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
- * T243: Button Component with ARIA accessibility
+ * Button Component with ARIA accessibility
  */
 @Component({
   selector: 'lib-button',
@@ -27,8 +27,8 @@ export class ButtonComponent {
   @Input() variant: 'primary' | 'secondary' | 'accent' | 'ghost' = 'primary';
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() disabled = false;
-  @Input() ariaLabel?: string; // T243: Accessibility label
-  @Input() ariaPressed?: boolean; // T243: For toggle buttons
+  @Input() ariaLabel?: string;
+  @Input() ariaPressed?: boolean;
 
   get buttonClasses(): string {
     return `btn btn-${this.variant} btn-${this.size}`;

@@ -1,17 +1,17 @@
-<!-- T088: Upgrade Prompt Template with DaisyUI -->
-<!-- T080: Only show when user is anonymous -->
+<!-- Upgrade Prompt Template with DaisyUI -->
+<!-- Only show when user is anonymous -->
 @if (visible()) {
-<div class="card w-full max-w-md bg-base-200 shadow-xl" data-testid="upgrade-prompt-card">
+<div class="w-full max-w-md shadow-xl card bg-base-200" data-testid="upgrade-prompt-card">
   <div class="card-body">
-    <h2 class="card-title text-2xl font-bold mb-2">Upgrade Your Account</h2>
+    <h2 class="mb-2 text-2xl font-bold card-title">Upgrade Your Account</h2>
 
-    <!-- T086: Display local visit count -->
-    <div class="alert alert-info mb-4">
+    <!-- Display local visit count -->
+    <div class="mb-4 alert alert-info">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
-        class="stroke-current shrink-0 w-6 h-6"
+        class="w-6 h-6 stroke-current shrink-0"
       >
         <path
           stroke-linecap="round"
@@ -28,12 +28,12 @@
       </div>
     </div>
 
-    <!-- T092: Error Alert -->
+    <!-- Error Alert -->
     @if (error()) {
-    <div class="alert alert-error mb-4" role="alert" data-testid="upgrade-error">
+    <div class="mb-4 alert alert-error" role="alert" data-testid="upgrade-error">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="stroke-current shrink-0 h-6 w-6"
+        class="w-6 h-6 stroke-current shrink-0"
         fill="none"
         viewBox="0 0 24 24"
       >
@@ -48,17 +48,17 @@
     </div>
     }
 
-    <!-- T091: Migration Progress Indicator -->
+    <!-- Migration Progress Indicator -->
     @if (migrationStatus() === 'in-progress') {
-    <div class="alert alert-info mb-4" data-testid="migration-progress">
+    <div class="mb-4 alert alert-info" data-testid="migration-progress">
       <span class="loading loading-spinner loading-sm"></span>
       <span>Creating account and migrating visits...</span>
     </div>
     } @if (migrationStatus() === 'complete') {
-    <div class="alert alert-success mb-4" data-testid="migration-complete">
+    <div class="mb-4 alert alert-success" data-testid="migration-complete">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="stroke-current shrink-0 h-6 w-6"
+        class="w-6 h-6 stroke-current shrink-0"
         fill="none"
         viewBox="0 0 24 24"
       >
@@ -73,7 +73,7 @@
     </div>
     }
 
-    <!-- T088: Upgrade Form -->
+    <!-- Upgrade Form -->
     <form
       [formGroup]="upgradeForm"
       (ngSubmit)="onSubmit()"
@@ -81,7 +81,7 @@
       class="space-y-4"
     >
       <!-- Email Input -->
-      <div class="form-control w-full">
+      <div class="w-full form-control">
         <label class="label" for="upgrade-email-input">
           <span class="label-text">Email</span>
         </label>
@@ -91,7 +91,7 @@
           formControlName="email"
           type="email"
           placeholder="you@example.com"
-          class="input input-bordered w-full"
+          class="w-full input input-bordered"
           [disabled]="isLoading()"
           [attr.aria-required]="true"
           [attr.aria-invalid]="emailInvalid"
@@ -108,7 +108,7 @@
       </div>
 
       <!-- Password Input -->
-      <div class="form-control w-full">
+      <div class="w-full form-control">
         <label class="label" for="upgrade-password-input">
           <span class="label-text">Password</span>
         </label>
@@ -118,7 +118,7 @@
           formControlName="password"
           type="password"
           placeholder="••••••••"
-          class="input input-bordered w-full"
+          class="w-full input input-bordered"
           [disabled]="isLoading()"
           [attr.aria-required]="true"
           [attr.aria-invalid]="passwordInvalid"
@@ -137,7 +137,7 @@
       </div>
 
       <!-- Confirm Password Input -->
-      <div class="form-control w-full">
+      <div class="w-full form-control">
         <label class="label" for="upgrade-confirm-password-input">
           <span class="label-text">Confirm Password</span>
         </label>
@@ -147,7 +147,7 @@
           formControlName="confirmPassword"
           type="password"
           placeholder="••••••••"
-          class="input input-bordered w-full"
+          class="w-full input input-bordered"
           [disabled]="isLoading()"
           [attr.aria-required]="true"
           [attr.aria-invalid]="confirmPasswordInvalid"
@@ -162,12 +162,12 @@
         }
       </div>
 
-      <!-- T089: Submit Button with Loading State -->
+      <!-- Submit Button with Loading State -->
       @if (migrationStatus() === 'failed') {
-      <!-- T092: Retry Button -->
+      <!-- Retry Button -->
       <button
         type="button"
-        class="btn btn-warning w-full"
+        class="w-full btn btn-warning"
         (click)="retry()"
         data-testid="migration-retry"
       >
@@ -176,7 +176,7 @@
       } @else {
       <button
         type="submit"
-        class="btn btn-primary w-full"
+        class="w-full btn btn-primary"
         [disabled]="upgradeForm.invalid || isLoading()"
         data-testid="upgrade-submit"
         [attr.aria-label]="isLoading() ? 'Upgrading account...' : 'Upgrade to authenticated account'"
@@ -190,8 +190,8 @@
 
     <!-- Benefits List -->
     <div class="mt-4">
-      <p class="text-sm font-semibold mb-2">Benefits of upgrading:</p>
-      <ul class="text-sm text-base-content/70 space-y-1">
+      <p class="mb-2 text-sm font-semibold">Benefits of upgrading:</p>
+      <ul class="space-y-1 text-sm text-base-content/70">
         <li class="flex items-start gap-2">
           <svg class="w-4 h-4 mt-0.5 text-success" fill="currentColor" viewBox="0 0 20 20">
             <path

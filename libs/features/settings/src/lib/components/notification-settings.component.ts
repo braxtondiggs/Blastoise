@@ -1,6 +1,4 @@
 /**
- * T194: Notification Settings Component
- *
  * Allows users to configure granular notification preferences:
  * - Visit detected (arrival)
  * - Visit ended (departure)

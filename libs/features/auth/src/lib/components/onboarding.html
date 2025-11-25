@@ -1,8 +1,8 @@
-<!-- T103: Onboarding Template with DaisyUI -->
-<div class="flex items-center justify-center min-h-screen bg-base-100 p-4">
-  <div class="card w-full max-w-lg bg-base-200 shadow-xl">
+<!-- Onboarding Template with DaisyUI -->
+<div class="flex items-center justify-center min-h-screen p-4 bg-base-100">
+  <div class="w-full max-w-lg shadow-xl card bg-base-200">
     <div class="card-body">
-      <!-- T104: Progress Indicator with Dots -->
+      <!-- Progress Indicator with Dots -->
       <div
         class="flex justify-center gap-2 mb-6"
         role="progressbar"
@@ -20,17 +20,17 @@
       </div>
 
       <!-- Step Content -->
-      <h2 class="card-title text-2xl font-bold mb-4 text-center justify-center">
+      <h2 class="justify-center mb-4 text-2xl font-bold text-center card-title">
         {{ steps[currentStep()].title }}
       </h2>
-      <p class="text-base-content/80 text-center mb-8">{{ steps[currentStep()].content }}</p>
+      <p class="mb-8 text-center text-base-content/80">{{ steps[currentStep()].content }}</p>
 
-      <!-- T108: Show auth options on final step -->
+      <!-- Show auth options on final step -->
       @if (currentStep() === totalSteps - 1) {
-      <div class="space-y-3 mb-6">
+      <div class="mb-6 space-y-3">
         <button
           type="button"
-          class="btn btn-primary w-full"
+          class="w-full btn btn-primary"
           (click)="onSignIn()"
           aria-label="Sign in to your account"
         >
@@ -39,7 +39,7 @@
 
         <button
           type="button"
-          class="btn btn-outline w-full"
+          class="w-full btn btn-outline"
           (click)="onContinueAsGuest()"
           aria-label="Continue using the app without signing in"
         >
@@ -48,9 +48,9 @@
       </div>
       }
 
-      <!-- T105-T106: Navigation Buttons -->
-      <div class="flex justify-between items-center mt-4">
-        <!-- T105: Show Back if not first step, else show Skip -->
+      <!-- Navigation Buttons -->
+      <div class="flex items-center justify-between mt-4">
+        <!-- Show Back if not first step, else show Skip -->
         @if (currentStep() > 0) {
         <button
           type="button"
@@ -66,7 +66,7 @@
         </button>
         }
 
-        <!-- T106: Show Next if not last step, else show Get Started -->
+        <!-- Show Next if not last step, else show Get Started -->
         @if (currentStep() < totalSteps - 1) {
         <button
           type="button"
@@ -80,7 +80,7 @@
       </div>
 
       <!-- Step Counter -->
-      <div class="text-center text-sm text-base-content/50 mt-4">
+      <div class="mt-4 text-sm text-center text-base-content/50">
         Step {{ currentStep() + 1 }} of {{ totalSteps }}
       </div>
     </div>

@@ -17,19 +17,26 @@
       (change)="toggleMobileMenu()"
     />
 
-    <div class="drawer-content flex flex-col">
+    <div class="flex flex-col drawer-content">
       <!-- Mobile header -->
-      <div class="navbar bg-base-100 lg:hidden shadow-sm">
+      <div class="shadow-sm navbar bg-base-100 lg:hidden">
         <div class="flex-none">
           <label for="mobile-drawer" class="btn btn-square btn-ghost">
             <ng-icon name="heroBars3" size="20" />
           </label>
         </div>
-        <div class="flex-1 flex items-center gap-2">
+        <div class="flex items-center flex-1 gap-2">
           <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="w-8 h-8" />
-          <a class="btn btn-ghost text-xl">{{ title }}</a>
+          <a class="text-xl btn btn-ghost">{{ title }}</a>
         </div>
       </div>
+
+      <!-- Web Limitation Notice (Web Only, After Login) -->
+      @if (showWebNotice()) {
+        <div class="p-4">
+          <lib-web-limitation-notice />
+        </div>
+      }
 
       <!-- Page content -->
       <main class="flex-1">
@@ -40,16 +47,16 @@
     <!-- Sidebar navigation -->
     <div class="drawer-side">
       <label for="mobile-drawer" class="drawer-overlay"></label>
-      <aside class="menu bg-base-200 min-h-full w-80 p-4">
+      <aside class="min-h-full p-4 menu bg-base-200 w-80">
         <!-- Logo -->
-        <div class="mb-8 px-4">
-          <div class="flex items-center gap-3 mb-2">
+        <div class="px-4 mb-8">
+          <div class="flex items-end gap-3 mb-2">
             <img src="/assets/icons/icon-96x96.png" alt="Blastoise Logo" class="w-12 h-12 rounded-lg" />
-            <div>
-              <h1 class="text-2xl font-bold">{{ title }}</h1>
-              <p class="text-sm text-base-content/70">Track your visits</p>
-            </div>
+            <h1 class="text-2xl font-bold">{{ title }}</h1>
           </div>
+          <p class="text-sm leading-tight text-secondary">
+            Drink responsibly, track obsessively
+          </p>
         </div>
 
         <!-- Navigation links -->
@@ -99,7 +106,7 @@
           <button
             type="button"
             (click)="onSignOut()"
-            class="btn btn-outline btn-error w-full"
+            class="w-full btn btn-outline btn-error"
           >
             <ng-icon name="heroArrowRightOnRectangle" size="20" />
             Sign Out

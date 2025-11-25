@@ -1,5 +1,5 @@
 /**
- * T226: Sentry Module for Error Tracking
+ * Sentry Module for Error Tracking
  *
  * Configures Sentry for production error monitoring using @sentry/nestjs.
  * Provides automatic exception capturing, performance monitoring, and alerting.

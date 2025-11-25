@@ -3,12 +3,10 @@ import { CommonModule } from '@angular/common';
 import { TimelineComponent } from '@blastoise/features-visits';
 
 /**
- * T134: Timeline Page
+ * Timeline Page
  *
  * Main page that integrates the timeline component
  * for displaying user's visit history.
- *
- * User Story 2: Visual Timeline of Visits
  */
 
 @Component({

@@ -21,7 +21,7 @@ export class IndexedDBService {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // T242: Create visits object store with optimized indexes
+        // Create visits object store with optimized indexes
         if (!db.objectStoreNames.contains('visits')) {
           const visitStore = db.createObjectStore('visits', { keyPath: 'id' });
 
@@ -41,7 +41,7 @@ export class IndexedDBService {
           visitStore.createIndex('venueId', 'venue_id', { unique: false });
         }
 
-        // T242: Create venues cache with optimized indexes
+        // Create venues cache with optimized indexes
         if (!db.objectStoreNames.contains('venues')) {
           const venueStore = db.createObjectStore('venues', { keyPath: 'id' });
 
@@ -141,7 +141,7 @@ export class IndexedDBService {
   }
 
   /**
-   * T242: Query with range (for pagination and date ranges)
+   * Query with range (for pagination and date ranges)
    */
   async getByIndexRange<T>(
     storeName: string,
@@ -188,7 +188,7 @@ export class IndexedDBService {
   }
 
   /**
-   * T242: Count records matching index
+   * Count records matching index
    */
   async countByIndex(
     storeName: string,
@@ -211,7 +211,7 @@ export class IndexedDBService {
   }
 
   /**
-   * T242: Batch insert for better performance
+   * Batch insert for better performance
    */
   async putBatch(storeName: string, values: unknown[]): Promise<void> {
     if (!this.db) await this.init();
@@ -232,7 +232,7 @@ export class IndexedDBService {
   }
 
   /**
-   * T242: Clear store (for cache invalidation)
+   * Clear store (for cache invalidation)
    */
   async clear(storeName: string): Promise<void> {
     if (!this.db) await this.init();

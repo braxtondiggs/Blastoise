@@ -1,17 +1,15 @@
-import { TestBed } from '@angular/core/testing';
+import { createServiceFactory, SpectatorService, SpyObject } from '@ngneat/spectator/jest';
 import { VenueSearchService, ProximitySearchParams } from './venue-search.service';
 import { VenuesApiService } from '@blastoise/data';
 import { of, throwError } from 'rxjs';
 import type { Venue } from '@blastoise/shared';
 
 /**
- * T164: Unit Tests for Venue Search Service
- *
  * Tests for text search, proximity search, caching, and distance calculations
  */
 describe('VenueSearchService', () => {
-  let service: VenueSearchService;
-  let venuesApiMock: jasmine.SpyObj<VenuesApiService>;
+  let spectator: SpectatorService<VenueSearchService>;
+  let venuesApi: SpyObject<VenuesApiService>;
 
   const mockVenues: Venue[] = [
     {
@@ -70,120 +68,112 @@ describe('VenueSearchService', () => {
     },
   ];
 
+  const createService = createServiceFactory({
+    service: VenueSearchService,
+    mocks: [VenuesApiService],
+  });
+
   beforeEach(() => {
-    venuesApiMock = jasmine.createSpyObj('VenuesApiService', [
-      'search',
-      'findNearby',
-    ]);
-
-    TestBed.configureTestingModule({
-      providers: [
-        VenueSearchService,
-        { provide: VenuesApiService, useValue: venuesApiMock },
-      ],
-    });
-
-    service = TestBed.inject(VenueSearchService);
+    spectator = createService();
+    venuesApi = spectator.inject(VenuesApiService);
   });
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
+    expect(spectator.service).toBeTruthy();
   });
 
   describe('Text Search', () => {
     it('should search venues by text query', (done) => {
-      venuesApiMock.search.and.returnValue(of([mockVenues[0]]));
+      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
 
-      service.searchByText('Deschutes');
+      spectator.service.searchByText('Deschutes');
 
       // Wait for debounce (300ms)
       setTimeout(() => {
-        expect(venuesApiMock.search).toHaveBeenCalledWith('Deschutes');
-        expect(service.searchResults().length).toBe(1);
-        expect(service.searchResults()[0].name).toBe('Deschutes Brewery');
-        expect(service.isSearching()).toBe(false);
+        expect(venuesApi.search).toHaveBeenCalledWith('Deschutes');
+        expect(spectator.service.searchResults().length).toBe(1);
+        expect(spectator.service.searchResults()[0].name).toBe('Deschutes Brewery');
+        expect(spectator.service.isSearching()).toBe(false);
         done();
       }, 350);
     });
 
     it('should debounce search queries', (done) => {
-      venuesApiMock.search.and.returnValue(of(mockVenues));
+      venuesApi.search.mockReturnValue(of(mockVenues));
 
       // Rapid fire searches
-      service.searchByText('D');
-      service.searchByText('De');
-      service.searchByText('Des');
-      service.searchByText('Deschutes');
+      spectator.service.searchByText('D');
+      spectator.service.searchByText('De');
+      spectator.service.searchByText('Des');
+      spectator.service.searchByText('Deschutes');
 
       // Should only call API once after debounce
       setTimeout(() => {
-        expect(venuesApiMock.search).toHaveBeenCalledTimes(1);
-        expect(venuesApiMock.search).toHaveBeenCalledWith('Deschutes');
+        expect(venuesApi.search).toHaveBeenCalledTimes(1);
+        expect(venuesApi.search).toHaveBeenCalledWith('Deschutes');
         done();
       }, 350);
     });
 
     it('should not search with queries less than 2 characters', (done) => {
-      service.searchByText('D');
+      spectator.service.searchByText('D');
 
       setTimeout(() => {
-        expect(venuesApiMock.search).not.toHaveBeenCalled();
-        expect(service.searchResults().length).toBe(0);
+        expect(venuesApi.search).not.toHaveBeenCalled();
+        expect(spectator.service.searchResults().length).toBe(0);
         done();
       }, 350);
     });
 
     it('should cache search results', (done) => {
-      venuesApiMock.search.and.returnValue(of([mockVenues[0]]));
+      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
 
       // First search
-      service.searchByText('Deschutes');
+      spectator.service.searchByText('Deschutes');
 
       setTimeout(() => {
-        expect(venuesApiMock.search).toHaveBeenCalledTimes(1);
+        expect(venuesApi.search).toHaveBeenCalledTimes(1);
 
         // Clear results
-        service.clearSearch();
+        spectator.service.clearSearch();
 
         // Second search with same query
-        service.searchByText('Deschutes');
+        spectator.service.searchByText('Deschutes');
 
         setTimeout(() => {
           // Should use cache, not call API again
-          expect(venuesApiMock.search).toHaveBeenCalledTimes(1);
-          expect(service.searchResults().length).toBe(1);
+          expect(venuesApi.search).toHaveBeenCalledTimes(1);
+          expect(spectator.service.searchResults().length).toBe(1);
           done();
         }, 350);
       }, 350);
     });
 
     it('should handle search errors gracefully', (done) => {
-      venuesApiMock.search.and.returnValue(
-        throwError(() => new Error('Search failed'))
-      );
+      venuesApi.search.mockReturnValue(throwError(() => new Error('Search failed')));
 
-      service.searchByText('test');
+      spectator.service.searchByText('test');
 
       setTimeout(() => {
-        expect(service.error()).toBe('Failed to search venues');
-        expect(service.searchResults().length).toBe(0);
-        expect(service.isSearching()).toBe(false);
+        expect(spectator.service.error()).toBe('Failed to search venues');
+        expect(spectator.service.searchResults().length).toBe(0);
+        expect(spectator.service.isSearching()).toBe(false);
         done();
       }, 350);
     });
 
     it('should clear search results', (done) => {
-      venuesApiMock.search.and.returnValue(of([mockVenues[0]]));
+      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
 
-      service.searchByText('Deschutes');
+      spectator.service.searchByText('Deschutes');
 
       setTimeout(() => {
-        expect(service.searchResults().length).toBe(1);
+        expect(spectator.service.searchResults().length).toBe(1);
 
-        service.clearSearch();
+        spectator.service.clearSearch();
 
-        expect(service.searchResults().length).toBe(0);
-        expect(service.error()).toBe(null);
+        expect(spectator.service.searchResults().length).toBe(0);
+        expect(spectator.service.error()).toBe(null);
         done();
       }, 350);
     });
@@ -197,20 +187,20 @@ describe('VenueSearchService', () => {
         radius: 10,
       };
 
-      venuesApiMock.findNearby.and.returnValue(of(mockVenues));
+      venuesApi.findNearby.mockReturnValue(of(mockVenues));
 
-      service.searchByProximity(proximityParams);
+      spectator.service.searchByProximity(proximityParams);
 
       // Wait for debounce (500ms)
       setTimeout(() => {
-        expect(venuesApiMock.findNearby).toHaveBeenCalledWith(
+        expect(venuesApi.findNearby).toHaveBeenCalledWith(
           proximityParams.latitude,
           proximityParams.longitude,
           proximityParams.radius,
           undefined
         );
-        expect(service.proximityResults().length).toBe(3);
-        expect(service.isSearching()).toBe(false);
+        expect(spectator.service.proximityResults().length).toBe(3);
+        expect(spectator.service.isSearching()).toBe(false);
         done();
       }, 550);
     });
@@ -223,18 +213,18 @@ describe('VenueSearchService', () => {
         type: 'brewery',
       };
 
-      venuesApiMock.findNearby.and.returnValue(of([mockVenues[0], mockVenues[2]]));
+      venuesApi.findNearby.mockReturnValue(of([mockVenues[0], mockVenues[2]]));
 
-      service.searchByProximity(proximityParams);
+      spectator.service.searchByProximity(proximityParams);
 
       setTimeout(() => {
-        expect(venuesApiMock.findNearby).toHaveBeenCalledWith(
+        expect(venuesApi.findNearby).toHaveBeenCalledWith(
           proximityParams.latitude,
           proximityParams.longitude,
           proximityParams.radius,
           'brewery'
         );
-        expect(service.proximityResults().length).toBe(2);
+        expect(spectator.service.proximityResults().length).toBe(2);
         done();
       }, 550);
     });
@@ -246,22 +236,22 @@ describe('VenueSearchService', () => {
         radius: 10,
       };
 
-      venuesApiMock.findNearby.and.returnValue(of(mockVenues));
+      venuesApi.findNearby.mockReturnValue(of(mockVenues));
 
       // First search
-      service.searchByProximity(proximityParams);
+      spectator.service.searchByProximity(proximityParams);
 
       setTimeout(() => {
-        expect(venuesApiMock.findNearby).toHaveBeenCalledTimes(1);
+        expect(venuesApi.findNearby).toHaveBeenCalledTimes(1);
 
         // Clear and search again
-        service.clearSearch();
-        service.searchByProximity(proximityParams);
+        spectator.service.clearSearch();
+        spectator.service.searchByProximity(proximityParams);
 
         setTimeout(() => {
           // Should use cache
-          expect(venuesApiMock.findNearby).toHaveBeenCalledTimes(1);
-          expect(service.proximityResults().length).toBe(3);
+          expect(venuesApi.findNearby).toHaveBeenCalledTimes(1);
+          expect(spectator.service.proximityResults().length).toBe(3);
           done();
         }, 550);
       }, 550);
@@ -274,35 +264,33 @@ describe('VenueSearchService', () => {
         radius: 10,
       };
 
-      venuesApiMock.findNearby.and.returnValue(
-        throwError(() => new Error('Proximity search failed'))
-      );
+      venuesApi.findNearby.mockReturnValue(throwError(() => new Error('Proximity search failed')));
 
-      service.searchByProximity(proximityParams);
+      spectator.service.searchByProximity(proximityParams);
 
       setTimeout(() => {
-        expect(service.error()).toBe('Failed to find nearby venues');
-        expect(service.proximityResults().length).toBe(0);
-        expect(service.isSearching()).toBe(false);
+        expect(spectator.service.error()).toBe('Failed to find nearby venues');
+        expect(spectator.service.proximityResults().length).toBe(0);
+        expect(spectator.service.isSearching()).toBe(false);
         done();
       }, 550);
     });
 
     it('should debounce proximity searches', (done) => {
-      venuesApiMock.findNearby.and.returnValue(of(mockVenues));
+      venuesApi.findNearby.mockReturnValue(of(mockVenues));
 
       // Rapid fire proximity searches
-      service.searchByProximity({
+      spectator.service.searchByProximity({
         latitude: 44.05,
         longitude: -121.31,
         radius: 5,
       });
-      service.searchByProximity({
+      spectator.service.searchByProximity({
         latitude: 44.051,
         longitude: -121.312,
         radius: 6,
       });
-      service.searchByProximity({
+      spectator.service.searchByProximity({
         latitude: 44.0521,
         longitude: -121.3153,
         radius: 10,
@@ -310,13 +298,8 @@ describe('VenueSearchService', () => {
 
       setTimeout(() => {
         // Should only call API once
-        expect(venuesApiMock.findNearby).toHaveBeenCalledTimes(1);
-        expect(venuesApiMock.findNearby).toHaveBeenCalledWith(
-          44.0521,
-          -121.3153,
-          10,
-          undefined
-        );
+        expect(venuesApi.findNearby).toHaveBeenCalledTimes(1);
+        expect(venuesApi.findNearby).toHaveBeenCalledWith(44.0521, -121.3153, 10, undefined);
         done();
       }, 550);
     });
@@ -329,7 +312,7 @@ describe('VenueSearchService', () => {
         longitude: -121.3153,
       };
 
-      const distances = service.calculateDistances(mockVenues, userLocation);
+      const distances = spectator.service.calculateDistances(mockVenues, userLocation);
 
       expect(distances.size).toBe(3);
       expect(distances.get('venue-1')).toBeDefined();
@@ -353,7 +336,7 @@ describe('VenueSearchService', () => {
       };
 
       const venue = mockVenues[0]; // Same coordinates
-      const distances = service.calculateDistances([venue], userLocation);
+      const distances = spectator.service.calculateDistances([venue], userLocation);
 
       expect(distances.get('venue-1')).toBeLessThan(0.001);
     });
@@ -364,7 +347,7 @@ describe('VenueSearchService', () => {
         longitude: -121.3153,
       };
 
-      const distances = service.calculateDistances([], userLocation);
+      const distances = spectator.service.calculateDistances([], userLocation);
 
       expect(distances.size).toBe(0);
     });
@@ -372,27 +355,27 @@ describe('VenueSearchService', () => {
 
   describe('Cache Management', () => {
     it('should clear all caches', (done) => {
-      venuesApiMock.search.and.returnValue(of([mockVenues[0]]));
-      venuesApiMock.findNearby.and.returnValue(of(mockVenues));
+      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+      venuesApi.findNearby.mockReturnValue(of(mockVenues));
 
       // Populate both caches
-      service.searchByText('Deschutes');
+      spectator.service.searchByText('Deschutes');
 
       setTimeout(() => {
-        service.searchByProximity({
+        spectator.service.searchByProximity({
           latitude: 44.0521,
           longitude: -121.3153,
           radius: 10,
         });
 
         setTimeout(() => {
-          const statsBefore = service.getCacheStats();
+          const statsBefore = spectator.service.getCacheStats();
           expect(statsBefore.searchCacheSize).toBeGreaterThan(0);
           expect(statsBefore.proximityCacheSize).toBeGreaterThan(0);
 
-          service.clearCache();
+          spectator.service.clearCache();
 
-          const statsAfter = service.getCacheStats();
+          const statsAfter = spectator.service.getCacheStats();
           expect(statsAfter.searchCacheSize).toBe(0);
           expect(statsAfter.proximityCacheSize).toBe(0);
           done();
@@ -401,16 +384,16 @@ describe('VenueSearchService', () => {
     });
 
     it('should provide cache statistics', (done) => {
-      venuesApiMock.search.and.returnValue(of([mockVenues[0]]));
+      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
 
-      const initialStats = service.getCacheStats();
+      const initialStats = spectator.service.getCacheStats();
       expect(initialStats.searchCacheSize).toBe(0);
       expect(initialStats.proximityCacheSize).toBe(0);
 
-      service.searchByText('Deschutes');
+      spectator.service.searchByText('Deschutes');
 
       setTimeout(() => {
-        const statsAfter = service.getCacheStats();
+        const statsAfter = spectator.service.getCacheStats();
         expect(statsAfter.searchCacheSize).toBe(1);
         done();
       }, 350);
@@ -420,22 +403,20 @@ describe('VenueSearchService', () => {
   describe('Error Recovery', () => {
     it('should recover from search errors and continue working', (done) => {
       // First search fails
-      venuesApiMock.search.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      venuesApi.search.mockReturnValue(throwError(() => new Error('Network error')));
 
-      service.searchByText('test1');
+      spectator.service.searchByText('test1');
 
       setTimeout(() => {
-        expect(service.error()).toBe('Failed to search venues');
+        expect(spectator.service.error()).toBe('Failed to search venues');
 
         // Second search succeeds
-        venuesApiMock.search.and.returnValue(of([mockVenues[0]]));
-        service.searchByText('test2');
+        venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+        spectator.service.searchByText('test2');
 
         setTimeout(() => {
-          expect(service.error()).toBe(null);
-          expect(service.searchResults().length).toBe(1);
+          expect(spectator.service.error()).toBe(null);
+          expect(spectator.service.searchResults().length).toBe(1);
           done();
         }, 350);
       }, 350);

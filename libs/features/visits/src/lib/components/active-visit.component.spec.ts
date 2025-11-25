@@ -1,10 +1,10 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { ActiveVisit } from './active-visit';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
+import { fakeAsync, tick } from '@angular/core/testing';
+import { ActiveVisitComponent } from './active-visit';
 import { Visit, Venue } from '@blastoise/shared';
 
 describe('ActiveVisit Component', () => {
-  let component: ActiveVisit;
-  let fixture: ComponentFixture<ActiveVisit>;
+  let spectator: Spectator<ActiveVisitComponent>;
 
   const mockVenue: Venue = {
     id: 'venue-1',
@@ -30,28 +30,29 @@ describe('ActiveVisit Component', () => {
     user_id: 'user-1',
     venue_id: 'venue-1',
     arrival_time: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-    departure_time: null,
-    duration_minutes: null,
+    departure_time: undefined,
+    duration_minutes: undefined,
+    is_active: true,
+    detection_method: 'auto',
     created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
   };
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [ActiveVisit],
-    }).compileComponents();
+  const createComponent = createComponentFactory({
+    component: ActiveVisitComponent,
+    detectChanges: false,
+  });
 
-    fixture = TestBed.createComponent(ActiveVisit);
-    component = fixture.componentInstance;
+  beforeEach(() => {
+    spectator = createComponent();
   });
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(spectator.component).toBeTruthy();
   });
 
-  describe('Live Duration Calculation (T139)', () => {
+  describe('Live Duration Calculation', () => {
     it('should calculate initial duration correctly from arrival time', () => {
-      // Arrange
       const now = new Date();
       const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
       const visit: Visit = {
@@ -59,19 +60,16 @@ describe('ActiveVisit Component', () => {
         arrival_time: thirtyMinutesAgo.toISOString(),
       };
 
-      // Act
-      component.visit = visit;
-      component.venue = mockVenue;
-      component.ngOnInit();
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
+      spectator.component.ngOnInit();
 
-      // Assert
-      const duration = component.currentDuration();
-      expect(duration).toBeGreaterThanOrEqual(30); // At least 30 minutes
-      expect(duration).toBeLessThan(31); // But less than 31 minutes
+      const duration = spectator.component.currentDuration();
+      expect(duration).toBeGreaterThanOrEqual(30);
+      expect(duration).toBeLessThan(31);
     });
 
     it('should update duration every second', fakeAsync(() => {
-      // Arrange
       const now = new Date();
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
       const visit: Visit = {
@@ -79,25 +77,21 @@ describe('ActiveVisit Component', () => {
         arrival_time: fiveMinutesAgo.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
 
-      // Act
-      component.ngOnInit();
-      const initialDuration = component.currentDuration();
+      spectator.component.ngOnInit();
+      const initialDuration = spectator.component.currentDuration();
 
-      // Wait 3 seconds
       tick(3000);
 
-      const updatedDuration = component.currentDuration();
+      const updatedDuration = spectator.component.currentDuration();
 
-      // Assert
       expect(updatedDuration).toBeGreaterThan(initialDuration);
-      expect(updatedDuration - initialDuration).toBeCloseTo(0.05, 1); // 3 seconds = 0.05 minutes
+      expect(updatedDuration - initialDuration).toBeCloseTo(0.05, 1);
     }));
 
     it('should format duration as hours and minutes for long visits', () => {
-      // Arrange
       const now = new Date();
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
       const visit: Visit = {
@@ -105,20 +99,17 @@ describe('ActiveVisit Component', () => {
         arrival_time: twoHoursAgo.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
 
-      // Act
-      component.ngOnInit();
-      const formatted = component.formattedDuration();
+      spectator.component.ngOnInit();
+      const formatted = spectator.component.formattedDuration();
 
-      // Assert
-      expect(formatted).toMatch(/2h/); // Should show 2 hours
-      expect(formatted).toMatch(/\d+m/); // Should show minutes
+      expect(formatted).toMatch(/2h/);
+      expect(formatted).toMatch(/\d+m/);
     });
 
     it('should format duration as minutes only for short visits', () => {
-      // Arrange
       const now = new Date();
       const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
       const visit: Visit = {
@@ -126,20 +117,17 @@ describe('ActiveVisit Component', () => {
         arrival_time: fifteenMinutesAgo.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
 
-      // Act
-      component.ngOnInit();
-      const formatted = component.formattedDuration();
+      spectator.component.ngOnInit();
+      const formatted = spectator.component.formattedDuration();
 
-      // Assert
-      expect(formatted).toMatch(/^\d+m$/); // Should be just "15m" format
-      expect(formatted).not.toContain('h'); // Should not contain hours
+      expect(formatted).toMatch(/^\d+m$/);
+      expect(formatted).not.toContain('h');
     });
 
     it('should stop updating duration on component destroy', fakeAsync(() => {
-      // Arrange
       const now = new Date();
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
       const visit: Visit = {
@@ -147,46 +135,39 @@ describe('ActiveVisit Component', () => {
         arrival_time: fiveMinutesAgo.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
-      component.ngOnInit();
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
+      spectator.component.ngOnInit();
 
-      const durationBeforeDestroy = component.currentDuration();
+      const durationBeforeDestroy = spectator.component.currentDuration();
 
-      // Act - Destroy component
-      component.ngOnDestroy();
+      spectator.component.ngOnDestroy();
 
-      // Wait and check duration doesn't update
       tick(3000);
 
-      const durationAfterDestroy = component.currentDuration();
+      const durationAfterDestroy = spectator.component.currentDuration();
 
-      // Assert - Duration should not change after destroy
       expect(durationAfterDestroy).toBe(durationBeforeDestroy);
     }));
 
     it('should handle visits that just started (0 minutes)', () => {
-      // Arrange
       const now = new Date();
       const visit: Visit = {
         ...mockActiveVisit,
         arrival_time: now.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
 
-      // Act
-      component.ngOnInit();
-      const duration = component.currentDuration();
+      spectator.component.ngOnInit();
+      const duration = spectator.component.currentDuration();
 
-      // Assert
       expect(duration).toBeGreaterThanOrEqual(0);
-      expect(duration).toBeLessThan(1); // Less than 1 minute
+      expect(duration).toBeLessThan(1);
     });
 
     it('should calculate duration accurately for visits longer than 24 hours', () => {
-      // Arrange
       const now = new Date();
       const twentyFiveHoursAgo = new Date(now.getTime() - 25 * 60 * 60 * 1000);
       const visit: Visit = {
@@ -194,21 +175,18 @@ describe('ActiveVisit Component', () => {
         arrival_time: twentyFiveHoursAgo.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
 
-      // Act
-      component.ngOnInit();
-      const duration = component.currentDuration();
-      const formatted = component.formattedDuration();
+      spectator.component.ngOnInit();
+      const duration = spectator.component.currentDuration();
+      const formatted = spectator.component.formattedDuration();
 
-      // Assert
-      expect(duration).toBeGreaterThanOrEqual(25 * 60); // At least 1500 minutes
-      expect(formatted).toMatch(/25h/); // Should show 25+ hours
+      expect(duration).toBeGreaterThanOrEqual(25 * 60);
+      expect(formatted).toMatch(/25h/);
     });
 
     it('should update duration signal reactively', fakeAsync(() => {
-      // Arrange
       const now = new Date();
       const oneMinuteAgo = new Date(now.getTime() - 1 * 60 * 1000);
       const visit: Visit = {
@@ -216,22 +194,19 @@ describe('ActiveVisit Component', () => {
         arrival_time: oneMinuteAgo.toISOString(),
       };
 
-      component.visit = visit;
-      component.venue = mockVenue;
-      component.ngOnInit();
+      spectator.setInput('visit', visit);
+      spectator.setInput('venue', mockVenue);
+      spectator.component.ngOnInit();
 
       let signalUpdates = 0;
-      // Subscribe to signal changes
       const subscription = setInterval(() => {
-        component.currentDuration();
+        spectator.component.currentDuration();
         signalUpdates++;
       }, 1000);
 
-      // Act - Wait 5 seconds
       tick(5000);
       clearInterval(subscription);
 
-      // Assert - Signal should have updated multiple times
       expect(signalUpdates).toBeGreaterThan(0);
     }));
   });

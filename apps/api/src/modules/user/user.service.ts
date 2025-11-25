@@ -1,5 +1,5 @@
 /**
- * T200: User Service
+ * User Service
  *
  * Business logic for user preferences management
  */
@@ -44,7 +44,7 @@ const DEFAULT_PREFERENCES = {
 @Injectable()
 export class UserService {
   /**
-   * T198: Get user preferences
+   * Get user preferences
    * Creates default preferences if none exist
    */
   async getPreferences(userId: string): Promise<UserPreferences> {
@@ -69,7 +69,7 @@ export class UserService {
   }
 
   /**
-   * T199: Update user preferences
+   * Update user preferences
    * Merges with existing preferences
    */
   async updatePreferences(

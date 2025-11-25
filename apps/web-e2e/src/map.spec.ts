@@ -2,8 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * T167-T168: E2E Tests for Interactive Venue Map (User Story 3)
- *
  * Test the map interactions, venue markers, list view, and detail navigation
  */
 

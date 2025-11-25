@@ -70,7 +70,7 @@ export class ActiveVisitComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * T126: Calculate and update current duration
+   * Calculate and update current duration
    */
   private updateDuration(): void {
     if (!this.visit?.arrival_time) return;

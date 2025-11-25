@@ -4,7 +4,8 @@
  */
 
 export type VenueType = 'brewery' | 'winery';
-export type VenueSource = 'osm' | 'brewerydb' | 'manual';
+export type VenueSource = 'osm' | 'brewerydb' | 'manual' | 'google_import' | 'user_created' | 'auto_detect';
+export type VerificationTier = 1 | 2 | 3; // 1=keyword, 2=brewery_db, 3=google_search
 
 export interface Venue {
   id: string; // UUID
@@ -19,6 +20,8 @@ export interface Venue {
   venue_type: VenueType;
   source: VenueSource;
   source_id?: string; // External ID from data source
+  google_place_id?: string; // Google Place ID from Timeline data (T015)
+  verification_tier?: VerificationTier; // Import verification method (T015)
   metadata?: Record<string, unknown>; // Additional info (website, phone, hours, etc.)
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp

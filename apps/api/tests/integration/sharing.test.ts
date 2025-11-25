@@ -1,6 +1,4 @@
 /**
- * T210-T211: Sharing API Integration Tests
- *
  * Tests for sharing endpoints:
  * - POST /visits/:visitId/share (authenticated)
  * - GET /shared/:shareId (public, no auth)

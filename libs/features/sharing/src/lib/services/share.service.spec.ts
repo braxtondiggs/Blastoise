@@ -1,34 +1,21 @@
 /**
- * T206-T207: Share Service Unit Tests
- *
  * Tests for share link generation and anonymization validation.
  * Ensures no user data, GPS coordinates, or precise timestamps are leaked.
  */
 
-import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { createHttpFactory, HttpMethod, SpectatorHttp } from '@ngneat/spectator/jest';
 import { ShareService, ShareLinkResponse, SharedVisitData } from './share.service';
 
 describe('ShareService', () => {
-  let service: ShareService;
-  let httpMock: HttpTestingController;
+  let spectator: SpectatorHttp<ShareService>;
+  const createHttp = createHttpFactory(ShareService);
 
   beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [ShareService],
-    });
-
-    service = TestBed.inject(ShareService);
-    httpMock = TestBed.inject(HttpTestingController);
+    spectator = createHttp();
   });
 
-  afterEach(() => {
-    httpMock.verify();
-  });
-
-  describe('T206: Share Link Generation', () => {
-    it('should generate a share link with no expiration', (done) => {
+  describe('Share Link Generation', () => {
+    it('should generate a share link with no expiration', () => {
       const visitId = 'visit-123';
       const mockResponse: ShareLinkResponse = {
         shareId: 'share-abc123',
@@ -36,16 +23,14 @@ describe('ShareService', () => {
         expiresAt: null,
       };
 
-      service.generateShareLink(visitId).subscribe((response) => {
+      spectator.service.generateShareLink(visitId).subscribe((response) => {
         expect(response).toEqual(mockResponse);
         expect(response.shareId).toBe('share-abc123');
         expect(response.shareUrl).toContain('/shared/');
         expect(response.expiresAt).toBeNull();
-        done();
       });
 
-      const req = httpMock.expectOne('/api/v1/visits/visit-123/share');
-      expect(req.request.method).toBe('POST');
+      const req = spectator.expectOne('/api/v1/visits/visit-123/share', HttpMethod.POST);
       expect(req.request.body).toEqual({
         visitId: visitId,
         expiresInDays: null,
@@ -57,7 +42,7 @@ describe('ShareService', () => {
       });
     });
 
-    it('should generate a share link with 7-day expiration', (done) => {
+    it('should generate a share link with 7-day expiration', () => {
       const visitId = 'visit-456';
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const mockResponse: ShareLinkResponse = {
@@ -66,14 +51,12 @@ describe('ShareService', () => {
         expiresAt: expiresAt,
       };
 
-      service.generateShareLink(visitId, 7).subscribe((response) => {
+      spectator.service.generateShareLink(visitId, 7).subscribe((response) => {
         expect(response).toEqual(mockResponse);
         expect(response.expiresAt).toBe(expiresAt);
-        done();
       });
 
-      const req = httpMock.expectOne('/api/v1/visits/visit-456/share');
-      expect(req.request.method).toBe('POST');
+      const req = spectator.expectOne('/api/v1/visits/visit-456/share', HttpMethod.POST);
       expect(req.request.body.expiresInDays).toBe(7);
 
       req.flush({
@@ -82,7 +65,7 @@ describe('ShareService', () => {
       });
     });
 
-    it('should generate a share link with custom expiration (30 days)', (done) => {
+    it('should generate a share link with custom expiration (30 days)', () => {
       const visitId = 'visit-789';
       const mockResponse: ShareLinkResponse = {
         shareId: 'share-ghi789',
@@ -90,52 +73,49 @@ describe('ShareService', () => {
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
-      service.generateShareLink(visitId, 30).subscribe((response) => {
+      spectator.service.generateShareLink(visitId, 30).subscribe((response) => {
         expect(response.shareId).toBeDefined();
         expect(response.expiresAt).toBeDefined();
-        done();
       });
 
-      const req = httpMock.expectOne('/api/v1/visits/visit-789/share');
+      const req = spectator.expectOne('/api/v1/visits/visit-789/share', HttpMethod.POST);
       req.flush({
         success: true,
         data: mockResponse,
       });
     });
 
-    it('should handle API errors when generating share link', (done) => {
+    it('should handle API errors when generating share link', () => {
       const visitId = 'visit-error';
 
-      service.generateShareLink(visitId).subscribe({
+      spectator.service.generateShareLink(visitId).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           expect(error.status).toBe(500);
-          done();
         },
       });
 
-      const req = httpMock.expectOne('/api/v1/visits/visit-error/share');
+      const req = spectator.expectOne('/api/v1/visits/visit-error/share', HttpMethod.POST);
       req.flush('Internal Server Error', { status: 500, statusText: 'Internal Server Error' });
     });
 
-    it('should handle unauthorized errors (401)', (done) => {
+    it('should handle unauthorized errors (401)', () => {
       const visitId = 'visit-unauth';
 
-      service.generateShareLink(visitId).subscribe({
+      spectator.service.generateShareLink(visitId).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           expect(error.status).toBe(401);
-          done();
         },
       });
 
-      const req = httpMock.expectOne('/api/v1/visits/visit-unauth/share');
+      const req = spectator.expectOne('/api/v1/visits/visit-unauth/share', HttpMethod.POST);
       req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
     });
   });
 
   describe('getSharedVisit', () => {
-    it('should fetch shared visit data', (done) => {
+    it('should fetch shared visit data', () => {
       const shareId = 'share-123';
       const mockData: SharedVisitData = {
         shareId: 'share-123',
@@ -148,54 +128,49 @@ describe('ShareService', () => {
         viewCount: 5,
       };
 
-      service.getSharedVisit(shareId).subscribe((data) => {
+      spectator.service.getSharedVisit(shareId).subscribe((data) => {
         expect(data).toEqual(mockData);
         expect(data.venueName).toBe('Anchor Brewing');
         expect(data.viewCount).toBe(5);
-        done();
       });
 
-      const req = httpMock.expectOne('/api/v1/shared/share-123');
-      expect(req.request.method).toBe('GET');
-
+      const req = spectator.expectOne('/api/v1/shared/share-123', HttpMethod.GET);
       req.flush({
         success: true,
         data: mockData,
       });
     });
 
-    it('should handle 404 for non-existent share', (done) => {
+    it('should handle 404 for non-existent share', () => {
       const shareId = 'share-notfound';
 
-      service.getSharedVisit(shareId).subscribe({
+      spectator.service.getSharedVisit(shareId).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           expect(error.status).toBe(404);
-          done();
         },
       });
 
-      const req = httpMock.expectOne('/api/v1/shared/share-notfound');
+      const req = spectator.expectOne('/api/v1/shared/share-notfound', HttpMethod.GET);
       req.flush('Not Found', { status: 404, statusText: 'Not Found' });
     });
 
-    it('should handle 410 for expired share', (done) => {
+    it('should handle 410 for expired share', () => {
       const shareId = 'share-expired';
 
-      service.getSharedVisit(shareId).subscribe({
+      spectator.service.getSharedVisit(shareId).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           expect(error.status).toBe(410);
-          done();
         },
       });
 
-      const req = httpMock.expectOne('/api/v1/shared/share-expired');
+      const req = spectator.expectOne('/api/v1/shared/share-expired', HttpMethod.GET);
       req.flush('Gone', { status: 410, statusText: 'Gone' });
     });
   });
 
-  describe('T207: Anonymization Validation', () => {
+  describe('Anonymization Validation', () => {
     it('should validate clean shared data (no sensitive info)', () => {
       const validData: SharedVisitData = {
         shareId: 'share-123',
@@ -208,12 +183,12 @@ describe('ShareService', () => {
         viewCount: 10,
       };
 
-      const isValid = service.validateSharedData(validData);
+      const isValid = spectator.service.validateSharedData(validData);
       expect(isValid).toBe(true);
     });
 
     it('should reject data with user_id field', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-456',
         venueName: 'Russian River Brewing',
         venueCity: 'Santa Rosa',
@@ -225,12 +200,12 @@ describe('ShareService', () => {
         viewCount: 3,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
     it('should reject data with latitude coordinates', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-789',
         venueName: 'Sierra Nevada',
         venueCity: 'Chico',
@@ -242,12 +217,12 @@ describe('ShareService', () => {
         viewCount: 7,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
     it('should reject data with longitude coordinates', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-abc',
         venueName: 'Lagunitas',
         venueCity: 'Petaluma',
@@ -259,12 +234,12 @@ describe('ShareService', () => {
         viewCount: 12,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
     it('should reject data with coordinates object', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-def',
         venueName: 'Bear Republic',
         venueCity: 'Healdsburg',
@@ -276,12 +251,12 @@ describe('ShareService', () => {
         viewCount: 4,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
     it('should reject data with email patterns', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-ghi',
         venueName: 'Firestone Walker',
         venueCity: 'Paso Robles',
@@ -293,12 +268,12 @@ describe('ShareService', () => {
         viewCount: 8,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
     it('should reject data with location.lat field', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-jkl',
         venueName: 'Deschutes Brewery',
         venueCity: 'Bend',
@@ -310,12 +285,12 @@ describe('ShareService', () => {
         viewCount: 6,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
     it('should reject data missing required fields', () => {
-      const invalidData: any = {
+      const invalidData = {
         shareId: 'share-mno',
         // Missing venueName, venueCity, visitDate
         createdAt: '2025-11-01T14:00:00Z',
@@ -323,7 +298,7 @@ describe('ShareService', () => {
         viewCount: 2,
       };
 
-      const isValid = service.validateSharedData(invalidData);
+      const isValid = spectator.service.validateSharedData(invalidData as SharedVisitData);
       expect(isValid).toBe(false);
     });
 
@@ -339,7 +314,7 @@ describe('ShareService', () => {
         viewCount: 15,
       };
 
-      const isValid = service.validateSharedData(validData);
+      const isValid = spectator.service.validateSharedData(validData);
       expect(isValid).toBe(true);
       // Verify no time component in visitDate
       expect(validData.visitDate).not.toContain('T');
@@ -353,10 +328,14 @@ describe('ShareService', () => {
       const venueName = 'Test Brewery';
 
       // Mock navigator.share
-      const mockShare = jasmine.createSpy('share').and.returnValue(Promise.resolve());
-      (navigator as any).share = mockShare;
+      const mockShare = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'share', {
+        value: mockShare,
+        writable: true,
+        configurable: true,
+      });
 
-      const result = await service.shareViaChannel(shareUrl, venueName);
+      const result = await spectator.service.shareViaChannel(shareUrl, venueName);
 
       expect(result).toBe(true);
       expect(mockShare).toHaveBeenCalledWith({
@@ -371,14 +350,22 @@ describe('ShareService', () => {
       const venueName = 'Another Brewery';
 
       // Mock navigator.share to fail
-      const mockShare = jasmine.createSpy('share').and.returnValue(Promise.reject(new Error('User cancelled')));
-      (navigator as any).share = mockShare;
+      const mockShare = jest.fn().mockRejectedValue(new Error('User cancelled'));
+      Object.defineProperty(navigator, 'share', {
+        value: mockShare,
+        writable: true,
+        configurable: true,
+      });
 
       // Mock clipboard
-      const mockWriteText = jasmine.createSpy('writeText').and.returnValue(Promise.resolve());
-      (navigator as any).clipboard = { writeText: mockWriteText };
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: mockWriteText },
+        writable: true,
+        configurable: true,
+      });
 
-      const result = await service.shareViaChannel(shareUrl, venueName);
+      const result = await spectator.service.shareViaChannel(shareUrl, venueName);
 
       expect(result).toBe(false); // Web Share failed
       expect(mockShare).toHaveBeenCalled();
@@ -389,10 +376,14 @@ describe('ShareService', () => {
     it('should copy URL to clipboard using Clipboard API', async () => {
       const shareUrl = 'https://app.blastoise.com/shared/share-789';
 
-      const mockWriteText = jasmine.createSpy('writeText').and.returnValue(Promise.resolve());
-      (navigator as any).clipboard = { writeText: mockWriteText };
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: mockWriteText },
+        writable: true,
+        configurable: true,
+      });
 
-      const result = await service.copyToClipboard(shareUrl);
+      const result = await spectator.service.copyToClipboard(shareUrl);
 
       expect(result).toBe(true);
       expect(mockWriteText).toHaveBeenCalledWith(shareUrl);
@@ -401,10 +392,14 @@ describe('ShareService', () => {
     it('should handle clipboard API errors gracefully', async () => {
       const shareUrl = 'https://app.blastoise.com/shared/share-error';
 
-      const mockWriteText = jasmine.createSpy('writeText').and.returnValue(Promise.reject(new Error('Permission denied')));
-      (navigator as any).clipboard = { writeText: mockWriteText };
+      const mockWriteText = jest.fn().mockRejectedValue(new Error('Permission denied'));
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: mockWriteText },
+        writable: true,
+        configurable: true,
+      });
 
-      const result = await service.copyToClipboard(shareUrl);
+      const result = await spectator.service.copyToClipboard(shareUrl);
 
       expect(result).toBe(false);
       expect(mockWriteText).toHaveBeenCalledWith(shareUrl);
@@ -414,16 +409,16 @@ describe('ShareService', () => {
   describe('buildShareUrl', () => {
     it('should build full share URL from share ID', () => {
       const shareId = 'share-abc123';
-      const url = service.buildShareUrl(shareId);
+      const url = spectator.service.buildShareUrl(shareId);
 
       expect(url).toContain('/shared/');
       expect(url).toContain(shareId);
-      expect(url).toMatch(/^https?:\/\//); // Should be a valid URL
+      expect(url).toMatch(/^https?:\/\//);
     });
 
     it('should use current window origin', () => {
       const shareId = 'share-def456';
-      const url = service.buildShareUrl(shareId);
+      const url = spectator.service.buildShareUrl(shareId);
 
       expect(url).toBe(`${window.location.origin}/shared/${shareId}`);
     });

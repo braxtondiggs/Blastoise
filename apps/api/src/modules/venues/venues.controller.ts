@@ -18,7 +18,7 @@ export class VenuesController {
   constructor(private readonly venuesService: VenuesService) {}
 
   /**
-   * T161: Search venues by text query
+   * Search venues by text query
    */
   @Get('search')
   @Public()
@@ -52,7 +52,7 @@ export class VenuesController {
   }
 
   /**
-   * T157: Find nearby venues with distance
+   * Find nearby venues with distance
    */
   @Get('nearby')
   @Public()

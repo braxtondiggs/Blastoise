@@ -83,7 +83,7 @@ export class VenuesService {
   }
 
   /**
-   * T157-T160: Find nearby venues with distance calculation
+   * Find nearby venues with distance calculation
    */
   async findNearby(dto: NearbyVenuesDto): Promise<VenueWithDistance[]> {
     const radiusKm = dto.radius || 5;
@@ -100,7 +100,7 @@ export class VenuesService {
       return filtered.slice(0, limit);
     }
 
-    // T158: Use Redis geospatial query for fast proximity search
+    // Use Redis geospatial query for fast proximity search
     const nearbyResults = await this.geoService.findNearby(
       { latitude: dto.latitude, longitude: dto.longitude },
       radiusKm,
@@ -118,9 +118,7 @@ export class VenuesService {
       try {
         const venue = await this.findById(id);
 
-        // T159: Filter by type if specified
         if (!dto.type || venue.venue_type === dto.type) {
-          // T160: Add distance to venue response
           venuesWithDistance.push({
             ...venue,
             distance: distanceKm,
@@ -143,7 +141,7 @@ export class VenuesService {
 }
 
 /**
- * T160: Venue with distance from user location
+ * Venue with distance from user location
  */
 export interface VenueWithDistance extends Venue {
   distance: number; // Distance in kilometers

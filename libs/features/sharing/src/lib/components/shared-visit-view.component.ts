@@ -1,6 +1,4 @@
 /**
- * T178: Shared Visit View Component
- *
  * Public view for shared visits (no authentication required).
  * Displays only anonymized information:
  * - Venue name
@@ -213,7 +211,7 @@ export class SharedVisitViewComponent implements OnInit {
         throw new Error('Visit not found');
       }
 
-      // T183: Validate that shared data contains NO sensitive information
+      // Validate that shared data contains NO sensitive information
       const isValid = this.shareService.validateSharedData(data);
       if (!isValid) {
         console.error('Shared data validation failed - sensitive info detected!');

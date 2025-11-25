@@ -1,6 +1,4 @@
 /**
- * T193, T196: Privacy Settings Component
- *
  * User privacy preferences including:
  * - Sharing default preferences (never, ask, always)
  * - Location tracking settings

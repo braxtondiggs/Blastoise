@@ -1,12 +1,12 @@
 /**
- * T165: Map Page
+ * Map Page
  *
  * Integrates the venue map component with user location and visited venues tracking
  */
 
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { VenueMap } from '@blastoise/features/map';
+import { VenueMap } from '@blastoise/features';
 import type { Venue, Coordinates } from '@blastoise/shared';
 import { VenuesApiService } from '@blastoise/data';
 import { VisitsLocalRepository } from '@blastoise/data';
@@ -128,7 +128,7 @@ export class MapPage implements OnInit {
   }
 
   onMapBoundsChanged(bounds: any): void {
-    // T151: Load venues based on viewport
+    // Load venues based on viewport
     // Could fetch venues for the visible map area
     console.log('Map bounds changed:', bounds);
   }

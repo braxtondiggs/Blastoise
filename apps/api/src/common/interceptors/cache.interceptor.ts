@@ -1,5 +1,5 @@
 /**
- * T240: HTTP Cache Interceptor
+ * HTTP Cache Interceptor
  *
  * Adds HTTP caching headers for venue endpoints to reduce load:
  * - GET /venues/*: Cache for 5 minutes

@@ -1,5 +1,5 @@
 /**
- * T185-T186: Sharing Controller
+ * Sharing Controller
  *
  * Handles anonymized visit sharing:
  * - POST /visits/:visitId/share - Create share link (authenticated)
@@ -38,7 +38,7 @@ export class SharingController {
   constructor(private readonly sharingService: SharingService) {}
 
   /**
-   * T185: POST /visits/:visitId/share
+   * POST /visits/:visitId/share
    * Create anonymized share link for a visit
    */
   @Post('visits/:visitId/share')
@@ -79,9 +79,9 @@ export class SharingController {
   }
 
   /**
-   * T186: GET /shared/:shareId
+   * GET /shared/:shareId
    * View anonymized shared visit (public, no authentication required)
-   * Includes T188: Expiration check with 410 Gone response
+   * Includes Expiration check with 410 Gone response
    */
   @Get('shared/:shareId')
   @Public()

@@ -1,7 +1,5 @@
 /* eslint-disable playwright/no-skipped-test */
 /**
- * T214-T215: E2E Tests for Sharing Feature
- *
  * Tests for:
  * - Share modal and link generation (T214)
  * - Public shared visit view (T215)

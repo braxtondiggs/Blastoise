@@ -3,6 +3,7 @@ export * from './models/venue.model';
 export * from './models/visit.model';
 export * from './models/user.model';
 export * from './models/shared-visit.model';
+export * from './models/import'; // Import models
 
 // Types
 export * from './types/api-response.types';
