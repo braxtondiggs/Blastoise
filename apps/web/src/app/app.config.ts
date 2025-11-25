@@ -13,10 +13,9 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    // T238: Preload all lazy-loaded modules after initial load for faster navigation
+    // Preload all lazy-loaded modules after initial load for faster navigation
     provideRouter(appRoutes, withPreloading(PreloadAllModules)),
-    provideHttpClient(), // Required for ApiClient
-    // Provide Capacitor geolocation for PWA (T108)
+    provideHttpClient(),
     { provide: GeolocationProvider, useClass: CapacitorGeolocationProvider },
   ],
 };

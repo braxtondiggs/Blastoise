@@ -2,7 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * T119: E2E Test for Onboarding Flow
  *
  * Tests the complete user onboarding experience:
  * 1. First-time user lands on app

@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { Registration } from '@blastoise/features-auth';
 
 /**
- * Registration Page (Web) - T075
+ * Registration Page
  *
  * Page wrapper that imports the shared Registration component.
  * This page allows new users to create an account.

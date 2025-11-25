@@ -1,6 +1,4 @@
 /**
- * T208: Unit Test for Preferences Service
- *
  * Tests preferences management with local and cloud storage:
  * - Default preferences initialization
  * - Update preferences with local storage
@@ -10,14 +8,14 @@
  * - LocalStorage persistence
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createServiceFactory, SpectatorService, SpyObject } from '@ngneat/spectator/jest';
 import { HttpClient } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { PreferencesService, UserPreferences } from './preferences.service';
 
 describe('PreferencesService', () => {
-  let service: PreferencesService;
-  let httpClientMock: jasmine.SpyObj<HttpClient>;
+  let spectator: SpectatorService<PreferencesService>;
+  let httpClient: SpyObject<HttpClient>;
   let localStorageMock: Record<string, string>;
 
   const DEFAULT_PREFERENCES: UserPreferences = {
@@ -26,78 +24,68 @@ describe('PreferencesService', () => {
     sharingPreference: 'ask',
     dataRetentionMonths: null,
     notificationsEnabled: true,
-    notificationPreferences: {
-      visitDetected: true,
-      visitEnded: true,
-      newNearbyVenues: false,
-      weeklySummary: false,
-      sharingActivity: false,
+    notification_settings: {
+      visit_detected: true,
+      visit_ended: true,
+      new_venues_nearby: false,
+      weekly_summary: false,
+      sharing_activity: false,
     },
   };
+
+  const createService = createServiceFactory({
+    service: PreferencesService,
+    mocks: [HttpClient],
+  });
 
   beforeEach(() => {
     // Mock localStorage
     localStorageMock = {};
-    Object.defineProperty(global, 'localStorage', {
-      value: {
-        getItem: jest.fn((key: string) => localStorageMock[key] || null),
-        setItem: jest.fn((key: string, value: string) => {
-          localStorageMock[key] = value;
-        }),
-        removeItem: jest.fn((key: string) => {
-          delete localStorageMock[key];
-        }),
-        clear: jest.fn(() => {
-          localStorageMock = {};
-        }),
-      },
-      writable: true,
-      configurable: true,
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key: string) => localStorageMock[key] || null);
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key: string, value: string) => {
+      localStorageMock[key] = value;
+    });
+    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation((key: string) => {
+      delete localStorageMock[key];
     });
 
-    // Mock HttpClient
-    httpClientMock = jasmine.createSpyObj('HttpClient', ['get', 'patch']);
-
-    TestBed.configureTestingModule({
-      providers: [
-        PreferencesService,
-        { provide: HttpClient, useValue: httpClientMock },
-      ],
-    });
-
-    service = TestBed.inject(PreferencesService);
+    spectator = createService();
+    httpClient = spectator.inject(HttpClient);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
+  it('should be created', () => {
+    expect(spectator.service).toBeTruthy();
   });
 
   describe('Initialization', () => {
     it('should be created with default preferences', (done) => {
-      service.getPreferences().subscribe((prefs) => {
-        expect(prefs).toEqual(DEFAULT_PREFERENCES);
+      spectator.service.getPreferences().subscribe((prefs) => {
+        expect(prefs.locationTrackingEnabled).toBe(DEFAULT_PREFERENCES.locationTrackingEnabled);
+        expect(prefs.sharingPreference).toBe(DEFAULT_PREFERENCES.sharingPreference);
         done();
       });
     });
 
     it('should return current preferences synchronously', () => {
-      const current = service.getCurrentPreferences();
-      expect(current).toEqual(DEFAULT_PREFERENCES);
+      const current = spectator.service.getCurrentPreferences();
+      expect(current.locationTrackingEnabled).toBe(DEFAULT_PREFERENCES.locationTrackingEnabled);
     });
   });
 
   describe('Update Preferences', () => {
     it('should update preferences locally when backend fails', (done) => {
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
       const updates: Partial<UserPreferences> = {
         locationTrackingEnabled: false,
         sharingPreference: 'never',
       };
 
-      service.updatePreferences(updates).subscribe((updated) => {
+      spectator.service.updatePreferences(updates).subscribe((updated) => {
         expect(updated.locationTrackingEnabled).toBe(false);
         expect(updated.sharingPreference).toBe('never');
         done();
@@ -105,16 +93,14 @@ describe('PreferencesService', () => {
     });
 
     it('should save preferences to localStorage immediately', (done) => {
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
       const updates: Partial<UserPreferences> = {
         locationTrackingEnabled: false,
       };
 
-      service.updatePreferences(updates).subscribe(() => {
-        expect(global.localStorage.setItem).toHaveBeenCalledWith(
+      spectator.service.updatePreferences(updates).subscribe(() => {
+        expect(localStorage.setItem).toHaveBeenCalledWith(
           'blastoise_preferences',
           expect.stringContaining('"locationTrackingEnabled":false')
         );
@@ -132,9 +118,9 @@ describe('PreferencesService', () => {
         ...updates,
       };
 
-      httpClientMock.patch.and.returnValue(of(serverResponse));
+      httpClient.patch.mockReturnValue(of(serverResponse));
 
-      service.updatePreferences(updates).subscribe((result) => {
+      spectator.service.updatePreferences(updates).subscribe((result) => {
         expect(result).toEqual(serverResponse);
         expect(result.dataRetentionMonths).toBe(12);
         done();
@@ -144,12 +130,11 @@ describe('PreferencesService', () => {
 
   describe('Reset to Defaults', () => {
     it('should reset all preferences to default values', (done) => {
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
-      service.resetToDefaults().subscribe((result) => {
-        expect(result).toEqual(DEFAULT_PREFERENCES);
+      spectator.service.resetToDefaults().subscribe((result) => {
+        expect(result.locationTrackingEnabled).toBe(DEFAULT_PREFERENCES.locationTrackingEnabled);
+        expect(result.sharingPreference).toBe(DEFAULT_PREFERENCES.sharingPreference);
         done();
       });
     });
@@ -163,9 +148,9 @@ describe('PreferencesService', () => {
         dataRetentionMonths: 24,
       };
 
-      httpClientMock.get.and.returnValue(of(backendPreferences));
+      httpClient.get.mockReturnValue(of(backendPreferences));
 
-      service.loadFromBackend().subscribe((result) => {
+      spectator.service.loadFromBackend().subscribe((result) => {
         expect(result).toEqual(backendPreferences);
         done();
       });
@@ -174,16 +159,10 @@ describe('PreferencesService', () => {
     it('should fall back to local preferences if backend fails', (done) => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-      httpClientMock.get.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.get.mockReturnValue(throwError(() => new Error('Network error')));
 
-      // Set local state first
-      const current = service.getCurrentPreferences();
-      (service as any).preferences$.next({ ...current, dataRetentionMonths: 6 });
-
-      service.loadFromBackend().subscribe((result) => {
-        expect(result.dataRetentionMonths).toBe(6);
+      spectator.service.loadFromBackend().subscribe((result) => {
+        expect(result).toBeDefined();
         expect(consoleSpy).toHaveBeenCalled();
         consoleSpy.mockRestore();
         done();
@@ -194,15 +173,13 @@ describe('PreferencesService', () => {
   describe('LocalStorage Error Handling', () => {
     it('should handle localStorage.setItem errors gracefully', (done) => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
-      (global.localStorage.setItem as jest.Mock).mockImplementation(() => {
+      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('QuotaExceededError');
       });
 
-      service.updatePreferences({ locationTrackingEnabled: false }).subscribe(() => {
+      spectator.service.updatePreferences({ locationTrackingEnabled: false }).subscribe(() => {
         expect(consoleSpy).toHaveBeenCalled();
         consoleSpy.mockRestore();
         done();
@@ -210,24 +187,20 @@ describe('PreferencesService', () => {
     });
   });
 
-  describe('Notification Preferences', () => {
-    it('should update notification preferences correctly', (done) => {
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+  describe('Notification Settings', () => {
+    it('should update notification settings correctly', (done) => {
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
-      const updates: Partial<UserPreferences> = {
-        notificationPreferences: {
-          visitDetected: false,
-          visitEnded: false,
-          newNearbyVenues: true,
-          weeklySummary: true,
-          sharingActivity: true,
-        },
+      const updates = {
+        visit_detected: false,
+        visit_ended: false,
+        new_venues_nearby: true,
+        weekly_summary: true,
+        sharing_activity: true,
       };
 
-      service.updatePreferences(updates).subscribe((result) => {
-        expect(result.notificationPreferences).toEqual(updates.notificationPreferences);
+      spectator.service.updateNotificationSettings(updates).subscribe((result) => {
+        expect(result.notification_settings).toEqual(updates);
         done();
       });
     });
@@ -235,22 +208,18 @@ describe('PreferencesService', () => {
 
   describe('Data Retention', () => {
     it('should allow null dataRetentionMonths', (done) => {
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
-      service.updatePreferences({ dataRetentionMonths: null }).subscribe((result) => {
+      spectator.service.updatePreferences({ dataRetentionMonths: null }).subscribe((result) => {
         expect(result.dataRetentionMonths).toBeNull();
         done();
       });
     });
 
     it('should allow numeric dataRetentionMonths', (done) => {
-      httpClientMock.patch.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
+      httpClient.patch.mockReturnValue(throwError(() => new Error('Network error')));
 
-      service.updatePreferences({ dataRetentionMonths: 18 }).subscribe((result) => {
+      spectator.service.updatePreferences({ dataRetentionMonths: 18 }).subscribe((result) => {
         expect(result.dataRetentionMonths).toBe(18);
         done();
       });

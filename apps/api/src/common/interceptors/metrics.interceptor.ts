@@ -1,5 +1,5 @@
 /**
- * T228: API Response Latency Tracking
+ * API Response Latency Tracking
  *
  * Tracks API endpoint performance metrics:
  * - Response times

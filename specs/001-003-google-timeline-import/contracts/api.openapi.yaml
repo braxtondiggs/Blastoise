@@ -1,0 +1,639 @@
+openapi: 3.0.3
+info:
+  title: Blastoise Import API
+  description: |
+    Google Timeline Import API for importing brewery and winery visits.
+
+    **Features:**
+    - Sync/async processing based on file size
+    - Three-tier venue verification
+    - Import history tracking
+    - Progress monitoring for large imports
+  version: 1.0.0
+  contact:
+    name: Blastoise Support
+    email: support@blastoise.app
+  license:
+    name: Proprietary
+    url: https://blastoise.app/terms
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+  - url: https://api.blastoise.app/api/v1
+    description: Production
+
+tags:
+  - name: import
+    description: Google Timeline import operations
+
+paths:
+  /import/google-timeline:
+    post:
+      summary: Import Google Timeline JSON
+      description: |
+        Upload Google Timeline data to import brewery and winery visits.
+
+        **Processing Mode:**
+        - **Sync**: <100 places → Returns `ImportSummaryDto` immediately
+        - **Async**: ≥100 places → Returns `jobId` for status polling
+
+        **Verification Tiers:**
+        1. **Tier 1 (Keyword)**: Fast on-device matching
+        2. **Tier 2 (API)**: Open Brewery DB verification *(coming soon)*
+        3. **Tier 3 (Search)**: Google Search verification *(coming soon)*
+      tags:
+        - import
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleTimelineImportDto'
+            examples:
+              small_file:
+                summary: Small file (sync processing)
+                value:
+                  timelineData:
+                    timelineObjects:
+                      - placeVisit:
+                          location:
+                            name: "Ballast Point Brewing"
+                            placeId: "ChIJabcdef1234567890"
+                            address: "2215 India St, San Diego, CA 92101"
+                            latitudeE7: 327249830
+                            longitudeE7: -1171656720
+                          duration:
+                            startTimestamp: "2024-12-15T16:30:00Z"
+                            endTimestamp: "2024-12-15T18:15:00Z"
+                  fileName: "timeline-2024-12.json"
+      responses:
+        '200':
+          description: Import completed successfully (sync mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSummaryDto'
+              examples:
+                success:
+                  summary: Successful import
+                  value:
+                    success: true
+                    total_places: 50
+                    visits_created: 12
+                    visits_skipped: 38
+                    new_venues_created: 5
+                    existing_venues_matched: 7
+                    processing_time_ms: 2345
+                    errors: []
+                    tier_statistics:
+                      tier1_matches: 12
+                      tier2_matches: 0
+                      tier3_matches: 0
+                      unverified: 38
+        '202':
+          description: Import queued for async processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                    description: Job ID for status polling
+                    example: "import-user123-1704384000000"
+                  message:
+                    type: string
+                    example: "Import queued. Use /import/status/:jobId to track progress."
+        '400':
+          description: Bad request (invalid JSON, file too large, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_json:
+                  summary: Invalid Timeline data
+                  value:
+                    statusCode: 400
+                    message: "Invalid Timeline data: must be a JSON object"
+                    error: "Bad Request"
+                file_too_large:
+                  summary: File exceeds size limit
+                  value:
+                    statusCode: 400
+                    message: "File too large: 150.42MB (max 100MB)"
+                    error: "Bad Request"
+        '401':
+          description: Unauthorized (missing or invalid JWT token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded (max 5 imports per day)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 429
+                message: "Rate limit exceeded: 5 imports per day"
+                error: "Too Many Requests"
+
+  /import/status/{jobId}:
+    get:
+      summary: Get import job status
+      description: |
+        Poll the status of an async import job.
+
+        **Job States:**
+        - `waiting`: Job queued, not started
+        - `active`: Currently processing
+        - `completed`: Finished successfully
+        - `failed`: Failed with error
+
+        **Polling Interval**: Recommended 2 seconds
+
+        **HTTP Caching**: This endpoint has `Cache-Control: max-age=5, must-revalidate`
+      tags:
+        - import
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Job ID returned from POST /import/google-timeline
+          example: "import-user123-1704384000000"
+      responses:
+        '200':
+          description: Job status retrieved successfully
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: HTTP caching header
+              example: "max-age=5, must-revalidate"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusDto'
+              examples:
+                active:
+                  summary: Job in progress
+                  value:
+                    status: "active"
+                    progress:
+                      processed: 150
+                      total: 500
+                      percent: 30
+                completed:
+                  summary: Job completed
+                  value:
+                    status: "completed"
+                    progress:
+                      processed: 500
+                      total: 500
+                      percent: 100
+                    result:
+                      success: true
+                      total_places: 500
+                      visits_created: 142
+                      visits_skipped: 358
+                      new_venues_created: 45
+                      existing_venues_matched: 97
+                      processing_time_ms: 45230
+                      errors: []
+                      tier_statistics:
+                        tier1_matches: 142
+                        tier2_matches: 0
+                        tier3_matches: 0
+                        unverified: 358
+                failed:
+                  summary: Job failed
+                  value:
+                    status: "failed"
+                    error: "Database connection timeout"
+        '400':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 400
+                message: "Job import-invalid-12345 not found"
+                error: "Bad Request"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /import/history:
+    get:
+      summary: Get import history for current user
+      description: |
+        Retrieve past import records with pagination.
+
+        **Sorting**: Ordered by `imported_at` DESC (most recent first)
+
+        **Pagination**: Use `limit` and `offset` for page navigation
+      tags:
+        - import
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of records to return
+          example: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of records to skip
+          example: 0
+      responses:
+        '200':
+          description: Import history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ImportHistory'
+                  total:
+                    type: integer
+                    description: Total number of imports for this user
+                    example: 42
+              examples:
+                success:
+                  summary: User with 3 imports
+                  value:
+                    imports:
+                      - id: "550e8400-e29b-41d4-a716-446655440000"
+                        user_id: "user123"
+                        source: "google_timeline"
+                        imported_at: "2024-12-15T18:30:00Z"
+                        file_name: "timeline-2024-12.json"
+                        job_id: "import-user123-1702666200000"
+                        total_places: 150
+                        visits_created: 42
+                        visits_skipped: 108
+                        new_venues_created: 12
+                        existing_venues_matched: 30
+                        processing_time_ms: 3456
+                        metadata:
+                          errors: []
+                          tier_statistics:
+                            tier1_matches: 42
+                            tier2_matches: 0
+                            tier3_matches: 0
+                            unverified: 108
+                      - id: "550e8400-e29b-41d4-a716-446655440001"
+                        user_id: "user123"
+                        source: "google_timeline"
+                        imported_at: "2024-11-20T14:15:00Z"
+                        file_name: "timeline-2024-11.json"
+                        total_places: 75
+                        visits_created: 18
+                        visits_skipped: 57
+                        new_venues_created: 6
+                        existing_venues_matched: 12
+                        processing_time_ms: 1890
+                        metadata:
+                          errors:
+                            - place_name: "Unknown Taproom"
+                              timestamp: "2024-11-10T16:00:00Z"
+                              error: "Could not determine venue type"
+                              error_code: "VERIFICATION_FAILED"
+                          tier_statistics:
+                            tier1_matches: 18
+                            tier2_matches: 0
+                            tier3_matches: 0
+                            unverified: 57
+                      - id: "550e8400-e29b-41d4-a716-446655440002"
+                        user_id: "user123"
+                        source: "google_timeline"
+                        imported_at: "2024-10-05T10:00:00Z"
+                        file_name: "timeline-2024-10.json"
+                        total_places: 200
+                        visits_created: 62
+                        visits_skipped: 138
+                        new_venues_created: 18
+                        existing_venues_matched: 44
+                        processing_time_ms: 8934
+                        metadata:
+                          errors: []
+                          tier_statistics:
+                            tier1_matches: 62
+                            tier2_matches: 0
+                            tier3_matches: 0
+                            unverified: 138
+                    total: 3
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token obtained from authentication
+
+  schemas:
+    GoogleTimelineImportDto:
+      type: object
+      required:
+        - timelineData
+      properties:
+        timelineData:
+          type: object
+          description: Google Timeline JSON (timelineObjects array)
+          properties:
+            timelineObjects:
+              type: array
+              items:
+                type: object
+                properties:
+                  placeVisit:
+                    $ref: '#/components/schemas/PlaceVisit'
+        fileName:
+          type: string
+          description: Optional file name for tracking
+          example: "timeline-2024-12.json"
+
+    PlaceVisit:
+      type: object
+      properties:
+        location:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              example: "Ballast Point Brewing Company"
+            placeId:
+              type: string
+              description: Google Place ID (optional)
+              example: "ChIJabcdef1234567890"
+            address:
+              type: string
+              example: "2215 India St, San Diego, CA 92101"
+            latitudeE7:
+              type: integer
+              description: Latitude × 10^7
+              example: 327249830
+            longitudeE7:
+              type: integer
+              description: Longitude × 10^7
+              example: -1171656720
+        duration:
+          type: object
+          required:
+            - startTimestamp
+          properties:
+            startTimestamp:
+              type: string
+              format: date-time
+              example: "2024-12-15T16:30:00Z"
+            endTimestamp:
+              type: string
+              format: date-time
+              example: "2024-12-15T18:15:00Z"
+
+    ImportSummaryDto:
+      type: object
+      required:
+        - success
+        - total_places
+        - visits_created
+        - visits_skipped
+        - new_venues_created
+        - processing_time_ms
+        - errors
+      properties:
+        success:
+          type: boolean
+          description: Overall import success status
+          example: true
+        total_places:
+          type: integer
+          description: Total places found in Timeline file
+          example: 150
+        visits_created:
+          type: integer
+          description: Visits successfully created
+          example: 42
+        visits_skipped:
+          type: integer
+          description: Visits skipped (duplicates or non-breweries)
+          example: 108
+        new_venues_created:
+          type: integer
+          description: New venues added to database
+          example: 12
+        existing_venues_matched:
+          type: integer
+          description: Visits linked to existing venues
+          example: 30
+        processing_time_ms:
+          type: integer
+          description: Processing time in milliseconds
+          example: 2345
+        job_id:
+          type: string
+          description: BullMQ job ID (async imports only)
+          example: "import-user123-1704384000000"
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportError'
+        tier_statistics:
+          $ref: '#/components/schemas/TierStatistics'
+
+    ImportError:
+      type: object
+      required:
+        - place_name
+        - timestamp
+        - error
+      properties:
+        place_name:
+          type: string
+          example: "Unknown Taproom"
+        address:
+          type: string
+          example: "123 Main St, City, State"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-12-15T16:30:00Z"
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Could not determine venue type"
+        error_code:
+          type: string
+          enum:
+            - INVALID_COORDINATES
+            - NOT_BREWERY_OR_WINERY
+            - DUPLICATE_VISIT
+            - MISSING_REQUIRED_FIELDS
+            - VENUE_CREATION_FAILED
+            - VISIT_CREATION_FAILED
+            - VERIFICATION_FAILED
+          example: "VERIFICATION_FAILED"
+
+    TierStatistics:
+      type: object
+      properties:
+        tier1_matches:
+          type: integer
+          description: Keyword matching (Tier 1)
+          example: 42
+        tier2_matches:
+          type: integer
+          description: Open Brewery DB verification (Tier 2)
+          example: 0
+        tier3_matches:
+          type: integer
+          description: Google Search verification (Tier 3)
+          example: 0
+        unverified:
+          type: integer
+          description: Places that didn't match any tier
+          example: 108
+
+    JobStatusDto:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - waiting
+            - active
+            - completed
+            - failed
+          description: Current job state
+          example: "active"
+        progress:
+          type: object
+          properties:
+            processed:
+              type: integer
+              example: 150
+            total:
+              type: integer
+              example: 500
+            percent:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 30
+        result:
+          $ref: '#/components/schemas/ImportSummaryDto'
+        error:
+          type: string
+          description: Error message (failed jobs only)
+          example: "Database connection timeout"
+
+    ImportHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          description: User ID who initiated the import
+          example: "user123"
+        source:
+          type: string
+          enum:
+            - google_timeline
+          example: "google_timeline"
+        imported_at:
+          type: string
+          format: date-time
+          description: Import timestamp
+          example: "2024-12-15T18:30:00Z"
+        file_name:
+          type: string
+          example: "timeline-2024-12.json"
+        job_id:
+          type: string
+          description: BullMQ job ID (async imports only)
+          example: "import-user123-1702666200000"
+        total_places:
+          type: integer
+          example: 150
+        visits_created:
+          type: integer
+          example: 42
+        visits_skipped:
+          type: integer
+          example: 108
+        new_venues_created:
+          type: integer
+          example: 12
+        existing_venues_matched:
+          type: integer
+          example: 30
+        processing_time_ms:
+          type: integer
+          example: 3456
+        metadata:
+          type: object
+          properties:
+            errors:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImportError'
+            tier_statistics:
+              $ref: '#/components/schemas/TierStatistics'
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Invalid Timeline data: must be a JSON object"
+        error:
+          type: string
+          example: "Bad Request"

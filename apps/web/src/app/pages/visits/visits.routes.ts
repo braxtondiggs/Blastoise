@@ -1,9 +1,7 @@
 import { Route } from '@angular/router';
 
 /**
- * T133: Timeline routes configuration
- *
- * User Story 2: Visual Timeline of Visits
+ * Timeline routes configuration
  */
 export const visitsRoutes: Route[] = [
   {

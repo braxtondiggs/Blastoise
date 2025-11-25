@@ -1,6 +1,4 @@
 /**
- * T195: Preferences Service
- *
  * Manages user preferences with local and cloud storage:
  * - Privacy settings (sharing, tracking)
  * - Notification preferences

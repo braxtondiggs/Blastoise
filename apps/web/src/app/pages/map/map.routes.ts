@@ -1,7 +1,3 @@
-/**
- * T164: Map Routes
- */
-
 import { Routes } from '@angular/router';
 
 export const mapRoutes: Routes = [

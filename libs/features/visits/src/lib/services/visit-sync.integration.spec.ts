@@ -14,11 +14,9 @@ import {
   BatchVisitSyncDto,
 } from '@blastoise/shared';
 import { of, throwError, BehaviorSubject } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { delay, filter } from 'rxjs/operators';
 
 /**
- * T118: Integration Test for Offline Sync Flow
- *
  * Tests the complete offline-to-online synchronization workflow:
  * 1. User visits venue (offline)
  * 2. Visit stored locally in IndexedDB
@@ -63,7 +61,9 @@ class MockGeofenceService {
   }
 
   getGeofenceTransitions() {
-    return this.transitionsSubject.asObservable();
+    return this.transitionsSubject.asObservable().pipe(
+      filter((transition): transition is GeofenceTransition => transition !== null)
+    );
   }
 
   emitTransition(transition: GeofenceTransition): void {
@@ -163,6 +163,8 @@ describe('T118: Offline Sync Flow Integration Test', () => {
   const mockVenue: Venue = {
     id: 'venue-1',
     name: 'Test Brewery',
+    venue_type: 'brewery',
+    source: 'manual',
     latitude: 37.7749,
     longitude: -122.4194,
     city: 'San Francisco',

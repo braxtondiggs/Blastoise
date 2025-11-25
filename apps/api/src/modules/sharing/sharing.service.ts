@@ -1,11 +1,11 @@
 /**
- * T187-T190: Sharing Service
+ * Sharing Service
  *
  * Business logic for anonymized visit sharing:
- * - T187: Venue denormalization (store venue data to avoid joins)
- * - T188: Expiration check with 410 Gone response
- * - T189: View count tracking
- * - T190: Privacy validation (no user_id, no GPS coordinates)
+ * - Venue denormalization (store venue data to avoid joins)
+ * - Expiration check with 410 Gone response
+ * - View count tracking
+ * - Privacy validation (no user_id, no GPS coordinates)
  */
 
 import {
@@ -22,7 +22,7 @@ import { randomBytes } from 'crypto';
 @Injectable()
 export class SharingService {
   /**
-   * T187: Create share with venue denormalization
+   * Create share with venue denormalization
    * Stores venue data directly to avoid joins and ensure data persistence
    */
   async createShare(
@@ -54,7 +54,7 @@ export class SharingService {
     const arrivalDate = new Date(visit.arrival_time);
     const dateOnly = arrivalDate.toISOString().split('T')[0];
 
-    // T187: Create shared visit record with denormalized venue data
+    // Create shared visit record with denormalized venue data
     const sharedVisit: SharedVisit = {
       id: shareId,
       visit_id: visitId,
@@ -81,7 +81,7 @@ export class SharingService {
   }
 
   /**
-   * T186, T188, T189: Get shared visit with expiration check and view tracking
+   * Get shared visit with expiration check and view tracking
    */
   async getShared(shareId: string): Promise<SharedVisit> {
     const supabase = getSupabaseClient();
@@ -96,7 +96,7 @@ export class SharingService {
       throw new NotFoundException(`Shared visit not found`);
     }
 
-    // T188: Check if expired (410 Gone response)
+    // Check if expired (410 Gone response)
     if (data.expires_at) {
       const expiryDate = new Date(data.expires_at);
       if (expiryDate < new Date()) {
@@ -104,7 +104,7 @@ export class SharingService {
       }
     }
 
-    // T189: Increment view count
+    // Increment view count
     await this.incrementViewCount(shareId);
 
     // Return data with updated view count
@@ -115,7 +115,7 @@ export class SharingService {
   }
 
   /**
-   * T189: Increment view count for shared visit
+   * Increment view count for shared visit
    */
   private async incrementViewCount(shareId: string): Promise<void> {
     const supabase = getSupabaseClient();
@@ -178,7 +178,7 @@ export class SharingService {
   }
 
   /**
-   * T190: Privacy validation - ensure no sensitive data in visit
+   * Privacy validation - ensure no sensitive data in visit
    */
   private validatePrivacy(visit: any): void {
     const errors: string[] = [];

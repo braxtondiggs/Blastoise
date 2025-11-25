@@ -1,5 +1,5 @@
 <div class="flex items-center justify-center min-h-screen bg-base-100">
-  <div class="card w-96 bg-base-200 shadow-xl" [attr.aria-busy]="isProcessing()">
+  <div class="shadow-xl card w-96 bg-base-200" [attr.aria-busy]="isProcessing()">
     <div class="card-body">
       <!-- Processing State (T049) -->
       @if (isProcessing()) {
@@ -8,18 +8,18 @@
         <h2 class="text-xl font-semibold text-center" aria-live="polite" role="status">
           Signing you in...
         </h2>
-        <p class="text-base-content/70 text-center">
+        <p class="text-center text-base-content/70">
           Please wait while we verify your authentication link.
         </p>
       </div>
       }
 
-      <!-- Error State (T049, T050) -->
+      <!-- Error State -->
       @if (error() && !isProcessing()) {
       <div class="flex flex-col items-center gap-4">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="stroke-error h-16 w-16"
+          class="w-16 h-16 stroke-error"
           fill="none"
           viewBox="0 0 24 24"
           aria-hidden="true"
@@ -38,7 +38,7 @@
           <span>{{ error() }}</span>
         </div>
 
-        <a href="/auth/login" class="btn btn-primary w-full" aria-label="Return to login page">
+        <a href="/auth/login" class="w-full btn btn-primary" aria-label="Return to login page">
           Return to Login
         </a>
       </div>

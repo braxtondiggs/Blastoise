@@ -2,8 +2,6 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
 /**
- * T109-T110: Onboarding Guard - Redirects to onboarding if not completed
- *
  * Checks localStorage for onboarding completion status.
  * If user hasn't completed onboarding, redirects to /auth/onboarding
  *

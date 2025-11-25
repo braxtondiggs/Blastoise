@@ -1,6 +1,4 @@
 /**
- * T177: Share Modal Component
- *
  * Modal dialog for generating and sharing visit links.
  * Allows users to:
  * - Generate shareable links
@@ -280,7 +278,7 @@ export class ShareModalComponent {
   }
 
   /**
-   * T180: Generate share link
+   * Generate share link
    */
   async generateLink(): Promise<void> {
     if (!this.config) return;
@@ -334,7 +332,7 @@ export class ShareModalComponent {
   }
 
   /**
-   * T181: Share via Web Share API or social channels
+   * Share via Web Share API or social channels
    */
   async shareViaWeb(): Promise<void> {
     const link = this.shareLink();

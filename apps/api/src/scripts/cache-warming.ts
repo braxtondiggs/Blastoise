@@ -1,5 +1,5 @@
 /**
- * T241: Redis Cache Warming Script
+ * Redis Cache Warming Script
  *
  * Pre-loads Redis geospatial index with venue data for popular regions:
  * - Loads venues from Supabase

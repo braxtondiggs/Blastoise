@@ -1,5 +1,5 @@
 /**
- * T230: Health Module
+ * Health Module
  *
  * Provides health check endpoints for monitoring:
  * - API server health

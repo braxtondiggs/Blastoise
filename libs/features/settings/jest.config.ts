@@ -1,6 +1,7 @@
 export default {
   displayName: 'settings',
   preset: '../../../jest.preset.js',
+  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   coverageDirectory: '../../../coverage/libs/features/settings',
   transform: {

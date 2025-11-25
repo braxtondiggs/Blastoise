@@ -145,7 +145,6 @@ export class VisitDetailComponent implements OnInit {
   }
 
   /**
-   * T201: Share this visit (User Story 4)
    * Opens share modal with visit information
    */
   shareVisit(): void {

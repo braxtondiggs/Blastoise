@@ -14,8 +14,6 @@ import type { Venue, Visit } from '@blastoise/shared';
 import { VisitsLocalRepository } from '@blastoise/data';
 
 /**
- * T148: Venue Detail Component
- *
  * Detailed view of a venue with:
  * - Venue name, type, and full address
  * - Map showing venue location
@@ -106,7 +104,7 @@ export class VenueDetail implements OnInit {
   }
 
   /**
-   * T156: Open venue in navigation app (Google Maps/Apple Maps)
+   * Open venue in navigation app (Google Maps/Apple Maps)
    */
   openInMaps(): void {
     this.navigate.emit(this.venue);

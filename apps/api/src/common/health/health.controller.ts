@@ -1,5 +1,5 @@
 /**
- * T230: Health Check Controller
+ * Health Check Controller
  *
  * Endpoints for system health monitoring:
  * - GET /health: Overall system health

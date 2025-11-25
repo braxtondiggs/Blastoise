@@ -4,6 +4,7 @@
  */
 
 export type DetectionMethod = 'auto' | 'manual';
+export type VisitSource = 'auto_detect' | 'google_import' | 'manual';
 
 export interface Visit {
   id: string; // UUID
@@ -14,6 +15,8 @@ export interface Visit {
   duration_minutes?: number; // Calculated from arrival - departure
   is_active: boolean; // True if visit is in progress
   detection_method: DetectionMethod;
+  source?: VisitSource; // Visit origin: auto_detect, google_import, manual (T015)
+  imported_at?: string; // ISO 8601 timestamp when visit was imported (T015)
   synced: boolean; // Client-side only - true if synced to server
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp

@@ -2,8 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * T120: E2E Test for Automatic Visit Detection
- *
  * Tests the complete automatic visit detection workflow:
  * 1. User grants location permission
  * 2. App starts geofence tracking

@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { AuthCallback } from '@blastoise/features-auth';
 
 /**
- * Auth Callback Page (Web) - T051
+ * Auth Callback Page
  *
  * Page wrapper that imports the shared AuthCallback component.
  * This page handles the magic link authentication callback.

@@ -1,6 +1,4 @@
 /**
- * T217, T219-T223, T225: Notification Service
- *
  * Handles all application notifications:
  * - Push notification permissions
  * - Visit detected (arrival) notifications
@@ -51,7 +49,7 @@ export class NotificationService {
   private preferences$ = new BehaviorSubject<NotificationPreferences>(DEFAULT_PREFERENCES);
 
   /**
-   * T217: Request notification permission from the user
+
    * Handles permission request gracefully across platforms
    */
   async requestPermission(): Promise<NotificationPermission> {
@@ -71,7 +69,7 @@ export class NotificationService {
       const permission = await Notification.requestPermission();
       this.permissionStatus$.next(permission as NotificationPermission);
 
-      // T225: Handle denial gracefully
+
       if (permission === 'denied') {
         this.handlePermissionDenial();
       } else if (permission === 'granted') {
@@ -115,7 +113,7 @@ export class NotificationService {
   }
 
   /**
-   * T225: Handle device-level notification permission denial gracefully
+
    * Shows user-friendly message and provides guidance
    */
   handlePermissionDenial(): void {
@@ -131,7 +129,7 @@ export class NotificationService {
   }
 
   /**
-   * T225: Check if notifications were previously denied
+   * Check if notifications were previously denied
    */
   wasPermissionDenied(): boolean {
     try {
@@ -142,7 +140,7 @@ export class NotificationService {
   }
 
   /**
-   * T225: Clear denial tracking (when user re-enables)
+   * Clear denial tracking (when user re-enables)
    */
   clearDenialTracking(): void {
     try {
@@ -154,7 +152,7 @@ export class NotificationService {
   }
 
   /**
-   * T225: Get instructions for enabling notifications based on platform
+   * Get instructions for enabling notifications based on platform
    */
   getEnableInstructions(): string {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -249,7 +247,7 @@ export class NotificationService {
   }
 
   /**
-   * T219: Send visit detected (arrival) notification
+   * Send visit detected (arrival) notification
    */
   async notifyVisitDetected(venueName: string, venueId: string): Promise<void> {
     const prefs = this.preferences$.value;
@@ -273,7 +271,7 @@ export class NotificationService {
   }
 
   /**
-   * T220: Send visit ended (departure) notification
+   * Send visit ended (departure) notification
    */
   async notifyVisitEnded(
     venueName: string,
@@ -307,7 +305,7 @@ export class NotificationService {
   }
 
   /**
-   * T221: Send new nearby venues notification
+   * Send new nearby venues notification
    */
   async notifyNewVenuesNearby(count: number, city?: string): Promise<void> {
     const prefs = this.preferences$.value;
@@ -334,7 +332,7 @@ export class NotificationService {
   }
 
   /**
-   * T222: Send weekly visit summary notification
+   * Send weekly visit summary notification
    */
   async notifyWeeklySummary(
     visitCount: number,
@@ -365,7 +363,7 @@ export class NotificationService {
   }
 
   /**
-   * T223: Send sharing activity notification
+   * Send sharing activity notification
    */
   async notifySharingActivity(
     venueName: string,

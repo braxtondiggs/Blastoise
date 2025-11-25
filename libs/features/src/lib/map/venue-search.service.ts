@@ -6,8 +6,6 @@ import { calculateDistance } from '@blastoise/shared';
 import { NotificationService } from '@blastoise/shared';
 
 /**
- * T149: Venue Search Service
- *
  * Handles venue search and proximity queries:
  * - Text-based venue search
  * - Proximity search by location and radius
@@ -35,7 +33,7 @@ export class VenueSearchService {
   private readonly searchCache = new Map<string, ApiResponse<Venue[]>>();
   private readonly proximityCache = new Map<string, ApiResponse<Venue[]>>();
 
-  // T221: Track previous venue IDs to detect new venues
+  // Track previous venue IDs to detect new venues
   private previousVenueIds = new Set<string>();
 
   constructor() {
@@ -135,7 +133,7 @@ export class VenueSearchService {
         this.proximityResults.set(results);
         this.isSearching.set(false);
 
-        // T221: Check for new venues and notify
+        // Check for new venues and notify
         this.checkForNewVenues(results);
 
         // Cache results
@@ -148,14 +146,14 @@ export class VenueSearchService {
   }
 
   /**
-   * T153: Search venues by text query
+   * Search venues by text query
    */
   searchByText(query: string): void {
     this.searchQuery$.next(query);
   }
 
   /**
-   * T151: Search venues by proximity
+   * Search venues by proximity
    */
   searchByProximity(params: ProximitySearchParams): void {
     this.proximityParams$.next(params);
@@ -218,7 +216,6 @@ export class VenueSearchService {
   }
 
   /**
-   * T221: Check for new venues and send notification
    * Notifies user when new venues are discovered in their area
    */
   private checkForNewVenues(venues: Venue[]): void {

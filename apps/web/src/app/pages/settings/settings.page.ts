@@ -1,5 +1,5 @@
 /**
- * T204: Settings Page
+ * Settings Page
  *
  * Main settings page for the web app
  */

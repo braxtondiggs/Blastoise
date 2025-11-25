@@ -4,8 +4,6 @@
  * Two-step password reset flow:
  * 1. Request reset link (email form)
  * 2. Set new password (after clicking email link)
- *
- * User Story 7: Password Reset Flow (T116-T126)
  */
 
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
@@ -13,7 +11,13 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroEnvelope, heroKey, heroCheckCircle, heroXCircle, heroArrowLeft } from '@ng-icons/heroicons/outline';
+import {
+  heroEnvelope,
+  heroKey,
+  heroCheckCircle,
+  heroXCircle,
+  heroArrowLeft,
+} from '@ng-icons/heroicons/outline';
 import { getSupabaseClient } from '@blastoise/data';
 import { passwordStrengthValidator } from '../services/form-validators';
 
@@ -25,34 +29,31 @@ type PasswordResetMode = 'request' | 'reset';
   imports: [CommonModule, ReactiveFormsModule, RouterLink, NgIconComponent],
   templateUrl: './password-reset.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  viewProviders: [provideIcons({ heroEnvelope, heroKey, heroCheckCircle, heroXCircle, heroArrowLeft })],
+  viewProviders: [
+    provideIcons({ heroEnvelope, heroKey, heroCheckCircle, heroXCircle, heroArrowLeft }),
+  ],
 })
 export class PasswordReset implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly supabase = getSupabaseClient();
 
-  // T117: Mode signal determines which form to show
   readonly mode = signal<PasswordResetMode>('request');
 
-  // T118: Reset request form (Step 1: Request reset link)
   readonly resetRequestForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
   });
 
-  // T119: New password form (Step 2: Set new password after clicking email link)
   readonly newPasswordForm = this.fb.group({
     newPassword: ['', [Validators.required, Validators.minLength(8), passwordStrengthValidator]],
     confirmPassword: ['', [Validators.required]],
   });
 
-  // T125: Loading states and error handling
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal(false);
 
   async ngOnInit(): Promise<void> {
-    // T123: Detect reset token in URL - if user arrived via email link
     const {
       data: { session },
     } = await this.supabase.auth.getSession();
@@ -67,7 +68,7 @@ export class PasswordReset implements OnInit {
   }
 
   /**
-   * T121: Request password reset link
+   * Request password reset link
    * Sends email with reset link to user's email address
    */
   async onRequestReset(): Promise<void> {
@@ -91,7 +92,6 @@ export class PasswordReset implements OnInit {
       if (error) {
         this.error.set(this.mapErrorMessage(error));
       } else {
-        // T122: Show success message
         this.success.set(true);
       }
     } catch (err) {
@@ -103,7 +103,7 @@ export class PasswordReset implements OnInit {
   }
 
   /**
-   * T124: Update password with new password
+   * Update password with new password
    * Called after user clicks reset link and submits new password
    */
   async onUpdatePassword(): Promise<void> {
@@ -150,7 +150,7 @@ export class PasswordReset implements OnInit {
   }
 
   /**
-   * T125: Map Supabase errors to user-friendly messages
+   * Map Supabase errors to user-friendly messages
    */
   private mapErrorMessage(error: Error | { message?: string }): string {
     const message = error?.message || '';

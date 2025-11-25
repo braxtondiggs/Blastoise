@@ -3,11 +3,8 @@ import { CommonModule } from '@angular/common';
 import { VisitDetailComponent } from '@blastoise/features-visits';
 
 /**
- * T134: Visit Detail Page
- *
+ * Visit Detail Page
  * Page that displays detailed information about a single visit.
- *
- * User Story 2: Visual Timeline of Visits
  */
 
 @Component({

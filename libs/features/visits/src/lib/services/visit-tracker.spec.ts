@@ -9,8 +9,8 @@ import {
   GeofenceTransition,
   Visit,
 } from '@blastoise/shared';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
+import { take, filter } from 'rxjs/operators';
 
 // Mock Services
 class MockGeofenceService {
@@ -25,7 +25,9 @@ class MockGeofenceService {
   }
 
   getGeofenceTransitions(): Observable<GeofenceTransition> {
-    return this.transitionsSubject.asObservable() as Observable<GeofenceTransition>;
+    return this.transitionsSubject.asObservable().pipe(
+      filter((transition): transition is GeofenceTransition => transition !== null)
+    );
   }
 
   // Test helper to emit transitions
@@ -76,7 +78,8 @@ describe('VisitTrackerService', () => {
   const mockVenue: Venue = {
     id: 'venue-1',
     name: 'Test Brewery',
-    type: 'brewery',
+    venue_type: 'brewery',
+    source: 'manual',
     latitude: 37.7749,
     longitude: -122.4194,
     city: 'San Francisco',

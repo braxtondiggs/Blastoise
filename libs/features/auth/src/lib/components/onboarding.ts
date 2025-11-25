@@ -6,8 +6,6 @@
  * - Step 2: Location Permissions explanation
  * - Step 3: Privacy-first approach
  * - Step 4: Get Started (auth options)
- *
- * User Story 6: Onboarding Flow (T099-T110)
  */
 
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
@@ -23,7 +21,7 @@ export interface OnboardingStep {
   iconClass?: string;
 }
 
-// T100: Define onboarding steps
+
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: 'Welcome to Blastoise',
@@ -59,14 +57,14 @@ export class Onboarding implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
 
-  // T099: Step navigation signals
+
   readonly currentStep = signal(0);
   readonly totalSteps = ONBOARDING_STEPS.length;
   readonly steps = ONBOARDING_STEPS;
   private returnUrl = '/auth/login';
 
   ngOnInit(): void {
-    // T110: Get returnUrl from query params
+
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/auth/login';
 
     // Check if onboarding was already completed
@@ -77,7 +75,7 @@ export class Onboarding implements OnInit {
     }
   }
 
-  // T101: Navigation methods
+
   nextStep(): void {
     if (this.currentStep() < this.totalSteps - 1) {
       this.currentStep.update((step) => step + 1);
@@ -90,19 +88,19 @@ export class Onboarding implements OnInit {
     }
   }
 
-  // T101: Skip onboarding
+
   skip(): void {
     this.complete();
   }
 
-  // T102: Mark onboarding as complete and store in localStorage
-  // T110: Redirect to returnUrl after completion
+
+
   complete(): void {
     localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
     this.router.navigateByUrl(this.returnUrl);
   }
 
-  // T108: Wire "Get Started" to show auth options
+
   onSignIn(): void {
     this.complete();
     // Navigation handled by complete() - user lands on login page
