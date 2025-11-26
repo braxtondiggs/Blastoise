@@ -98,11 +98,37 @@ async function bootstrap() {
     })
   );
 
+  // Configure CORS
+  const corsOrigins = process.env['CORS_ORIGINS']?.split(',') || [
+    'http://localhost:4200',
+    'http://localhost:4201',
+  ];
+
   app.enableCors({
-    origin: process.env['CORS_ORIGINS']?.split(',') || [
-      'http://localhost:4200',
-      'http://localhost:4201',
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Check if origin is in allowed list
+      if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow Railway preview deployments (*.up.railway.app)
+      if (origin.endsWith('.up.railway.app')) {
+        return callback(null, true);
+      }
+
+      // Allow Vercel preview deployments (*.vercel.app)
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+
+      // Reject other origins
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

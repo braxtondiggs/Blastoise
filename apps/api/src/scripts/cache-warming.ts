@@ -205,6 +205,7 @@ async function main() {
   // Validate environment
   const redisHost = process.env.REDIS_HOST || 'localhost';
   const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+  const redisPassword = process.env.REDIS_PASSWORD;
 
   // Create TypeORM DataSource for PostgreSQL
   const dataSource = new DataSource({
@@ -225,6 +226,7 @@ async function main() {
       host: redisHost,
       port: redisPort,
     },
+    password: redisPassword || undefined,
   });
 
   try {

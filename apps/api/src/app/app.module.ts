@@ -52,6 +52,7 @@ import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
       connection: {
         host: process.env['REDIS_HOST'] || 'localhost',
         port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
+        password: process.env['REDIS_PASSWORD'] || undefined,
       },
     }),
     // Global logging with Pino

@@ -6,7 +6,9 @@
  */
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import * as path from 'path';
+
+// Import migrations directly so they're bundled by webpack
+import { InitialSchema1732600000000 } from '../migrations/1732600000000-InitialSchema';
 
 export const getTypeOrmConfig = (
   configService: ConfigService
@@ -23,8 +25,8 @@ export const getTypeOrmConfig = (
   synchronize: false,
   // Run migrations automatically on app start
   migrationsRun: true,
-  // Migration files location
-  migrations: [path.join(__dirname, '../migrations/*{.ts,.js}')],
+  // Migrations are imported directly to work with webpack bundling
+  migrations: [InitialSchema1732600000000],
   migrationsTableName: 'migrations',
   // Logging
   logging: configService.get('NODE_ENV') === 'development',
