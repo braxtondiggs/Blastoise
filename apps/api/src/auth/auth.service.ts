@@ -50,14 +50,11 @@ export class AuthService {
     const token = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-    // Calculate expiration (7 days)
+    // Calculate expiration from config (supports: 7d, 24h, 60m, 3600s)
     const expiresAt = new Date();
-    expiresAt.setDate(
-      expiresAt.getDate() +
-        parseInt(
-          this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d').replace('d', '')
-        )
-    );
+    const expiration = this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d');
+    const ms = this.parseDuration(expiration);
+    expiresAt.setTime(expiresAt.getTime() + ms);
 
     // Store hashed token in database
     await this.refreshTokenRepository.save({
@@ -67,6 +64,34 @@ export class AuthService {
     });
 
     return token;
+  }
+
+  /**
+   * Parse duration string to milliseconds
+   * Supports: 7d (days), 24h (hours), 60m (minutes), 3600s (seconds)
+   */
+  private parseDuration(duration: string): number {
+    const match = duration.match(/^(\d+)([dhms])$/);
+    if (!match) {
+      // Default to 7 days if format is invalid
+      return 7 * 24 * 60 * 60 * 1000;
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case 'd':
+        return value * 24 * 60 * 60 * 1000;
+      case 'h':
+        return value * 60 * 60 * 1000;
+      case 'm':
+        return value * 60 * 1000;
+      case 's':
+        return value * 1000;
+      default:
+        return 7 * 24 * 60 * 60 * 1000;
+    }
   }
 
   // Login
@@ -114,7 +139,10 @@ export class AuthService {
     }
 
     // Validate password strength
-    this.validatePasswordStrength(password);
+    const validation = this.validatePasswordStrength(password);
+    if (!validation.valid) {
+      throw new Error(validation.errors.join('. '));
+    }
 
     // Hash password
     const passwordHash = await this.hashPassword(password);
@@ -145,27 +173,26 @@ export class AuthService {
     };
   }
 
-  validatePasswordStrength(password: string): void {
+  validatePasswordStrength(password: string): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
     if (password.length < 8) {
-      throw new Error(
-        'Password must be at least 8 characters'
-      );
+      errors.push('Password must be at least 8 characters');
     }
 
     if (password.length > 128) {
-      throw new Error(
-        'Password must be less than 128 characters'
-      );
+      errors.push('Password must be less than 128 characters');
     }
 
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-
-    if (!hasLetter || !hasNumber) {
-      throw new Error(
-        'Password must contain at least one letter and one number'
-      );
+    if (!/[a-zA-Z]/.test(password)) {
+      errors.push('Password must contain at least one letter');
     }
+
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+
+    return { valid: errors.length === 0, errors };
   }
 
   // Token refresh
@@ -288,7 +315,10 @@ export class AuthService {
     }
 
     // Validate new password
-    this.validatePasswordStrength(newPassword);
+    const validation = this.validatePasswordStrength(newPassword);
+    if (!validation.valid) {
+      throw new Error(validation.errors.join('. '));
+    }
 
     // Hash new password
     const passwordHash = await this.hashPassword(newPassword);

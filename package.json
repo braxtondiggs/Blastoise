@@ -15,7 +15,12 @@
     "serve:api": "nx serve api",
     "dev": "nx run-many --target=serve --projects=api,web --parallel",
     "dev:mobile": "nx run-many --target=serve --projects=api,mobile --parallel",
-    "graph": "nx graph"
+    "graph": "nx graph",
+    "migration:run": "npx tsx ./node_modules/typeorm/cli.js migration:run -d apps/api/src/database/migration.config.ts",
+    "migration:revert": "npx tsx ./node_modules/typeorm/cli.js migration:revert -d apps/api/src/database/migration.config.ts",
+    "migration:generate": "npx tsx ./node_modules/typeorm/cli.js migration:generate -d apps/api/src/database/migration.config.ts",
+    "migration:show": "npx tsx ./node_modules/typeorm/cli.js migration:show -d apps/api/src/database/migration.config.ts",
+    "migration:create": "npx tsx ./node_modules/typeorm/cli.js migration:create"
   },
   "private": true,
   "dependencies": {
@@ -147,6 +152,7 @@
     "tailwindcss": "^4.1.16",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "~5.9.2",
     "webpack-cli": "^5.1.4"
   },

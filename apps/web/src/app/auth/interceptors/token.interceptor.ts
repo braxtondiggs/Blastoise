@@ -1,5 +1,5 @@
 /**
- * Token Attachment Interceptor (T077-T078)
+ * Token Attachment Interceptor
  *
  * Automatically attaches JWT access token to all outgoing HTTP requests
  * Uses functional HttpInterceptorFn with inject() API (Angular 20+)

@@ -1,5 +1,5 @@
 /**
- * Token Refresh Interceptor (T079-T080)
+ * Token Refresh Interceptor
  *
  * Catches 401 Unauthorized errors and automatically refreshes the access token
  * Retries the original request with the new token, or logs out on refresh failure
