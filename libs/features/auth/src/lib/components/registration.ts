@@ -1,12 +1,13 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroEnvelope, heroKey, heroUser, heroXCircle, heroCheckCircle, heroUserPlus } from '@ng-icons/heroicons/outline';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth';
 import { passwordStrengthValidator, passwordMatchValidator } from '../services/form-validators';
-import { mapSupabaseError } from '@blastoise/shared';
+import { mapAuthError } from '@blastoise/shared';
 
 /**
  * Registration Component (T062-T074)
@@ -27,9 +28,10 @@ import { mapSupabaseError } from '@blastoise/shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
   viewProviders: [provideIcons({ heroEnvelope, heroKey, heroUser, heroXCircle, heroCheckCircle, heroUserPlus })],
 })
-export class Registration {
+export class Registration implements OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private subscription: Subscription | null = null;
 
   // Loading and error state signals
   readonly isLoading = signal(false);
@@ -88,7 +90,7 @@ export class Registration {
    * Redirects to main app on success
    * Shows error message on failure
    */
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     if (this.registrationForm.invalid) {
       return;
     }
@@ -100,27 +102,35 @@ export class Registration {
     this.error.set(null);
     this.successMessage.set(null);
 
-    try {
-      const result = await this.authService.signUp(email as string, password as string);
+    this.subscription = this.authService
+      .signUp(email as string, password as string)
+      .subscribe({
+        next: (result) => {
+          if (result.error) {
+            // Map errors to user-friendly messages
+            this.error.set(mapAuthError(result.error));
+          } else if (result.needsEmailConfirmation) {
+            // Show success message and keep user on registration page
+            this.successMessage.set(
+              'Registration successful! Please check your email to confirm your account before signing in.'
+            );
+            this.registrationForm.reset();
+          } else {
+            // Email confirmation not required, redirect to visits
+            this.router.navigate(['/visits']);
+          }
+        },
+        error: (err) => {
+          this.error.set(mapAuthError(err as Error));
+        },
+        complete: () => {
+          this.isLoading.set(false);
+          this.registrationForm.enable();
+        },
+      });
+  }
 
-      if (result.error) {
-        // Map Supabase errors to user-friendly messages (T073)
-        this.error.set(mapSupabaseError(result.error));
-      } else if (result.needsEmailConfirmation) {
-        // Show success message and keep user on registration page
-        this.successMessage.set(
-          'Registration successful! Please check your email to confirm your account before signing in.'
-        );
-        this.registrationForm.reset();
-      } else {
-        // Email confirmation not required, redirect to visits
-        await this.router.navigate(['/visits']);
-      }
-    } catch (err) {
-      this.error.set(mapSupabaseError(err as Error));
-    } finally {
-      this.isLoading.set(false);
-      this.registrationForm.enable();
-    }
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 }

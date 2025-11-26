@@ -90,29 +90,35 @@ REDIS_PASSWORD=your-password
 
 ---
 
-### Issue: Supabase connection fails with "Invalid JWT" error
+### Issue: Database connection fails
 
 **Symptoms:**
 ```
-Error: Invalid JWT token
-Status: 401
+Error: Connection terminated unexpectedly
+Status: 503
 ```
 
 **Solution:**
 
 1. **Check environment variables** in `apps/api/.env`:
    ```env
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_SERVICE_KEY=your-service-role-key  # NOT the anon key!
+   DATABASE_HOST=localhost
+   DATABASE_PORT=5432
+   DATABASE_USERNAME=postgres
+   DATABASE_PASSWORD=postgres
+   DATABASE_NAME=blastoise
    ```
 
-2. **Verify JWT secret matches** between Supabase and your app:
+2. **Verify PostgreSQL is running:**
    ```bash
-   # Check Supabase project settings
-   # Settings > API > JWT Secret
+   cd docker && docker-compose ps postgres
+   docker-compose logs postgres
    ```
 
-3. **Ensure Row-Level Security (RLS) policies are disabled during development** or properly configured.
+3. **Test database connection:**
+   ```bash
+   psql -U postgres -h localhost -d blastoise -c "SELECT 1;"
+   ```
 
 ---
 
@@ -201,16 +207,16 @@ Error: No tasks were run because no projects were affected
 
 **Solution:**
 
-1. **Check Supabase session persistence:**
+1. **Check session persistence:**
    ```typescript
    // In auth.service.ts
-   const { data: session } = await this.supabase.auth.getSession();
+   const session = this.authStateService.session();
    if (!session) {
-     // Session not persisted
+     // Session not persisted - check if refresh token is in cookie
    }
    ```
 
-2. **Verify browser cookies are enabled** (required for Supabase auth).
+2. **Verify browser cookies are enabled** (required for refresh token storage).
 
 3. **Check CORS configuration** in `apps/api/src/main.ts`:
    ```typescript
@@ -232,14 +238,14 @@ Status: 401
 
 **Solution:**
 
-1. **Implement token refresh** in auth service:
+1. **Verify automatic refresh is working** - The refresh interceptor should handle 401 errors:
    ```typescript
-   const { data, error } = await this.supabase.auth.refreshSession();
+   // Check apps/web/src/app/auth/interceptors/refresh.interceptor.ts
    ```
 
-2. **Configure automatic refresh** on app initialization.
+2. **Check refresh token cookie** is present and not expired.
 
-3. **Check token expiration time** in Supabase settings (default: 1 hour).
+3. **Verify JWT_ACCESS_EXPIRATION** in API `.env` (default: 15m).
 
 ---
 
@@ -610,8 +616,7 @@ Error: relation "visits" already exists
 
 1. **Check migration status:**
    ```bash
-   # In Supabase dashboard
-   # SQL Editor > Check applied migrations
+   npx typeorm migration:show -d apps/api/src/database/typeorm.config.ts
    ```
 
 2. **Reset database** (development only):
@@ -622,37 +627,37 @@ Error: relation "visits" already exists
 
 3. **Run migrations manually:**
    ```bash
-   # Apply specific migration
-   psql -h db.xxx.supabase.co -U postgres -d postgres -f migrations/001_initial_schema.sql
+   npx typeorm migration:run -d apps/api/src/database/typeorm.config.ts
    ```
 
 ---
 
-### Issue: Row-Level Security (RLS) denies access
+### Issue: Access denied to resources
 
 **Symptoms:**
 ```
-Error: new row violates row-level security policy
-Status: 403
+Error: Unauthorized
+Status: 401 or 403
 ```
 
 **Solution:**
 
-1. **Check RLS policies** in Supabase dashboard:
-   ```sql
-   -- Visits table RLS
-   SELECT * FROM pg_policies WHERE tablename = 'visits';
+1. **Verify JWT token is valid:**
+   ```typescript
+   // Check browser Network tab for Authorization header
+   // Authorization: Bearer <token>
    ```
 
-2. **Verify JWT token includes user ID:**
+2. **Verify user ID matches resource ownership:**
    ```typescript
-   const { data: { user } } = await supabase.auth.getUser();
+   // In auth service
+   const user = this.authStateService.currentUser();
    console.log('User ID:', user?.id);
    ```
 
-3. **Test with RLS disabled** (development only):
-   ```sql
-   ALTER TABLE visits DISABLE ROW LEVEL SECURITY;
+3. **Check API endpoint requires authentication:**
+   ```typescript
+   // Endpoints without @Public() decorator require valid JWT
    ```
 
 ---
@@ -742,8 +747,8 @@ If your issue is not covered in this guide:
 1. **Check GitHub Issues:** https://github.com/yourusername/blastoise/issues
 2. **Review logs:**
    - Browser console (F12)
-   - API logs (`apps/api/logs/`)
-   - Supabase logs (Dashboard > Logs)
+   - API logs (`docker logs blastoise-api`)
+   - Database logs (`docker logs blastoise-postgres`)
    - Sentry error tracking (if configured)
 3. **Create a detailed bug report** with:
    - Steps to reproduce
@@ -787,5 +792,5 @@ rm -rf dist
 
 ---
 
-**Last Updated:** 2025-11-02
-**Version:** 1.0
+**Last Updated:** 2025-11-25
+**Version:** 1.1

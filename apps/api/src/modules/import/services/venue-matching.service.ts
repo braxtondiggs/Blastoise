@@ -5,8 +5,10 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { VenuesRepository } from '@blastoise/data-backend';
-import { Venue, PlaceVisit } from '@blastoise/shared';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PlaceVisit } from '@blastoise/shared';
+import { Venue } from '../../../entities/venue.entity';
 import * as fuzzball from 'fuzzball';
 
 interface MatchResult {
@@ -19,15 +21,15 @@ interface MatchResult {
 @Injectable()
 export class VenueMatchingService {
   private readonly logger = new Logger(VenueMatchingService.name);
-  private venuesRepo: VenuesRepository;
 
   // Matching thresholds
   private readonly PROXIMITY_RADIUS_METERS = 100;
   private readonly FUZZY_NAME_THRESHOLD = 80; // 80% similarity required
 
-  constructor() {
-    this.venuesRepo = new VenuesRepository();
-  }
+  constructor(
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>
+  ) {}
 
   /**
    * Match by Google Place ID (exact match, highest confidence)
@@ -39,7 +41,9 @@ export class VenueMatchingService {
     }
 
     try {
-      const venue = await this.venuesRepo.findByGooglePlaceId(placeId);
+      const venue = await this.venueRepository.findOne({
+        where: { google_place_id: placeId },
+      });
 
       if (venue) {
         this.logger.debug(`Matched venue by Place ID: ${venue.name} (${venue.id})`);
@@ -61,12 +65,21 @@ export class VenueMatchingService {
     placeVisit: PlaceVisit
   ): Promise<{ venue: Venue | null; confidence: number }> {
     try {
-      // Find venues within 100m radius
-      const nearbyVenues = await this.venuesRepo.findByProximity(
-        placeVisit.latitude,
-        placeVisit.longitude,
-        this.PROXIMITY_RADIUS_METERS
-      );
+      // Find venues within 100m radius using Haversine formula
+      // Convert meters to degrees (approximate at equator: 1 degree ≈ 111km)
+      const radiusDegrees = this.PROXIMITY_RADIUS_METERS / 111000;
+
+      const nearbyVenues = await this.venueRepository
+        .createQueryBuilder('venue')
+        .where('venue.latitude BETWEEN :minLat AND :maxLat', {
+          minLat: placeVisit.latitude - radiusDegrees,
+          maxLat: placeVisit.latitude + radiusDegrees,
+        })
+        .andWhere('venue.longitude BETWEEN :minLng AND :maxLng', {
+          minLng: placeVisit.longitude - radiusDegrees,
+          maxLng: placeVisit.longitude + radiusDegrees,
+        })
+        .getMany();
 
       if (nearbyVenues.length === 0) {
         return { venue: null, confidence: 0 };
@@ -113,7 +126,7 @@ export class VenueMatchingService {
     verificationTier: 1 | 2 | 3
   ): Promise<Venue> {
     try {
-      const venue = await this.venuesRepo.create({
+      const venue = this.venueRepository.create({
         name: placeVisit.name,
         address: placeVisit.address,
         latitude: placeVisit.latitude,
@@ -124,8 +137,9 @@ export class VenueMatchingService {
         verification_tier: verificationTier,
       });
 
-      this.logger.debug(`Created new venue: ${venue.name} (${venue.id})`);
-      return venue;
+      const savedVenue = await this.venueRepository.save(venue);
+      this.logger.debug(`Created new venue: ${savedVenue.name} (${savedVenue.id})`);
+      return savedVenue;
     } catch (error) {
       this.logger.error(`Failed to create venue "${placeVisit.name}": ${error}`);
       throw error;

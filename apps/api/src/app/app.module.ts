@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 import { LoggerModule } from 'nestjs-pino';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { getTypeOrmConfig } from '../database/typeorm.config';
 
 // Feature modules
-import { AuthModule } from '../modules/auth/auth.module';
+import { AuthModule } from '../auth/auth.module';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { VisitsModule } from '../modules/visits/visits.module';
 import { VenuesModule } from '../modules/venues/venues.module';
 import { SharingModule } from '../modules/sharing/sharing.module';
@@ -14,6 +19,7 @@ import { UserModule } from '../modules/user/user.module';
 import { ImportModule } from '../modules/import/import.module';
 import { HealthModule } from '../common/health/health.module';
 import { SentryModule } from '../common/sentry/sentry.module';
+import { EmailModule } from '../common/email/email.module';
 
 // Configuration
 import { pinoLoggerConfig } from './pino.config';
@@ -26,6 +32,21 @@ import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
 
 @Module({
   imports: [
+    // Environment configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    // TypeORM configuration
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: getTypeOrmConfig,
+      inject: [ConfigService],
+    }),
+    // Rate limiting configuration
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 60 seconds
+      limit: 10, // 10 requests per minute
+    }]),
     // BullMQ configuration (must be before any queue registration)
     BullModule.forRoot({
       connection: {
@@ -38,6 +59,7 @@ import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
     // Global modules
     SentryModule,
     HealthModule,
+    EmailModule,
     // Feature modules
     AuthModule,
     VisitsModule,
@@ -49,6 +71,10 @@ import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,

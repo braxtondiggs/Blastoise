@@ -17,10 +17,10 @@ Auto-generated from all feature plans. Last updated: 2025-11-05
 - **TypeScript 5.x**: Type-safe development
 
 ### Backend
-- **Node.js 22 LTS** + **NestJS 10.x**: TypeScript server framework
-- **Supabase JS Client 2.x**: Authentication and Postgres access
+- **Node.js 22 LTS** + **NestJS 10.x**: TypeScript server framework with self-hosted JWT authentication
+- **TypeORM 0.3.x**: TypeScript ORM for PostgreSQL
 - **Redis 7+**: Geospatial indexing and caching
-- **PostgreSQL 15+**: Primary database (managed by Supabase)
+- **PostgreSQL 15+**: Primary database
 
 ### Testing & Build
 - **Jest**: Unified testing framework (Angular + Node.js)
@@ -34,13 +34,13 @@ Auto-generated from all feature plans. Last updated: 2025-11-05
 apps/
 ├── web/                 # Angular PWA (Progressive Web App with Capacitor)
 ├── mobile/              # Capacitor wrapper serving web build (iOS/Android)
-└── api/                 # NestJS REST API (NestJS + Supabase + Redis)
+└── api/                 # NestJS REST API (NestJS + TypeORM + PostgreSQL + Redis)
 
 libs/
 ├── shared/              # Shared models, types, utilities
 ├── ui/                  # Reusable UI components (DaisyUI/Tailwind)
 ├── features/            # Self-contained feature modules (auth, visits, map, sharing, settings)
-├── data/                # Data access layer (supabase, api, redis, local)
+├── data/                # Data access layer (api, local storage)
 └── workers/             # Background sync & location workers
 
 specs/                   # Feature documentation, plans, and contracts
@@ -241,7 +241,7 @@ import { Geolocation } from '@capacitor/geolocation'; // NEVER DO THIS
 ## Key Features
 
 ### P0: Authentication & Onboarding
-- Email/password and magic link authentication via Supabase
+- Self-hosted email/password authentication with JWT tokens
 - Anonymous usage supported (local-only storage)
 - Clear location permission education
 - Account upgrade flow for anonymous users
@@ -295,19 +295,30 @@ import { Geolocation } from '@capacitor/geolocation'; // NEVER DO THIS
 **API Environment** (`apps/api/.env`):
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
+# Redis Configuration
 REDIS_HOST=localhost
 REDIS_PORT=6379
+
+# API Server Configuration
 PORT=3000
 NODE_ENV=development
+
+# JWT Configuration (Self-Hosted Auth)
+JWT_SECRET=your-secret-key-min-32-characters
+JWT_ACCESS_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7d
+
+# Database Configuration (TypeORM)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=blastoise
 ```
 
 **Web/Mobile Environment** (`apps/web/.env` or `apps/mobile/.env`):
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-public-key
 API_BASE_URL=http://localhost:3000/api/v1
 ENVIRONMENT=development
 ```
@@ -333,7 +344,8 @@ ENVIRONMENT=development
 
 ### Backend Stack
 - NestJS 10.x REST API with TypeScript
-- Supabase (PostgreSQL 15+) with Row-Level Security
+- TypeORM 0.3.x with PostgreSQL 15+
+- Self-hosted JWT authentication with bcrypt password hashing
 - Redis 7+ for geospatial indexing and caching
 - Helmet for security headers (CSP, HSTS, XSS protection)
 - Sentry for error tracking and monitoring
@@ -371,7 +383,7 @@ ENVIRONMENT=development
 - **API**: Vercel/Railway/Fly.io (Docker container)
 - **Web**: Vercel/Netlify (static PWA)
 - **Mobile**: App Store & Google Play (Capacitor builds)
-- **Database**: Supabase managed PostgreSQL
+- **Database**: Railway/Fly.io PostgreSQL or managed service (Neon, Render)
 - **Cache**: Redis Cloud or Upstash
 
 <!-- MANUAL ADDITIONS START -->
@@ -390,3 +402,6 @@ ENVIRONMENT=development
 - If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
 
 <!-- nx configuration end-->
+
+## Recent Changes
+- 004-self-hosted-auth: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]

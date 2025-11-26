@@ -1,13 +1,12 @@
 /**
  * Error message utility for authentication operations
- * Maps Supabase error codes and messages to user-friendly messages
+ * Maps error codes and messages to user-friendly messages
  */
 
 /**
- * Supabase error codes
- * Common error codes returned by Supabase Auth
+ * Common authentication error codes
  */
-export const SUPABASE_ERROR_CODES = {
+export const AUTH_ERROR_CODES = {
   INVALID_CREDENTIALS: 'invalid_credentials',
   EMAIL_NOT_CONFIRMED: 'email_not_confirmed',
   USER_NOT_FOUND: 'user_not_found',
@@ -21,8 +20,9 @@ export const SUPABASE_ERROR_CODES = {
   TOKEN_INVALID: 'token_invalid',
 } as const;
 
+
 /**
- * User-friendly error messages mapped from Supabase errors
+ * User-friendly error messages mapped from auth errors
  */
 const ERROR_MESSAGE_MAP: Record<string, string> = {
   // Authentication errors
@@ -60,11 +60,11 @@ const ERROR_MESSAGE_MAP: Record<string, string> = {
 };
 
 /**
- * Maps a Supabase error to a user-friendly message
- * @param error - Error object from Supabase or generic Error
+ * Maps an auth error to a user-friendly message
+ * @param error - Error object from auth API or generic Error
  * @returns User-friendly error message
  */
-export function mapSupabaseError(error: Error | { message: string } | string): string {
+export function mapAuthError(error: Error | { message: string } | string): string {
   const errorMessage = typeof error === 'string' ? error : error.message || 'Unknown error';
 
   // Check for exact match first
@@ -129,8 +129,9 @@ export function mapNetworkError(error: Error | string): string {
     return 'Request timed out. Please try again.';
   }
 
-  return mapSupabaseError(error);
+  return mapAuthError(error);
 }
+
 
 /**
  * Checks if an error is a network error
@@ -148,9 +149,9 @@ export function isNetworkError(error: Error | { message: string }): boolean {
 }
 
 /**
- * Checks if an error is a Supabase auth error
+ * Checks if an error is an auth error
  * @param error - Error to check
- * @returns True if Supabase auth error
+ * @returns True if auth error
  */
 export function isAuthError(error: Error | { message: string }): boolean {
   const message = error.message.toLowerCase();

@@ -11,8 +11,6 @@ import {
   Get,
   Patch,
   Body,
-  Request,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,14 +19,18 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { UserService } from './user.service';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
-import { AuthGuard } from '../auth/auth.guard';
+
+interface JwtUser {
+  user_id: string;
+  email: string;
+}
 
 @ApiTags('user')
 @ApiBearerAuth('JWT')
 @Controller('user')
-@UseGuards(AuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -43,9 +45,8 @@ export class UserController {
   })
   @SwaggerApiResponse({ status: 200, description: 'Preferences retrieved successfully' })
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
-  async getPreferences(@Request() req: any) {
-    const userId = req.user.sub;
-    const preferences = await this.userService.getPreferences(userId);
+  async getPreferences(@CurrentUser() user: JwtUser) {
+    const preferences = await this.userService.getPreferences(user.user_id);
 
     return {
       success: true,
@@ -67,11 +68,10 @@ export class UserController {
   @SwaggerApiResponse({ status: 400, description: 'Invalid preference data' })
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   async updatePreferences(
-    @Request() req: any,
+    @CurrentUser() user: JwtUser,
     @Body() dto: UpdatePreferencesDto
   ) {
-    const userId = req.user.sub;
-    const updated = await this.userService.updatePreferences(userId, dto);
+    const updated = await this.userService.updatePreferences(user.user_id, dto);
 
     return {
       success: true,

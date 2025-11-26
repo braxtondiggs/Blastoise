@@ -53,10 +53,8 @@ docker/.env
 *.key
 *.pem
 
-# Supabase local
+# Temp files
 .temp/
-supabase/.branches
-supabase/.temp
 
 # Logs
 *.log

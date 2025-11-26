@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "nx-mcp"

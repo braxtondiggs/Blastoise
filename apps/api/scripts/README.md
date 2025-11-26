@@ -9,8 +9,13 @@ Scripts for fetching and seeding venue data from external sources.
 npm install
 
 # Set environment variables
-export SUPABASE_URL="https://your-project.supabase.co"
-export SUPABASE_SERVICE_KEY="your-service-role-key"
+export DATABASE_HOST="localhost"
+export DATABASE_PORT="5432"
+export DATABASE_USERNAME="postgres"
+export DATABASE_PASSWORD="postgres"
+export DATABASE_NAME="blastoise"
+# OR use a connection URL:
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/blastoise"
 export REDIS_HOST="localhost"
 export REDIS_PORT="6379"
 ```
@@ -42,18 +47,18 @@ Data will be saved to `apps/api/data/breweries.json` and `apps/api/data/wineries
 ### 2. Seed Database
 
 ```bash
-# Seed Postgres and Redis with venue data
+# Seed PostgreSQL and Redis with venue data
 npx tsx apps/api/scripts/seed-venues.ts
 ```
 
 This script will:
-- Insert venues into Postgres `venues` table (with deduplication)
+- Insert venues into PostgreSQL `venues` table (with deduplication)
 - Add venue coordinates to Redis geospatial index
 - Display progress and statistics
 
 ### 3. Rebuild Geo Index
 
-If you need to rebuild the Redis geospatial index from existing Postgres data:
+If you need to rebuild the Redis geospatial index from existing PostgreSQL data:
 
 ```bash
 npx tsx apps/api/scripts/rebuild-geo-index.ts
@@ -73,7 +78,7 @@ npx tsx apps/api/scripts/rebuild-geo-index.ts
                                                         │
                                                         ▼
                         ┌────────────────────────────────────────┐
-                        │  Postgres (venues table)               │
+                        │  PostgreSQL (venues table)             │
                         │  Redis (geospatial index)              │
                         └────────────────────────────────────────┘
 ```

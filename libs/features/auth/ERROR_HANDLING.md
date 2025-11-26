@@ -1,6 +1,6 @@
 # Authentication Error Handling & Loading States
 
-**Last Updated**: 2025-11-03
+**Last Updated**: 2025-11-25
 **Purpose**: Document error handling patterns, loading states, and accessibility standards across all auth components
 
 ---
@@ -37,7 +37,7 @@ async onSubmit(): Promise<void> {
     await this.authService.someAsyncMethod();
     // Success handling
   } catch (err) {
-    this.error.set(mapSupabaseError(err as Error));
+    this.error.set(mapAuthError(err as Error));
   } finally {
     this.isLoading.set(false);
   }
@@ -48,11 +48,11 @@ async onSubmit(): Promise<void> {
 
 | Component           | Signal Name    | Purpose                            |
 | ------------------- | -------------- | ---------------------------------- |
-| `login.ts`          | `isLoading`    | Sign in with password/magic link   |
+| `login.ts`          | `isLoading`    | Sign in with password              |
 | `registration.ts`   | `isLoading`    | Account creation                   |
 | `password-reset.ts` | `isLoading`    | Password reset request/update      |
 | `upgrade-prompt.ts` | `isLoading`    | Anonymous to authenticated upgrade |
-| `auth-callback.ts`  | `isProcessing` | Magic link callback processing     |
+| `auth-callback.ts`  | `isProcessing` | Auth callback processing           |
 
 **Note**: `auth-callback` uses `isProcessing` instead of `isLoading` for semantic clarity.
 
@@ -68,26 +68,26 @@ readonly error = signal<string | null>(null);
 
 ### Error Mapping Utility
 
-All components use the `mapSupabaseError` utility from `@blastoise/shared`:
+All components use the `mapAuthError` utility from `@blastoise/shared`:
 
 ```typescript
-import { mapSupabaseError } from '@blastoise/shared';
+import { mapAuthError } from '@blastoise/shared';
 
 try {
   await this.authService.someMethod();
 } catch (err) {
-  this.error.set(mapSupabaseError(err as Error));
+  this.error.set(mapAuthError(err as Error));
 }
 ```
 
-### Common Supabase Errors
+### Common Auth Errors
 
-| Supabase Error              | User-Friendly Message                                         |
+| Auth Error                  | User-Friendly Message                                         |
 | --------------------------- | ------------------------------------------------------------- |
 | `Invalid login credentials` | "Incorrect email or password. Please try again."              |
 | `User already registered`   | "An account with this email already exists."                  |
 | `Email not confirmed`       | "Please check your email and click the confirmation link."    |
-| `Invalid or expired OTP`    | "This link has expired. Please request a new one."            |
+| `Invalid or expired token`  | "This link has expired. Please request a new one."            |
 | Network errors              | "Connection issue. Please check your internet and try again." |
 
 ### Network Error Detection
@@ -97,7 +97,7 @@ catch (err) {
   if (err instanceof TypeError || err.message.includes('fetch')) {
     this.error.set("Connection issue. Please check your internet and try again.");
   } else {
-    this.error.set(mapSupabaseError(err as Error));
+    this.error.set(mapAuthError(err as Error));
   }
 }
 ```
@@ -179,18 +179,11 @@ All form inputs must be disabled during loading:
 **Loading States**:
 
 - Sign in with password
-- Sign in with magic link
 
 **Error Handling**:
 
-- Invalid credentials → User-friendly message
-- Network errors → Connection issue message
-- Magic link success → Auto-dismiss after 5 seconds
-
-```typescript
-// Auto-dismiss success message
-setTimeout(() => this.showSuccessMessage.set(false), 5000);
-```
+- Invalid credentials -> User-friendly message
+- Network errors -> Connection issue message
 
 ### Registration Component
 
@@ -200,9 +193,9 @@ setTimeout(() => this.showSuccessMessage.set(false), 5000);
 
 **Error Handling**:
 
-- Duplicate email → "An account with this email already exists"
-- Weak password → Inline checklist validation
-- Password mismatch → Form-level validator
+- Duplicate email -> "An account with this email already exists"
+- Weak password -> Inline checklist validation
+- Password mismatch -> Form-level validator
 
 **Validation Signals**:
 
@@ -232,8 +225,8 @@ readonly hasNumber = computed(() =>
 
 **Error Handling**:
 
-- Invalid token → "This link has expired. Please request a new one."
-- Network errors → Connection issue message
+- Invalid token -> "This link has expired. Please request a new one."
+- Network errors -> Connection issue message
 
 ### Upgrade Prompt Component
 
@@ -258,12 +251,12 @@ readonly migrationStatus = signal<'pending' | 'in-progress' | 'complete' | 'fail
 
 **Loading States**:
 
-- `isProcessing`: Magic link token validation
+- `isProcessing`: Auth callback token validation
 
 **Error Handling**:
 
-- Invalid/expired token → "Invalid or expired authentication link"
-- Network errors → Connection issue message
+- Invalid/expired token -> "Invalid or expired authentication link"
+- Network errors -> Connection issue message
 
 **Auto-redirect**: On success, redirects to `/` after session validation
 
@@ -275,12 +268,12 @@ readonly migrationStatus = signal<'pending' | 'in-progress' | 'complete' | 'fail
 
 All components comply with WCAG 2.1 AA:
 
-✅ **Keyboard Navigation**: All forms fully navigable with Tab/Shift+Tab
-✅ **Screen Reader Support**: ARIA labels on all interactive elements
-✅ **Error Identification**: Inline error messages with `role="alert"`
-✅ **Loading States**: `aria-busy` attribute during async operations
-✅ **Focus Management**: Logical tab order, no keyboard traps
-✅ **Color Contrast**: DaisyUI ensures sufficient contrast ratios
+- **Keyboard Navigation**: All forms fully navigable with Tab/Shift+Tab
+- **Screen Reader Support**: ARIA labels on all interactive elements
+- **Error Identification**: Inline error messages with `role="alert"`
+- **Loading States**: `aria-busy` attribute during async operations
+- **Focus Management**: Logical tab order, no keyboard traps
+- **Color Contrast**: DaisyUI ensures sufficient contrast ratios
 
 ### Testing Accessibility
 
@@ -299,20 +292,20 @@ npx nx test auth --testNamePattern="accessibility"
 
 ## Common Patterns Summary
 
-### ✅ DO
+### DO
 
 - Use `isLoading` signal for async operations
 - Use `error` signal for error messages
-- Map Supabase errors to user-friendly messages
+- Map auth errors to user-friendly messages
 - Disable forms during loading
 - Add `aria-busy` to forms
 - Add `role="alert"` to error messages
 - Auto-dismiss success messages after 5 seconds
 - Clear errors before new submissions
 
-### ❌ DON'T
+### DON'T
 
-- Show raw Supabase error messages to users
+- Show raw API error messages to users
 - Leave forms enabled during async operations
 - Forget to set `isLoading.set(false)` in finally block
 - Skip ARIA attributes for accessibility
@@ -337,4 +330,4 @@ npx nx test auth --testNamePattern="accessibility"
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 - [DaisyUI Components](https://daisyui.com/components/)
-- [Supabase Auth Errors](https://supabase.com/docs/reference/javascript/auth-error-codes)
+- [JWT.io](https://jwt.io/) - JWT token debugging

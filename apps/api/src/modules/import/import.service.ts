@@ -8,6 +8,8 @@
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Queue } from 'bullmq';
 import * as Sentry from '@sentry/nestjs';
 import { PinoLogger } from 'nestjs-pino';
@@ -18,8 +20,8 @@ import { VenueMatchingService } from './services/venue-matching.service';
 import { BreweryDbVerifierService } from './services/brewery-db-verifier.service';
 import { GoogleSearchVerifierService } from './services/google-search-verifier.service';
 import { ImportSummaryDto, ImportErrorDto, TierStatisticsDto } from './dto/import-summary.dto';
-import { PlaceVisit, GoogleTimelineData, ImportHistory } from '@blastoise/shared';
-import { ImportHistoryRepository } from '@blastoise/data-backend';
+import { PlaceVisit, GoogleTimelineData } from '@blastoise/shared';
+import { ImportHistory } from '../../entities/import-history.entity';
 
 const MAX_FILE_SIZE_MB = 100;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -29,8 +31,6 @@ const ASYNC_THRESHOLD_PLACES = 100;
 export class ImportService {
   private readonly logger = new Logger(ImportService.name);
 
-  private readonly importHistoryRepo: ImportHistoryRepository;
-
   constructor(
     private readonly pinoLogger: PinoLogger,
     private readonly timelineParser: TimelineParserService,
@@ -39,9 +39,10 @@ export class ImportService {
     private readonly venueMatching: VenueMatchingService,
     private readonly breweryDbVerifier: BreweryDbVerifierService,
     private readonly googleSearchVerifier: GoogleSearchVerifierService,
-    @InjectQueue('import-queue') private readonly importQueue: Queue
+    @InjectQueue('import-queue') private readonly importQueue: Queue,
+    @InjectRepository(ImportHistory)
+    private readonly importHistoryRepository: Repository<ImportHistory>
   ) {
-    this.importHistoryRepo = new ImportHistoryRepository();
     this.pinoLogger.setContext(ImportService.name);
   }
 
@@ -419,8 +420,7 @@ export class ImportService {
     jobId?: string
   ): Promise<void> {
     try {
-
-      await this.importHistoryRepo.create({
+      const importHistory = this.importHistoryRepository.create({
         user_id: userId,
         source: 'google_timeline',
         file_name: fileName,
@@ -447,6 +447,8 @@ export class ImportService {
           },
         },
       });
+
+      await this.importHistoryRepository.save(importHistory);
 
       this.logger.log(
         `Recorded import history: user=${userId}, file=${fileName}, total=${totalPlaces}, created=${visitsCreated}`
@@ -601,7 +603,12 @@ export class ImportService {
     offset = 0
   ): Promise<ImportHistory[]> {
     try {
-      return await this.importHistoryRepo.findByUserId(userId, limit, offset);
+      return await this.importHistoryRepository.find({
+        where: { user_id: userId },
+        order: { imported_at: 'DESC' },
+        take: limit,
+        skip: offset,
+      });
     } catch (error) {
 
       Sentry.captureException(error, {
@@ -628,7 +635,9 @@ export class ImportService {
    */
   async getImportHistoryCount(userId: string): Promise<number> {
     try {
-      return await this.importHistoryRepo.countByUserId(userId);
+      return await this.importHistoryRepository.count({
+        where: { user_id: userId },
+      });
     } catch (error) {
 
       Sentry.captureException(error, {

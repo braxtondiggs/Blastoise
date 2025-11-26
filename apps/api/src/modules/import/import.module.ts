@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ImportController } from './import.controller';
 import { ImportService } from './import.service';
 import { ImportProcessor } from './import.processor';
@@ -10,9 +11,13 @@ import { VenueMatchingService } from './services/venue-matching.service';
 import { BreweryDbVerifierService } from './services/brewery-db-verifier.service';
 import { GoogleSearchVerifierService } from './services/google-search-verifier.service';
 import { VerificationCacheService } from './services/verification-cache.service';
+import { Visit } from '../../entities/visit.entity';
+import { Venue } from '../../entities/venue.entity';
+import { ImportHistory } from '../../entities/import-history.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([Visit, Venue, ImportHistory]),
     BullModule.registerQueue({
       name: 'import-queue',
       defaultJobOptions: {

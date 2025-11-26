@@ -2,7 +2,7 @@
  * Redis Cache Warming Script
  *
  * Pre-loads Redis geospatial index with venue data for popular regions:
- * - Loads venues from Supabase
+ * - Loads venues from PostgreSQL
  * - Populates Redis GEOADD index
  * - Warms cache for frequently queried regions
  * - Can be run on deploy or via cron
@@ -11,15 +11,19 @@
  *   ts-node src/scripts/cache-warming.ts
  *
  * Environment:
- *   SUPABASE_URL - Supabase project URL
- *   SUPABASE_SERVICE_KEY - Supabase service role key
+ *   DATABASE_URL - PostgreSQL connection string (or individual DB_* vars)
+ *   DATABASE_HOST - PostgreSQL host (default: localhost)
+ *   DATABASE_PORT - PostgreSQL port (default: 5432)
+ *   DATABASE_USERNAME - PostgreSQL username (default: postgres)
+ *   DATABASE_PASSWORD - PostgreSQL password (default: postgres)
+ *   DATABASE_NAME - PostgreSQL database name (default: blastoise)
  *   REDIS_HOST - Redis host (default: localhost)
  *   REDIS_PORT - Redis port (default: 6379)
  *
  * Phase 8: Performance Optimization
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { DataSource } from 'typeorm';
 import { createClient as createRedisClient } from 'redis';
 
 interface Venue {
@@ -73,28 +77,26 @@ function calculateDistance(
 }
 
 /**
- * Load all venues from Supabase
+ * Load all venues from PostgreSQL
  */
-async function loadVenuesFromDatabase(supabase: any): Promise<Venue[]> {
-  console.log('📥 Loading venues from Supabase...');
+async function loadVenuesFromDatabase(dataSource: DataSource): Promise<Venue[]> {
+  console.log('📥 Loading venues from PostgreSQL...');
 
-  const { data, error } = await supabase
-    .from('venues')
-    .select('id, name, venue_type, latitude, longitude, city, state')
-    .order('name');
+  const venues = await dataSource.query<Venue[]>(
+    `SELECT id, name, venue_type, latitude, longitude, city, state_province as state
+     FROM venues
+     WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+     ORDER BY name`
+  );
 
-  if (error) {
-    throw new Error(`Failed to load venues: ${error.message}`);
-  }
-
-  console.log(`✅ Loaded ${data.length} venues`);
-  return data as Venue[];
+  console.log(`✅ Loaded ${venues.length} venues`);
+  return venues;
 }
 
 /**
  * Populate Redis geospatial index with all venues
  */
-async function populateGeospatialIndex(redis: any, venues: Venue[]): Promise<void> {
+async function populateGeospatialIndex(redis: ReturnType<typeof createRedisClient>, venues: Venue[]): Promise<void> {
   console.log('🗺️  Populating Redis geospatial index...');
 
   const GEOADD_KEY = 'venues:geo';
@@ -129,7 +131,7 @@ async function populateGeospatialIndex(redis: any, venues: Venue[]): Promise<voi
  * Pre-cache venue lists for popular regions
  */
 async function warmPopularRegions(
-  redis: any,
+  redis: ReturnType<typeof createRedisClient>,
   venues: Venue[]
 ): Promise<void> {
   console.log('🔥 Warming cache for popular regions...');
@@ -170,7 +172,7 @@ async function warmPopularRegions(
 /**
  * Cache frequently accessed venue details
  */
-async function warmVenueDetails(redis: any, venues: Venue[]): Promise<void> {
+async function warmVenueDetails(redis: ReturnType<typeof createRedisClient>, venues: Venue[]): Promise<void> {
   console.log('🏢 Warming cache for top venue details...');
 
   // For now, cache top 100 venues by name (in production, use analytics data)
@@ -201,18 +203,23 @@ async function main() {
   console.log('🚀 Starting Redis cache warming...\n');
 
   // Validate environment
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
   const redisHost = process.env.REDIS_HOST || 'localhost';
   const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
 
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ Missing required environment variables: SUPABASE_URL, SUPABASE_SERVICE_KEY');
-    process.exit(1);
-  }
+  // Create TypeORM DataSource for PostgreSQL
+  const dataSource = new DataSource({
+    type: 'postgres',
+    url: process.env.DATABASE_URL,
+    host: process.env.DATABASE_HOST || 'localhost',
+    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+    username: process.env.DATABASE_USERNAME || 'postgres',
+    password: process.env.DATABASE_PASSWORD || 'postgres',
+    database: process.env.DATABASE_NAME || 'blastoise',
+    synchronize: false,
+    logging: false,
+  });
 
-  // Initialize clients
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Initialize Redis client
   const redis = createRedisClient({
     socket: {
       host: redisHost,
@@ -221,12 +228,16 @@ async function main() {
   });
 
   try {
+    // Connect to PostgreSQL
+    await dataSource.initialize();
+    console.log('✅ Connected to PostgreSQL\n');
+
     // Connect to Redis
     await redis.connect();
     console.log(`✅ Connected to Redis at ${redisHost}:${redisPort}\n`);
 
     // Load venues from database
-    const venues = await loadVenuesFromDatabase(supabase);
+    const venues = await loadVenuesFromDatabase(dataSource);
 
     if (venues.length === 0) {
       console.log('⚠️  No venues found in database. Exiting.');
@@ -256,7 +267,8 @@ async function main() {
   } finally {
     // Cleanup
     await redis.quit();
-    console.log('\n👋 Disconnected from Redis');
+    await dataSource.destroy();
+    console.log('\n👋 Disconnected from PostgreSQL and Redis');
   }
 }
 

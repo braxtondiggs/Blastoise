@@ -20,20 +20,42 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
-import type { User } from '@supabase/supabase-js';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
+
+interface JwtUser {
+  user_id: string;
+  email: string;
+}
 import { VisitsService } from './visits.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { BatchVisitSyncDto } from './dto/batch-visit-sync.dto';
-import { ApiResponse, Visit } from '@blastoise/shared';
+import { Visit } from '../../entities/visit.entity';
+
+// API response wrapper (dates serialize to ISO strings automatically)
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: { code: string; message: string };
+  metadata?: Record<string, unknown>;
+}
+
+// Server-stored visits are always synced
+type VisitResponse = Visit & { synced: true };
+
+function withSynced(visit: Visit): VisitResponse {
+  return { ...visit, synced: true };
+}
+
+function withSyncedArray(visits: Visit[]): VisitResponse[] {
+  return visits.map(withSynced);
+}
 
 @ApiTags('visits')
 @ApiBearerAuth('JWT')
 @Controller('visits')
-@UseGuards(AuthGuard, RateLimitGuard)
+@UseGuards(RateLimitGuard)
 export class VisitsController {
   constructor(private readonly visitsService: VisitsService) {}
 
@@ -48,13 +70,13 @@ export class VisitsController {
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   @SwaggerApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async create(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Body() createVisitDto: CreateVisitDto
-  ): Promise<ApiResponse<Visit>> {
-    const visit = await this.visitsService.create(user.id, createVisitDto);
+  ): Promise<ApiResponse<VisitResponse>> {
+    const visit = await this.visitsService.create(user.user_id, createVisitDto);
     return {
       success: true,
-      data: visit,
+      data: withSynced(visit),
     };
   }
 
@@ -69,22 +91,22 @@ export class VisitsController {
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   @SwaggerApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async findAll(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Query('page') page = '1',
     @Query('limit') limit = '50'
-  ): Promise<ApiResponse<Visit[]>> {
+  ): Promise<ApiResponse<VisitResponse[]>> {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
 
     const { visits, total } = await this.visitsService.findAll(
-      user.id,
+      user.user_id,
       pageNum,
       limitNum
     );
 
     return {
       success: true,
-      data: visits,
+      data: withSyncedArray(visits),
       metadata: {
         timestamp: new Date().toISOString(),
         pagination: {
@@ -105,11 +127,11 @@ export class VisitsController {
   })
   @SwaggerApiResponse({ status: 200, description: 'Active visit retrieved (may be null if no active visit)' })
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
-  async getActive(@CurrentUser() user: User): Promise<ApiResponse<Visit>> {
-    const visit = await this.visitsService.getActiveVisit(user.id);
+  async getActive(@CurrentUser() user: JwtUser): Promise<ApiResponse<VisitResponse | undefined>> {
+    const visit = await this.visitsService.getActiveVisit(user.user_id);
     return {
       success: true,
-      data: visit || undefined,
+      data: visit ? withSynced(visit) : undefined,
     };
   }
 
@@ -123,13 +145,13 @@ export class VisitsController {
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   @SwaggerApiResponse({ status: 404, description: 'Visit not found' })
   async findOne(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Param('id') id: string
-  ): Promise<ApiResponse<Visit>> {
-    const visit = await this.visitsService.findOne(id, user.id);
+  ): Promise<ApiResponse<VisitResponse>> {
+    const visit = await this.visitsService.findOne(id, user.user_id);
     return {
       success: true,
-      data: visit,
+      data: withSynced(visit),
     };
   }
 
@@ -145,14 +167,14 @@ export class VisitsController {
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   @SwaggerApiResponse({ status: 404, description: 'Visit not found' })
   async update(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Param('id') id: string,
     @Body() updateVisitDto: UpdateVisitDto
-  ): Promise<ApiResponse<Visit>> {
-    const visit = await this.visitsService.update(id, user.id, updateVisitDto);
+  ): Promise<ApiResponse<VisitResponse>> {
+    const visit = await this.visitsService.update(id, user.user_id, updateVisitDto);
     return {
       success: true,
-      data: visit,
+      data: withSynced(visit),
     };
   }
 
@@ -167,10 +189,10 @@ export class VisitsController {
   @SwaggerApiResponse({ status: 404, description: 'Visit not found' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Param('id') id: string
   ): Promise<void> {
-    await this.visitsService.delete(id, user.id);
+    await this.visitsService.delete(id, user.user_id);
   }
 
   @Post('batch')
@@ -183,13 +205,13 @@ export class VisitsController {
   @SwaggerApiResponse({ status: 400, description: 'Invalid batch data' })
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   async batchSync(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Body() batchDto: BatchVisitSyncDto
-  ): Promise<ApiResponse<Visit[]>> {
-    const visits = await this.visitsService.batchSync(user.id, batchDto);
+  ): Promise<ApiResponse<VisitResponse[]>> {
+    const visits = await this.visitsService.batchSync(user.user_id, batchDto);
     return {
       success: true,
-      data: visits,
+      data: withSyncedArray(visits),
     };
   }
 }

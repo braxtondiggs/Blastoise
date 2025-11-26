@@ -10,20 +10,22 @@ import {
   Body,
   Param,
   UseGuards,
-  Request,
   Logger,
   HttpStatus,
   HttpException,
   Header,
 } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
 import { ImportService } from './import.service';
 import { GoogleTimelineImportDto } from './dto/google-timeline-import.dto';
 import { ImportSummaryDto } from './dto/import-summary.dto';
-import { GoogleTimelineData, ImportHistory } from '@blastoise/shared';
+import { GoogleTimelineData } from '@blastoise/shared';
+import { ImportHistory } from '../../entities/import-history.entity';
 
 @Controller('import')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class ImportController {
   private readonly logger = new Logger(ImportController.name);
 
@@ -41,17 +43,10 @@ export class ImportController {
    */
   @Post('google-timeline')
   async importGoogleTimeline(
-    @Request() req: { user?: { id?: string; sub?: string } },
+    @CurrentUser() user: JwtUser,
     @Body() dto: GoogleTimelineImportDto
   ): Promise<ImportSummaryDto | { job_id: string }> {
-    const userId = req.user?.id || req.user?.sub; // JWT payload userId
-
-    if (!userId) {
-      throw new HttpException(
-        'User ID not found in request',
-        HttpStatus.UNAUTHORIZED
-      );
-    }
+    const userId = user.user_id;
 
     this.logger.log(
       `Processing Google Timeline import for user ${userId}, file: ${dto.file_name || 'unnamed'}`
@@ -128,23 +123,16 @@ export class ImportController {
   @Get('status/:jobId')
   @Header('Cache-Control', 'max-age=5, must-revalidate')
   async getImportStatus(
-    @Request() req: { user?: { id?: string; sub?: string } },
+    @CurrentUser() user: JwtUser,
     @Param('jobId') jobId: string
-     
+
   ): Promise<{
     status: string;
     progress?: any;
     result?: ImportSummaryDto;
     error?: string;
   }> {
-    const userId = req.user?.id || req.user?.sub;
-
-    if (!userId) {
-      throw new HttpException(
-        'User ID not found in request',
-        HttpStatus.UNAUTHORIZED
-      );
-    }
+    const userId = user.user_id;
 
     this.logger.debug(
       `Fetching import job status for ${jobId} (user ${userId})`
@@ -181,18 +169,11 @@ export class ImportController {
    */
   @Get('history')
   async getImportHistory(
-    @Request() req: { user?: { id?: string; sub?: string } },
+    @CurrentUser() user: JwtUser,
     @Param('limit') limit?: string,
     @Param('offset') offset?: string
   ): Promise<{ imports: ImportHistory[]; total: number }> {
-    const userId = req.user?.id || req.user?.sub;
-
-    if (!userId) {
-      throw new HttpException(
-        'User ID not found in request',
-        HttpStatus.UNAUTHORIZED
-      );
-    }
+    const userId = user.user_id;
 
     this.logger.debug(`Fetching import history for user ${userId}`);
 

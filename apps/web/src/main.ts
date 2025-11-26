@@ -2,16 +2,9 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
 import { initializeSyncWorker } from '@blastoise/workers';
-import { initSupabaseClient } from '@blastoise/data';
 import { environment } from './environments/environment';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
-
-// Initialize Supabase client for browser
-initSupabaseClient({
-  url: environment.supabaseUrl,
-  anonKey: environment.supabaseAnonKey,
-});
 
 // Configure StatusBar for native platforms (iOS/Android)
 if (Capacitor.isNativePlatform()) {

@@ -23,9 +23,10 @@ A mobile and web application that helps you track and discover brewery and winer
 - DaisyUI + Tailwind CSS (UI components)
 
 **Backend**
-- Node.js 22 + Express 5 (REST API)
-- Supabase (Authentication + PostgreSQL)
-- Redis 7+ (Geospatial indexing)
+- Node.js 22 + NestJS 10 (REST API)
+- PostgreSQL 15+ (TypeORM)
+- Self-hosted JWT Authentication (bcrypt + refresh tokens)
+- Redis 7+ (Geospatial indexing + caching)
 
 **Infrastructure**
 - Nx Monorepo (Build orchestration)
@@ -50,7 +51,7 @@ cd Blastoise
 # Install dependencies
 npm install
 
-# Start infrastructure services (Supabase + Redis)
+# Start infrastructure services (PostgreSQL + Redis)
 cd docker
 cp .env.example .env  # ⚠️  For production: See docker/README.md for security setup
 docker-compose up -d
@@ -59,7 +60,7 @@ cd ..
 # Configure application environment variables
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-# Edit .env files with your local Supabase credentials (http://localhost:8000)
+# Edit .env files - see apps/api/.env.example for all configuration options
 
 # Start development servers
 npx nx run-many --target=serve --projects=api,web --parallel
@@ -84,7 +85,7 @@ libs/
 ├── shared/        # Models, types, utilities
 ├── ui/            # Reusable UI components
 ├── features/      # Feature modules (auth, visits, map, sharing, settings)
-├── data/          # Data access layer (Supabase, Redis, API clients)
+├── data/          # Data access layer (API clients, local storage)
 └── workers/       # Background sync and location workers
 
 specs/
@@ -139,7 +140,7 @@ npx nx affected:build --base=origin/main
 - **Timestamp Rounding**: All timestamps rounded to 15 minutes to prevent timing attacks
 - **On-Device Processing**: Geofence logic runs entirely on the device
 - **Optional Authentication**: Anonymous usage supported with local-only storage
-- **Row-Level Security**: Supabase RLS ensures users can only access their own data
+- **Secure Token Storage**: Refresh tokens stored in httpOnly cookies, access tokens in memory only
 
 ### Offline-First
 
@@ -170,7 +171,8 @@ npx nx affected:build --base=origin/main
 ## Key Features Overview
 
 ### P0: Authentication & Onboarding
-- Supabase authentication (email/password + magic links)
+- Self-hosted JWT authentication (email/password with bcrypt)
+- Secure refresh tokens stored in httpOnly cookies
 - Anonymous usage with local-only storage
 - Clear location permission education
 - Seamless account upgrade flow
@@ -206,13 +208,13 @@ npx nx affected:build --base=origin/main
 3. Ensure code passes linting and type checks
 4. Update documentation as needed
 
-## Deployment (T255)
+## Deployment
 
 ### Production Deployment
 
 #### Prerequisites
 - Node.js 22 LTS
-- Supabase account (https://supabase.com)
+- PostgreSQL 15+ (managed service like Neon, Railway, or self-hosted)
 - Redis Cloud or Upstash account
 - Vercel/Railway/Fly.io account (API)
 - Vercel/Netlify account (Web PWA)
@@ -220,15 +222,14 @@ npx nx affected:build --base=origin/main
 
 #### Backend Deployment (API)
 
-**1. Setup Database (Supabase)**
+**1. Setup Database (PostgreSQL)**
 ```bash
-# Create production project at https://supabase.com
-# Apply migrations
-cd apps/api/migrations
-supabase db push
+# Option A: Neon (https://neon.tech) - Recommended for serverless
+# Option B: Railway (https://railway.app)
+# Option C: Self-hosted PostgreSQL
 
-# Configure Row-Level Security policies
-supabase db execute --file rls-policies.sql
+# Get connection string and apply migrations
+DATABASE_URL=postgres://... npx typeorm migration:run
 ```
 
 **2. Setup Redis**
@@ -251,10 +252,12 @@ cd dist/apps/api
 vercel --prod
 
 # Configure environment variables in Vercel dashboard:
-# SUPABASE_URL=your-production-url
-# SUPABASE_SERVICE_KEY=your-service-key
+# DATABASE_URL=postgres://your-db-connection-string
 # REDIS_HOST=your-redis-host
 # REDIS_PORT=6379
+# JWT_SECRET=your-secure-random-secret-min-32-chars
+# JWT_ACCESS_EXPIRATION=15m
+# JWT_REFRESH_EXPIRATION=7d
 # CORS_ORIGINS=https://your-web-app.com
 # NODE_ENV=production
 ```
@@ -262,7 +265,7 @@ vercel --prod
 **4. Warm Redis Cache**
 ```bash
 # Run cache warming script after deployment
-ts-node apps/api/src/scripts/cache-warming.ts
+DATABASE_URL=... ts-node apps/api/src/scripts/cache-warming.ts
 ```
 
 #### Frontend Deployment (Web PWA)
@@ -277,8 +280,6 @@ cd dist/apps/web
 vercel --prod
 
 # Configure environment variables:
-# SUPABASE_URL=your-production-url
-# SUPABASE_ANON_KEY=your-anon-key
 # API_BASE_URL=https://your-api.vercel.app/api/v1
 ```
 
@@ -324,14 +325,24 @@ npx cap open android
 
 #### API (.env)
 ```bash
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
+# Database (PostgreSQL via TypeORM)
+DATABASE_URL=postgres://user:password@host:5432/blastoise
+# Or individual settings:
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=blastoise
 
 # Redis
 REDIS_HOST=your-redis-host
 REDIS_PORT=6379
 REDIS_PASSWORD=your-redis-password
+
+# JWT Authentication
+JWT_SECRET=your-secure-random-secret-min-32-chars
+JWT_ACCESS_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7d
 
 # Server
 PORT=3000
@@ -339,7 +350,6 @@ NODE_ENV=production
 
 # Security
 CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-JWT_SECRET=your-jwt-secret
 
 # Monitoring
 SENTRY_DSN=your-sentry-dsn
@@ -347,10 +357,6 @@ SENTRY_DSN=your-sentry-dsn
 
 #### Web/Mobile (.env)
 ```bash
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-public-key
-
 # API
 API_BASE_URL=https://your-api.vercel.app/api/v1
 
@@ -363,7 +369,7 @@ ENVIRONMENT=production
 - [ ] Health checks responding: /health, /health/db, /health/redis
 - [ ] CORS configured for production domains
 - [ ] SSL certificates active (HTTPS)
-- [ ] Supabase RLS policies enabled
+- [ ] JWT secrets configured securely
 - [ ] Redis cache warmed with popular regions
 - [ ] Sentry error tracking configured
 - [ ] Rate limiting active (100/min auth, 20/min anon)
@@ -402,7 +408,7 @@ curl https://your-api.vercel.app/api/v1/health/redis
 **API Scaling**
 - Horizontal scaling: Deploy multiple API instances
 - Load balancer: Configure in Vercel/Railway settings
-- Database: Supabase handles scaling automatically
+- Database: Use connection pooling (PgBouncer) for high traffic
 - Redis: Upgrade plan for higher throughput
 
 **Caching**
