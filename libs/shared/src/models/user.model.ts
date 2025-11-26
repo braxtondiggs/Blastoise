@@ -32,7 +32,7 @@ export interface UserPreferences {
 }
 
 export interface User {
-  id: string; // UUID, maps to Supabase auth.uid()
+  id: string; // UUID, user identifier
   email: string; // User's email address
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp

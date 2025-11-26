@@ -11,11 +11,13 @@ import {
   computed,
   inject,
   OnInit,
+  OnDestroy,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 import { passwordStrengthValidator, passwordsMatchValidator } from '../services/form-validators';
@@ -29,11 +31,12 @@ type MigrationStatus = 'pending' | 'in-progress' | 'complete' | 'failed';
   templateUrl: './upgrade-prompt.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UpgradePrompt implements OnInit {
+export class UpgradePrompt implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
+  private subscription: Subscription | null = null;
 
   readonly upgradeForm = this.fb.group(
     {
@@ -76,9 +79,9 @@ export class UpgradePrompt implements OnInit {
   }
 
   /**
-
+   * Handle form submission to upgrade anonymous user to authenticated account
    */
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     if (this.upgradeForm.invalid) {
       return;
     }
@@ -90,29 +93,32 @@ export class UpgradePrompt implements OnInit {
 
     this.isLoading.set(true);
     this.error.set(null);
-
     this.migrationStatus.set('in-progress');
 
-    try {
-      const result = await this.authService.upgradeToAuthenticated(email, password);
+    this.subscription = this.authService
+      .upgradeToAuthenticated(email, password)
+      .subscribe({
+        next: (result) => {
+          if (result.error) {
+            this.migrationStatus.set('failed');
+            this.error.set(this.mapErrorMessage(result.error));
+          } else {
+            this.migrationStatus.set('complete');
 
-      if (result.error) {
-        this.migrationStatus.set('failed');
-        this.error.set(this.mapErrorMessage(result.error));
-      } else {
-        this.migrationStatus.set('complete');
-
-        setTimeout(() => {
-          this.router.navigate(['/']);
-        }, 1500); // Brief delay to show success message
-      }
-    } catch (err) {
-      this.migrationStatus.set('failed');
-      this.error.set('An unexpected error occurred. Please try again.');
-      console.error('Upgrade failed:', err);
-    } finally {
-      this.isLoading.set(false);
-    }
+            setTimeout(() => {
+              this.router.navigate(['/']);
+            }, 1500); // Brief delay to show success message
+          }
+        },
+        error: (err) => {
+          this.migrationStatus.set('failed');
+          this.error.set('An unexpected error occurred. Please try again.');
+          console.error('Upgrade failed:', err);
+        },
+        complete: () => {
+          this.isLoading.set(false);
+        },
+      });
   }
 
   /**
@@ -124,7 +130,7 @@ export class UpgradePrompt implements OnInit {
   }
 
   /**
-   * Map Supabase errors to user-friendly messages
+   * Map auth errors to user-friendly messages
    */
   private mapErrorMessage(error: any): string {
     const message = error?.message || '';
@@ -173,5 +179,9 @@ export class UpgradePrompt implements OnInit {
    */
   get passwordErrors(): any {
     return this.upgradeForm.controls.password.errors;
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 }

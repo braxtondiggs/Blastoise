@@ -1,13 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit, effect, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, effect, PLATFORM_ID, OnDestroy } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroEnvelope, heroKey, heroCheckCircle, heroXCircle, heroUserCircle, heroArrowRightOnRectangle } from '@ng-icons/heroicons/outline';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 import { emailValidator } from '../services/form-validators';
-import { mapSupabaseError } from '@blastoise/shared';
+import { mapAuthError } from '@blastoise/shared';
 import { Capacitor } from '@capacitor/core';
 
 @Component({
@@ -18,12 +19,13 @@ import { Capacitor } from '@capacitor/core';
   standalone: true,
   viewProviders: [provideIcons({ heroEnvelope, heroKey, heroCheckCircle, heroXCircle, heroUserCircle, heroArrowRightOnRectangle })],
 })
-export class Login implements OnInit {
+export class Login implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly platformId = inject(PLATFORM_ID);
+  private subscription: Subscription | null = null;
 
   // Reactive form for email/password login
   readonly loginForm = this.fb.group({
@@ -94,7 +96,7 @@ export class Login implements OnInit {
    * Handle login form submission (T044)
    * Calls either signInWithPassword or signInWithMagicLink based on mode
    */
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     // In magic-link mode, only email is required
     if (this.mode() === 'magic-link') {
       if (this.loginForm.controls.email.invalid) {
@@ -115,42 +117,41 @@ export class Login implements OnInit {
     this.error.set(null);
     this.showSuccessMessage.set(false); // Clear any previous success message
 
-    try {
-      let result;
-
-      // Check mode and call appropriate auth method
-      if (this.mode() === 'magic-link') {
-        // Magic link authentication - only needs email
-        result = await this.authService.signInWithMagicLink(email as string);
-
-        if (!result.error) {
-          // Show success message for magic link
-          this.showSuccessMessage.set(true);
-
-          // Auto-dismiss after 5 seconds (T047)
-          setTimeout(() => {
-            this.showSuccessMessage.set(false);
-          }, 5000);
+    // Check mode and call appropriate auth method
+    if (this.mode() === 'magic-link') {
+      // Magic link authentication - not supported in self-hosted mode
+      this.authService.signInWithMagicLink(email as string).then((result) => {
+        if (result.error) {
+          this.error.set(mapAuthError(result.error));
         }
-      } else {
-        // Password authentication - needs email and password
-        result = await this.authService.signInWithPassword(email as string, password as string);
-
-        if (!result.error) {
-          // Success - navigate to main app
-          await this.router.navigate(['/visits']);
-        }
-      }
-
-      // Handle errors for both modes
-      if (result.error) {
-        this.error.set(mapSupabaseError(result.error));
-      }
-    } catch (err) {
-      this.error.set(mapSupabaseError(err as Error));
-    } finally {
-      this.isLoading.set(false);
-      this.loginForm.enable(); // Re-enable form controls after loading
+        this.isLoading.set(false);
+        this.loginForm.enable();
+      });
+    } else {
+      // Password authentication - needs email and password (returns Observable)
+      this.subscription = this.authService
+        .signInWithPassword(email as string, password as string)
+        .subscribe({
+          next: (result) => {
+            if (result.error) {
+              this.error.set(mapAuthError(result.error));
+            } else {
+              // Success - navigate to main app
+              this.router.navigate(['/visits']);
+            }
+          },
+          error: (err) => {
+            this.error.set(mapAuthError(err as Error));
+          },
+          complete: () => {
+            this.isLoading.set(false);
+            this.loginForm.enable();
+          },
+        });
     }
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 }

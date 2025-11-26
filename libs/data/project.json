@@ -5,8 +5,8 @@
   "projectType": "library",
   "tags": ["type:lib", "scope:shared", "layer:data"],
   "metadata": {
-    "description": "Data access layer for Supabase, Redis, and IndexedDB",
-    "technologies": ["TypeScript", "Supabase", "Redis", "IndexedDB"]
+    "description": "Data access layer for PostgreSQL, Redis, and IndexedDB",
+    "technologies": ["TypeScript", "TypeORM", "Redis", "IndexedDB"]
   },
   "targets": {
     "build": {

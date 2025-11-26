@@ -1,98 +1,48 @@
 # Docker Infrastructure
 
-This directory contains the Docker Compose configuration for running the full Blastoise stack locally and deploying to Railway.
+This directory contains the Docker Compose configuration for running Blastoise's infrastructure services locally.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Setup Environment Variables
 
-Copy the example environment file and customize it:
+Copy the example environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-**⚠️ IMPORTANT:** The `.env.example` file contains **demo credentials** that are **NOT secure** for production use.
-
-### 2. For Local Development
-
-The default values in `.env.example` are fine for local development:
-- Default database password: `postgres`
-- Demo JWT secrets from Supabase (publicly available)
-- Demo API keys (safe for local testing)
+### 2. Start Services
 
 ```bash
-# Just copy and use
-cp .env.example .env
 docker-compose up -d
 ```
 
-### 3. For Production (Railway/Cloud)
+This starts:
+- **PostgreSQL 15** - Primary database on port 5432
+- **Redis 7** - Caching and geospatial indexing on port 6379
 
-**🔐 CRITICAL: Generate new secrets before deploying to production!**
+### 3. Verify Services
 
-#### Required Changes in `.env`:
+```bash
+# Check status
+docker-compose ps
 
-1. **Database Password** - Change from default:
-   ```env
-   POSTGRES_PASSWORD=<STRONG_RANDOM_PASSWORD>
-   ```
+# Test PostgreSQL connection
+docker exec -it blastoise-postgres psql -U postgres -d blastoise -c "SELECT 1;"
 
-2. **JWT Secret** - Generate a new 32+ character secret:
-   ```env
-   JWT_SECRET=<YOUR_RANDOM_SECRET_AT_LEAST_32_CHARS>
-   ```
+# Test Redis connection
+docker exec -it blastoise-redis redis-cli PING
+```
 
-3. **Generate New Supabase Keys** - Create new JWT tokens:
-
-   Visit https://supabase.com/docs/guides/self-hosting#api-keys or use this:
-
-   ```bash
-   # Install jwt-cli: https://github.com/mike-engel/jwt-cli
-
-   # Generate ANON key (public, read-only access)
-   jwt encode --secret="YOUR_JWT_SECRET" --exp="+10 years" '{"role":"anon","iss":"supabase"}'
-
-   # Generate SERVICE_ROLE key (admin access, keep secret!)
-   jwt encode --secret="YOUR_JWT_SECRET" --exp="+10 years" '{"role":"service_role","iss":"supabase"}'
-   ```
-
-   Update in `.env`:
-   ```env
-   ANON_KEY=<YOUR_NEW_ANON_KEY>
-   SERVICE_ROLE_KEY=<YOUR_NEW_SERVICE_ROLE_KEY>
-   ```
-
-4. **Update kong.yml** - Replace the hardcoded demo keys:
-
-   In `kong.yml`, update lines 96 and 99 with your new keys:
-   ```yaml
-   consumers:
-     - username: anon
-       keyauth_credentials:
-         - key: <YOUR_NEW_ANON_KEY>
-     - username: service_role
-       keyauth_credentials:
-         - key: <YOUR_NEW_SERVICE_ROLE_KEY>
-   ```
-
-5. **Update Application Environment Variables**:
-
-   Update `apps/api/.env`, `apps/web/.env`, and `apps/mobile/.env` with production URLs and keys.
-
-## 📦 What's Included
+## Services
 
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
-| Kong | kong:2.8.1 | 8000 | API Gateway (main entry point) |
-| Postgres | supabase/postgres | 5432 | Database with auth & storage schemas |
-| PostgREST | postgrest | 3001 | Auto-generated REST API |
-| GoTrue | supabase/gotrue | 9999 | Authentication service |
-| Storage | supabase/storage-api | 5000 | File storage |
-| Realtime | supabase/realtime | 4000 | WebSocket subscriptions |
+| Postgres | postgres:15-alpine | 5432 | Primary database (TypeORM) |
 | Redis | redis:7-alpine | 6379 | Geospatial indexing & caching |
 
-## 🔧 Commands
+## Commands
 
 ```bash
 # Start all services
@@ -107,7 +57,7 @@ docker logs blastoise-postgres -f
 # Stop all services
 docker-compose down
 
-# Stop and remove volumes (⚠️ deletes all data)
+# Stop and remove volumes (deletes all data)
 docker-compose down -v
 
 # Restart a service
@@ -117,66 +67,64 @@ docker-compose restart postgres
 docker-compose ps
 ```
 
-## 🗄️ Database Migrations
+## Database Migrations
 
-Migrations are in `../supabase/migrations/`. Apply them with:
+TypeORM handles migrations automatically. See `apps/api/migrations/README.md` for details.
 
 ```bash
-# Apply all migrations
-for file in ../supabase/migrations/*.sql; do
-  echo "Applying $(basename $file)..."
-  docker exec -i blastoise-postgres psql -U postgres -d postgres < "$file"
-done
+# Run migrations manually
+cd apps/api
+npx typeorm migration:run -d src/database/typeorm.config.ts
 ```
 
-## 🔐 Security Best Practices
+## Security Notes
 
-### ✅ What's Safe to Commit:
+### What's Safe to Commit:
 - `docker-compose.yml` - Uses environment variable substitution
-- `kong.yml` - Contains only demo keys (publicly available)
-- `.env.example` - Template without real secrets
+- `.env.example` - Template without secrets
 
-### ❌ What's Ignored (Never Commit):
-- `.env` - Contains actual secrets (in `.gitignore`)
+### What's Ignored (Never Commit):
+- `.env` - Contains actual configuration (in `.gitignore`)
 
-### 🛡️ Production Checklist:
+## Production Deployment
 
-- [ ] Generate new `JWT_SECRET` (32+ characters)
-- [ ] Change `POSTGRES_PASSWORD` from default
-- [ ] Generate new `ANON_KEY` and `SERVICE_ROLE_KEY`
-- [ ] Update hardcoded keys in `kong.yml`
-- [ ] Set `SITE_URL` to your production domain
-- [ ] Configure `API_EXTERNAL_URL` for your deployment
-- [ ] Enable SSL/TLS for Kong gateway
-- [ ] Set up proper SMTP credentials for emails
-- [ ] Review and limit CORS origins in `kong.yml`
+For production, use managed services:
 
-## 🚂 Railway Deployment
+- **PostgreSQL**: Neon, Railway, Render, or AWS RDS
+- **Redis**: Redis Cloud, Upstash, or AWS ElastiCache
 
-1. **Push to GitHub:**
-   ```bash
-   git add .
-   git commit -m "Add Supabase docker-compose configuration"
-   git push
-   ```
+See `apps/api/.env.example` for full production configuration options.
 
-2. **Create Railway Project:**
-   - Import from GitHub repository
-   - Railway auto-detects `docker-compose.yml`
+## Troubleshooting
 
-3. **Set Environment Variables in Railway:**
-   - Copy from your production `.env`
-   - Railway provides service discovery via internal DNS
-   - Update `API_EXTERNAL_URL` with Railway public URL
+### PostgreSQL Connection Issues
 
-4. **Deploy:**
-   - Railway automatically deploys all services
-   - Each service gets an internal hostname
-   - Kong service gets a public URL
+```bash
+# Check if PostgreSQL is running
+docker-compose ps postgres
 
-## 📚 Additional Resources
+# View PostgreSQL logs
+docker-compose logs postgres
 
-- [Supabase Self-Hosting Guide](https://supabase.com/docs/guides/self-hosting)
-- [Kong Gateway Documentation](https://docs.konghq.com/)
-- [Railway Documentation](https://docs.railway.app/)
-- [Generate JWT Keys](https://github.com/mike-engel/jwt-cli)
+# Reset PostgreSQL (WARNING: deletes data)
+docker-compose down -v && docker-compose up -d
+```
+
+### Redis Connection Issues
+
+```bash
+# Check if Redis is running
+docker-compose ps redis
+
+# View Redis logs
+docker-compose logs redis
+
+# Test Redis
+docker exec -it blastoise-redis redis-cli PING
+```
+
+## Additional Resources
+
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Redis Documentation](https://redis.io/docs/)
+- [TypeORM Migrations](https://typeorm.io/migrations)

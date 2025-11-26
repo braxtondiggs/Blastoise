@@ -11,11 +11,15 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
+
+  // Enable cookie parsing
+  app.use(cookieParser());
 
   const config = new DocumentBuilder()
     .setTitle('Blastoise API')
@@ -41,7 +45,7 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Enter your Supabase JWT token',
+        description: 'Enter your JWT access token',
       },
       'JWT'
     )

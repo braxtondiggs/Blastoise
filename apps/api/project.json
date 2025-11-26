@@ -5,8 +5,8 @@
   "projectType": "application",
   "tags": ["type:app", "platform:backend", "scope:backend"],
   "metadata": {
-    "description": "NestJS REST API with Supabase and Redis for venue and visit management",
-    "technologies": ["NestJS", "Supabase", "Redis", "PostgreSQL"]
+    "description": "NestJS REST API with PostgreSQL and Redis for venue and visit management",
+    "technologies": ["NestJS", "TypeORM", "Redis", "PostgreSQL"]
   },
   "targets": {
     "build": {

@@ -6,7 +6,7 @@ import { AuthService } from '../services/auth';
  * Auth Guard - Protects routes that require authentication
  *
  * Allows access if:
- * - User is authenticated (has valid Supabase session)
+ * - User is authenticated (has valid JWT session)
  * - User is in anonymous mode (local-only usage)
  *
  * Redirects to login if not authenticated and not in anonymous mode

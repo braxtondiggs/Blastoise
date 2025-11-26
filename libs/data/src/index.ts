@@ -1,9 +1,3 @@
-// Supabase
-export * from './supabase/supabase.client'; // Exports: initSupabaseClient, getSupabaseClient, SupabaseConfig
-export * from './supabase/visits.repository';
-export * from './supabase/venues.repository';
-export * from './supabase/users.repository';
-
 // API (Angular)
 export * from './api/api.client';
 export * from './api/venues.api';

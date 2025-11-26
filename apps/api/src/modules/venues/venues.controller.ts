@@ -6,11 +6,19 @@ import {
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
-import { Public } from '../../common/decorators/public.decorator';
+import { Public } from '../../auth/guards/public.decorator';
 import { VenuesService, VenueWithDistance } from './venues.service';
 import { SearchVenuesDto } from './dto/search-venues.dto';
 import { NearbyVenuesDto } from './dto/nearby-venues.dto';
-import { ApiResponse, Venue } from '@blastoise/shared';
+import { Venue } from '../../entities/venue.entity';
+
+// API response wrapper (dates serialize to ISO strings automatically)
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: { code: string; message: string };
+  metadata?: Record<string, unknown>;
+}
 
 @ApiTags('venues')
 @Controller('venues')

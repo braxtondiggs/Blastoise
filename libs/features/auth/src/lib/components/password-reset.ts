@@ -3,13 +3,13 @@
  *
  * Two-step password reset flow:
  * 1. Request reset link (email form)
- * 2. Set new password (after clicking email link)
+ * 2. Set new password (after clicking email link with token)
  */
 
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
   heroEnvelope,
@@ -18,8 +18,10 @@ import {
   heroXCircle,
   heroArrowLeft,
 } from '@ng-icons/heroicons/outline';
-import { getSupabaseClient } from '@blastoise/data';
+import { Subscription } from 'rxjs';
+import { AuthService } from '../services/auth';
 import { passwordStrengthValidator } from '../services/form-validators';
+import { mapAuthError } from '@blastoise/shared';
 
 type PasswordResetMode = 'request' | 'reset';
 
@@ -33,12 +35,15 @@ type PasswordResetMode = 'request' | 'reset';
     provideIcons({ heroEnvelope, heroKey, heroCheckCircle, heroXCircle, heroArrowLeft }),
   ],
 })
-export class PasswordReset implements OnInit {
+export class PasswordReset implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
-  private readonly supabase = getSupabaseClient();
+  private readonly route = inject(ActivatedRoute);
+  private readonly authService = inject(AuthService);
+  private subscription: Subscription | null = null;
 
   readonly mode = signal<PasswordResetMode>('request');
+  private resetToken: string | null = null;
 
   readonly resetRequestForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -53,25 +58,24 @@ export class PasswordReset implements OnInit {
   readonly error = signal<string | null>(null);
   readonly success = signal(false);
 
-  async ngOnInit(): Promise<void> {
-    const {
-      data: { session },
-    } = await this.supabase.auth.getSession();
-
-    if (session) {
-      // User clicked reset link and has valid session - show password reset form
-      this.mode.set('reset');
-    } else {
-      // No session - show email request form
-      this.mode.set('request');
-    }
+  ngOnInit(): void {
+    // Check if there's a reset token in the URL query params
+    this.subscription = this.route.queryParams.subscribe((params) => {
+      const token = params['token'];
+      if (token) {
+        this.resetToken = token;
+        this.mode.set('reset');
+      } else {
+        this.mode.set('request');
+      }
+    });
   }
 
   /**
    * Request password reset link
    * Sends email with reset link to user's email address
    */
-  async onRequestReset(): Promise<void> {
+  onRequestReset(): void {
     if (this.resetRequestForm.invalid) {
       return;
     }
@@ -84,29 +88,30 @@ export class PasswordReset implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
 
-    try {
-      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/password-reset`,
-      });
-
-      if (error) {
-        this.error.set(this.mapErrorMessage(error));
-      } else {
-        this.success.set(true);
-      }
-    } catch (err) {
-      this.error.set('An unexpected error occurred. Please try again.');
-      console.error('Password reset request failed:', err);
-    } finally {
-      this.isLoading.set(false);
-    }
+    this.subscription = this.authService.forgotPassword(email).subscribe({
+      next: (result) => {
+        if (result.error) {
+          this.error.set(mapAuthError(result.error));
+        } else {
+          // Always show success message (prevents email enumeration)
+          this.success.set(true);
+        }
+      },
+      error: (err) => {
+        this.error.set('An unexpected error occurred. Please try again.');
+        console.error('Password reset request failed:', err);
+      },
+      complete: () => {
+        this.isLoading.set(false);
+      },
+    });
   }
 
   /**
    * Update password with new password
    * Called after user clicks reset link and submits new password
    */
-  async onUpdatePassword(): Promise<void> {
+  onUpdatePassword(): void {
     if (this.newPasswordForm.invalid) {
       return;
     }
@@ -123,55 +128,37 @@ export class PasswordReset implements OnInit {
       return;
     }
 
+    if (!this.resetToken) {
+      this.error.set('Invalid reset link. Please request a new one.');
+      return;
+    }
+
     this.isLoading.set(true);
     this.error.set(null);
 
-    try {
-      const { error } = await this.supabase.auth.updateUser({
-        password: newPassword,
+    this.subscription = this.authService
+      .resetPassword(this.resetToken, newPassword)
+      .subscribe({
+        next: (result) => {
+          if (result.error) {
+            this.error.set(mapAuthError(result.error));
+          } else {
+            // Success - redirect to login
+            this.success.set(true);
+
+            setTimeout(() => {
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+          }
+        },
+        error: (err) => {
+          this.error.set('An unexpected error occurred. Please try again.');
+          console.error('Password update failed:', err);
+        },
+        complete: () => {
+          this.isLoading.set(false);
+        },
       });
-
-      if (error) {
-        this.error.set(this.mapErrorMessage(error));
-      } else {
-        // Success - redirect to login
-        this.success.set(true);
-
-        setTimeout(() => {
-          this.router.navigate(['/auth/login']);
-        }, 2000);
-      }
-    } catch (err) {
-      this.error.set('An unexpected error occurred. Please try again.');
-      console.error('Password update failed:', err);
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  /**
-   * Map Supabase errors to user-friendly messages
-   */
-  private mapErrorMessage(error: Error | { message?: string }): string {
-    const message = error?.message || '';
-
-    if (message.includes('not found') || message.includes('no user')) {
-      return 'No account found with this email address.';
-    }
-
-    if (message.includes('expired') || message.includes('invalid')) {
-      return 'This reset link has expired. Please request a new one.';
-    }
-
-    if (message.includes('network') || message.includes('fetch')) {
-      return 'Connection issue. Please check your internet and try again.';
-    }
-
-    if (message.includes('password')) {
-      return 'Password must be at least 8 characters with a letter and number.';
-    }
-
-    return 'Failed to reset password. Please try again.';
   }
 
   /**
@@ -203,5 +190,9 @@ export class PasswordReset implements OnInit {
    */
   get passwordErrors(): { [key: string]: unknown } | null {
     return this.newPasswordForm.controls.newPassword.errors;
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 }

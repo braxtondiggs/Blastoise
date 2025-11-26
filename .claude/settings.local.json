@@ -1,13 +1,18 @@
 {
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(npx nx run-many:*)",
+      "mcp__executeautomation-playwright-server__playwright_screenshot",
+      "mcp__executeautomation-playwright-server__playwright_fill",
+      "mcp__executeautomation-playwright-server__playwright_click",
+      "mcp__executeautomation-playwright-server__playwright_close"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "nx-mcp"
   ],
-  "permissions": {
-    "allow": [
-      "Bash(npx nx run-many:*)"
-    ]
-  },
   "hooks": {
     "PostToolUse": [
       {

@@ -1,21 +1,74 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, InjectionToken, Inject, Optional } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { getSupabaseClient } from '@blastoise/data';
-import type { User as SupabaseUser, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { catchError, tap, map, switchMap, take } from 'rxjs/operators';
+import { jwtDecode } from 'jwt-decode';
 import { User, DEFAULT_USER_PREFERENCES, UserPreferences } from '@blastoise/shared';
-import { AuthStateService } from '@blastoise/shared/auth-state';
-import { Capacitor } from '@capacitor/core';
+import { AuthStateService, AuthSession } from '@blastoise/shared/auth-state';
 
 const ANONYMOUS_USER_KEY = 'anonymous_user_id';
 const ANONYMOUS_MODE_KEY = 'anonymous_mode';
+
+/**
+ * Injection token for API base URL
+ */
+export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL');
+
+/**
+ * JWT payload structure from self-hosted auth
+ */
+interface JwtPayload {
+  user_id: string;
+  email: string;
+  iat: number;
+  exp: number;
+}
+
+/**
+ * Auth response from backend API
+ */
+interface AuthResponse {
+  access_token: string;
+  token_type: 'Bearer';
+  expires_in: number;
+  user: {
+    id: string;
+    email: string;
+    created_at: string;
+  };
+}
+
+/**
+ * Refresh response from backend API
+ */
+interface RefreshResponse {
+  access_token: string;
+  token_type: 'Bearer';
+  expires_in: number;
+}
+
+/**
+ * Message response from backend API
+ */
+interface MessageResponse {
+  message: string;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly supabase = getSupabaseClient();
+  private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
+  private readonly apiUrl: string;
+
+  // In-memory access token storage (not localStorage for security)
+  private accessToken: string | null = null;
+
+  // Refresh in progress flag to prevent multiple simultaneous refreshes
+  private refreshInProgress$ = new BehaviorSubject<boolean>(false);
 
   // Expose shared state for backward compatibility
   readonly isAuthenticated = this.authState.isAuthenticated;
@@ -23,12 +76,14 @@ export class AuthService {
   readonly currentUser = this.authState.currentUser;
   readonly session = this.authState.session;
 
-  constructor() {
+  constructor(@Optional() @Inject(API_BASE_URL) apiUrl?: string) {
+    // Default to localhost if not provided
+    this.apiUrl = apiUrl || 'http://localhost:3000/api/v1';
     this.initializeAuth();
   }
 
   /**
-   * Initialize authentication state and listen for auth changes
+   * Initialize authentication state
    */
   private async initializeAuth(): Promise<void> {
     // Check if in anonymous mode
@@ -37,86 +92,16 @@ export class AuthService {
 
     if (anonymousMode) {
       this.loadAnonymousUser();
+      this.authState.setInitialized(true);
     } else {
-      // Load current session
-      const {
-        data: { session },
-      } = await this.supabase.auth.getSession();
-      if (session) {
-        this.authState.setSession(session);
-        await this.loadUserProfile(session.user);
+      // Try to refresh token on app load (refresh token is in httpOnly cookie)
+      try {
+        await this.refreshToken().pipe(take(1)).toPromise();
+      } catch {
+        // No valid refresh token - user will need to log in
+        this.authState.setCurrentUser(null);
       }
-    }
-
-    // Wait a tick for Angular change detection to process the auth state
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Mark as initialized after state has settled
-    this.authState.setInitialized(true);
-
-    // Listen for auth state changes
-    this.supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        this.authState.setSession(session);
-
-        if (session?.user) {
-          await this.loadUserProfile(session.user);
-        } else {
-          this.authState.setCurrentUser(null);
-        }
-      }
-    );
-  }
-
-  /**
-   * Load user profile and preferences
-   */
-  private async loadUserProfile(supabaseUser: SupabaseUser): Promise<void> {
-    try {
-      // Fetch user preferences from Supabase (assumes user_preferences table exists)
-      const { data, error } = await this.supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', supabaseUser.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = no rows found (first time user)
-        console.error('Error loading user preferences:', error);
-      }
-
-      const preferences: UserPreferences = data
-        ? {
-            location_tracking_enabled:
-              data.location_tracking_enabled ?? DEFAULT_USER_PREFERENCES.location_tracking_enabled,
-            sharing_default: data.sharing_default ?? DEFAULT_USER_PREFERENCES.sharing_default,
-            notification_settings: {
-              ...DEFAULT_USER_PREFERENCES.notification_settings,
-              ...(data.notification_settings || {}),
-            },
-            privacy_settings: {
-              ...DEFAULT_USER_PREFERENCES.privacy_settings,
-              ...(data.privacy_settings || {}),
-            },
-            map_settings: {
-              ...DEFAULT_USER_PREFERENCES.map_settings,
-              ...(data.map_settings || {}),
-            },
-          }
-        : DEFAULT_USER_PREFERENCES;
-
-      const user: User = {
-        id: supabaseUser.id,
-        email: supabaseUser.email || '',
-        created_at: supabaseUser.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        preferences,
-      };
-
-      this.authState.setCurrentUser(user);
-    } catch (err) {
-      console.error('Error loading user profile:', err);
-      this.authState.setCurrentUser(null);
+      this.authState.setInitialized(true);
     }
   }
 
@@ -151,96 +136,243 @@ export class AuthService {
   }
 
   /**
-   * Sign in with email and password
+   * Get current access token (used by interceptor)
    */
-  async signInWithPassword(email: string, password: string): Promise<{ error?: Error }> {
+  getAccessToken(): string | null {
+    // Check if token is expired
+    if (this.accessToken && this.isTokenExpired(this.accessToken)) {
+      return null;
+    }
+    return this.accessToken;
+  }
+
+  /**
+   * Check if JWT token is expired
+   */
+  private isTokenExpired(token: string): boolean {
     try {
-      const { error } = await this.supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { error: new Error(error.message) };
-      }
-
-      // Disable anonymous mode after successful sign in
-      this.disableAnonymousMode();
-
-      return {};
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error('Unknown error') };
+      const decoded = jwtDecode<JwtPayload>(token);
+      // Add 30-second buffer to account for network latency
+      return decoded.exp * 1000 < Date.now() - 30000;
+    } catch {
+      return true;
     }
   }
 
   /**
-   * Sign in with magic link (passwordless)
+   * Sign in with email and password
    */
-  async signInWithMagicLink(email: string): Promise<{ error?: Error }> {
-    try {
-      const { error } = await this.supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        return { error: new Error(error.message) };
-      }
-
-      return {};
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error('Unknown error') };
-    }
+  signInWithPassword(email: string, password: string): Observable<{ error?: Error }> {
+    return this.http
+      .post<AuthResponse>(
+        `${this.apiUrl}/auth/login`,
+        { email, password },
+        { withCredentials: true } // Include cookies
+      )
+      .pipe(
+        tap((response) => {
+          this.handleAuthResponse(response);
+          this.disableAnonymousMode();
+        }),
+        map(() => ({})),
+        catchError((error: HttpErrorResponse) => {
+          const message = error.error?.message || 'Invalid email or password';
+          return of({ error: new Error(message) });
+        })
+      );
   }
 
   /**
    * Sign up with email and password
    */
-  async signUp(
+  signUp(
     email: string,
     password: string
-  ): Promise<{ error?: Error; needsEmailConfirmation?: boolean }> {
-    try {
-      // Determine redirect URL based on platform
-      const redirectUrl = Capacitor.isNativePlatform()
-        ? 'com.blastoise.app://auth/callback' // Deep link for mobile
-        : `${window.location.origin}/auth/callback`; // Web URL
+  ): Observable<{ error?: Error; needsEmailConfirmation?: boolean }> {
+    return this.http
+      .post<AuthResponse>(
+        `${this.apiUrl}/auth/register`,
+        { email, password },
+        { withCredentials: true }
+      )
+      .pipe(
+        tap((response) => {
+          this.handleAuthResponse(response);
+          this.disableAnonymousMode();
+        }),
+        map(() => ({ needsEmailConfirmation: false })),
+        catchError((error: HttpErrorResponse) => {
+          const message = error.error?.message || 'Registration failed';
+          return of({ error: new Error(message) });
+        })
+      );
+  }
 
-      const { data, error } = await this.supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        return { error: new Error(error.message) };
-      }
-
-      // Check if email confirmation is required
-      // If session is null but user exists, email confirmation is required
-      const needsEmailConfirmation = !data.session && !!data.user;
-
-      // Disable anonymous mode after successful sign up
-      this.disableAnonymousMode();
-
-      return { needsEmailConfirmation };
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error('Unknown error') };
+  /**
+   * Refresh access token using httpOnly refresh token cookie
+   */
+  refreshToken(): Observable<void> {
+    // Prevent multiple simultaneous refresh requests
+    if (this.refreshInProgress$.value) {
+      return this.refreshInProgress$.pipe(
+        switchMap((inProgress) => {
+          if (!inProgress) {
+            return of(undefined);
+          }
+          return throwError(() => new Error('Refresh in progress'));
+        }),
+        take(1)
+      );
     }
+
+    this.refreshInProgress$.next(true);
+
+    return this.http
+      .post<RefreshResponse>(`${this.apiUrl}/auth/refresh`, {}, { withCredentials: true })
+      .pipe(
+        tap((response) => {
+          this.accessToken = response.access_token;
+          this.authState.setAccessToken(response.access_token);
+
+          // Decode token to get user info
+          const decoded = jwtDecode<JwtPayload>(response.access_token);
+          this.loadUserFromToken(decoded);
+        }),
+        map(() => undefined),
+        catchError((error) => {
+          this.accessToken = null;
+          this.authState.setAccessToken(null);
+          this.authState.setCurrentUser(null);
+          this.authState.setSession(null);
+          return throwError(() => error);
+        }),
+        tap({
+          complete: () => this.refreshInProgress$.next(false),
+          error: () => this.refreshInProgress$.next(false),
+        })
+      );
   }
 
   /**
    * Sign out current user
    */
   async signOut(): Promise<void> {
-    await this.supabase.auth.signOut();
-    this.authState.setCurrentUser(null);
-    this.authState.setSession(null);
+    try {
+      await this.http
+        .post<MessageResponse>(`${this.apiUrl}/auth/logout`, {}, { withCredentials: true })
+        .toPromise();
+    } catch {
+      // Ignore logout errors - just clear local state
+    }
+
+    this.accessToken = null;
+    this.authState.clear();
     this.router.navigate(['/']);
+  }
+
+  /**
+   * Request password reset email
+   */
+  forgotPassword(email: string): Observable<{ error?: Error }> {
+    return this.http
+      .post<MessageResponse>(`${this.apiUrl}/auth/forgot-password`, { email })
+      .pipe(
+        map(() => ({})),
+        catchError(() => {
+          // Always return success to prevent email enumeration
+          return of({});
+        })
+      );
+  }
+
+  /**
+   * Reset password with token from email
+   */
+  resetPassword(token: string, newPassword: string): Observable<{ error?: Error }> {
+    return this.http
+      .post<MessageResponse>(`${this.apiUrl}/auth/reset-password`, {
+        token,
+        new_password: newPassword,
+      })
+      .pipe(
+        map(() => ({})),
+        catchError((error: HttpErrorResponse) => {
+          const message =
+            error.error?.message || 'Invalid or expired reset token';
+          return of({ error: new Error(message) });
+        })
+      );
+  }
+
+  /**
+   * Handle successful auth response
+   */
+  private handleAuthResponse(response: AuthResponse): void {
+    this.accessToken = response.access_token;
+    this.authState.setAccessToken(response.access_token);
+
+    const session: AuthSession = {
+      access_token: response.access_token,
+      expires_in: response.expires_in,
+      token_type: response.token_type,
+      user: response.user,
+    };
+    this.authState.setSession(session);
+
+    const user: User = {
+      id: response.user.id,
+      email: response.user.email,
+      created_at: response.user.created_at,
+      updated_at: new Date().toISOString(),
+      preferences: DEFAULT_USER_PREFERENCES,
+    };
+    this.authState.setCurrentUser(user);
+
+    // Load user preferences from backend
+    this.loadUserPreferences(response.user.id);
+  }
+
+  /**
+   * Load user from JWT token payload
+   */
+  private loadUserFromToken(payload: JwtPayload): void {
+    const user: User = {
+      id: payload.user_id,
+      email: payload.email,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      preferences: DEFAULT_USER_PREFERENCES,
+    };
+    this.authState.setCurrentUser(user);
+
+    // Load user preferences from backend
+    this.loadUserPreferences(payload.user_id);
+  }
+
+  /**
+   * Load user preferences from backend
+   */
+  private async loadUserPreferences(_userId: string): Promise<void> {
+    try {
+      const response = await this.http
+        .get<UserPreferences>(`${this.apiUrl}/user/preferences`)
+        .toPromise();
+
+      if (response) {
+        const currentUser = this.authState.currentUser();
+        if (currentUser) {
+          this.authState.setCurrentUser({
+            ...currentUser,
+            preferences: {
+              ...DEFAULT_USER_PREFERENCES,
+              ...response,
+            },
+          });
+        }
+      }
+    } catch {
+      // Use default preferences if fetch fails
+    }
   }
 
   /**
@@ -265,29 +397,25 @@ export class AuthService {
    * Upgrade anonymous user to authenticated account
    * Migrates local visit data to cloud storage
    */
-  async upgradeToAuthenticated(email: string, password: string): Promise<{ error?: Error }> {
+  upgradeToAuthenticated(
+    email: string,
+    password: string
+  ): Observable<{ error?: Error }> {
     const anonymousUserId = this.authState.currentUser()?.id;
 
     if (!anonymousUserId || !this.isAnonymous()) {
-      return { error: new Error('Not in anonymous mode') };
+      return of({ error: new Error('Not in anonymous mode') });
     }
 
-    // Sign up for new account
-    const { error } = await this.signUp(email, password);
-
-    if (error) {
-      return { error };
-    }
-
-    // TODO: Migrate local visits to cloud (will be handled in visit sync service)
-
-    return {};
+    return this.signUp(email, password);
   }
 
   /**
    * Update user preferences
    */
-  async updatePreferences(preferences: Partial<UserPreferences>): Promise<{ error?: Error }> {
+  async updatePreferences(
+    preferences: Partial<UserPreferences>
+  ): Promise<{ error?: Error }> {
     const user = this.authState.currentUser();
 
     if (!user) {
@@ -306,20 +434,9 @@ export class AuthService {
     }
 
     try {
-      // Update preferences in Supabase for authenticated users
-      const { error } = await this.supabase.from('user_preferences').upsert({
-        user_id: user.id,
-        location_tracking_enabled: preferences.location_tracking_enabled,
-        sharing_default: preferences.sharing_default,
-        notification_settings: preferences.notification_settings,
-        privacy_settings: preferences.privacy_settings,
-        map_settings: preferences.map_settings,
-        updated_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        return { error: new Error(error.message) };
-      }
+      await this.http
+        .patch(`${this.apiUrl}/user/preferences`, preferences)
+        .toPromise();
 
       // Update local state
       const updatedUser: User = {
@@ -331,7 +448,9 @@ export class AuthService {
 
       return {};
     } catch (error) {
-      return { error: error instanceof Error ? error : new Error('Unknown error') };
+      return {
+        error: error instanceof Error ? error : new Error('Unknown error'),
+      };
     }
   }
 
@@ -346,6 +465,17 @@ export class AuthService {
    * Check if location tracking is enabled
    */
   isLocationTrackingEnabled(): boolean {
-    return this.authState.currentUser()?.preferences.location_tracking_enabled ?? false;
+    return (
+      this.authState.currentUser()?.preferences.location_tracking_enabled ??
+      false
+    );
+  }
+
+  /**
+   * Sign in with magic link (passwordless) - Not supported in self-hosted auth
+   * @deprecated Use signInWithPassword instead
+   */
+  async signInWithMagicLink(_email: string): Promise<{ error?: Error }> {
+    return { error: new Error('Magic link authentication is not supported in self-hosted mode') };
   }
 }

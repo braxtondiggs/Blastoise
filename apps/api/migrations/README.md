@@ -1,57 +1,58 @@
 # Database Migrations
 
-**Note:** Migration files have been moved to `supabase/migrations/` to use Supabase CLI tooling.
+This project uses **TypeORM** for database migrations with PostgreSQL.
 
 ## Migration Files Location
 
-All SQL migration files are now in: **`supabase/migrations/`**
-
-1. **001_create_venues_table.sql** - Venues table with geolocation data
-2. **002_create_visits_table.sql** - User visits (privacy-first design)
-3. **003_create_user_preferences_table.sql** - User settings and preferences
-4. **004_create_shared_visits_table.sql** - Anonymized visit sharing
-5. **005_create_analytics_tables.sql** - Optional analytics (opt-in only)
+TypeORM migrations are auto-generated and stored in: **`apps/api/src/migrations/`**
 
 ## Running Migrations
 
-### Using Supabase CLI (Recommended)
+### Using TypeORM CLI (Recommended)
 
 ```bash
-# Login to Supabase (one-time)
-npx supabase login
+# Generate a new migration based on entity changes
+npx typeorm migration:generate -d apps/api/src/database/typeorm.config.ts -n MigrationName
 
-# Link to your cloud project (one-time)
-npx supabase link --project-ref <your-project-ref>
+# Run all pending migrations
+npx typeorm migration:run -d apps/api/src/database/typeorm.config.ts
 
-# Push all pending migrations
-npx supabase db push
+# Revert the last migration
+npx typeorm migration:revert -d apps/api/src/database/typeorm.config.ts
 
-# Reset database (WARNING: destroys data)
-npx supabase db reset
+# Show all migrations and their status
+npx typeorm migration:show -d apps/api/src/database/typeorm.config.ts
 ```
 
 ### Using psql directly (Alternative)
 
 ```bash
-export DATABASE_URL="postgresql://postgres:[password]@[host]:5432/postgres"
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/blastoise"
 
-psql $DATABASE_URL -f supabase/migrations/001_create_venues_table.sql
-psql $DATABASE_URL -f supabase/migrations/002_create_visits_table.sql
-psql $DATABASE_URL -f supabase/migrations/003_create_user_preferences_table.sql
-psql $DATABASE_URL -f supabase/migrations/004_create_shared_visits_table.sql
-psql $DATABASE_URL -f supabase/migrations/005_create_analytics_tables.sql
+# Connect to database
+psql $DATABASE_URL
 ```
 
 ## Schema Overview
 
-### Row-Level Security (RLS)
+### Tables
 
-All tables have RLS enabled:
+- **users** - User accounts with bcrypt-hashed passwords
+- **refresh_tokens** - JWT refresh tokens for session management
+- **password_reset_tokens** - Secure password reset tokens
+- **venues** - Brewery and winery locations with coordinates
+- **visits** - User visit records (privacy-first: only venue_id, no GPS)
+- **user_preferences** - User settings and notification preferences
+- **shared_visits** - Anonymized visit sharing links
+- **import_history** - Google Timeline import tracking
+
+### Row-Level Security
+
+Access control is enforced at the application level via JWT authentication:
 - **venues**: Public read, authenticated write
 - **visits**: Users can only access their own visits
 - **user_preferences**: Users can only access their own preferences
-- **shared_visits**: Public read (if not expired), owner write/delete
-- **visit_stats**: Users can only access their own stats
+- **shared_visits**: Public read (via share link), owner write/delete
 
 ### Privacy Features
 
@@ -63,18 +64,27 @@ All tables have RLS enabled:
 ### Indexes
 
 All tables have appropriate indexes for:
+- Primary keys (UUID)
 - Foreign key relationships
-- Common query patterns
+- Common query patterns (email lookups, token lookups)
 - Geospatial lookups (venues)
-- Temporal queries (visits by date)
+- Temporal queries (visits by date, token expiration)
 
 ## Development
 
-For local development, use Docker Compose to run Postgres:
+For local development, use Docker Compose to run PostgreSQL and Redis:
 
 ```bash
 cd docker
-docker-compose up -d postgres
+docker-compose up -d postgres redis
 ```
 
-Then run migrations against `postgresql://postgres:postgres@localhost:5432/postgres`
+Then configure your `apps/api/.env`:
+
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=blastoise
+```

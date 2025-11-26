@@ -1,35 +1,37 @@
 /**
  * User Service
  *
- * Business logic for user preferences management
+ * Business logic for user preferences management using TypeORM
  */
 
 import { Injectable } from '@nestjs/common';
-import { getSupabaseClient } from '@blastoise/data-backend';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import {
+  UserPreferences,
+  NotificationPreferences,
+} from '../../entities/user-preferences.entity';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 
-export interface UserPreferences {
+export interface UserPreferencesResponse {
   user_id: string;
   location_tracking_enabled: boolean;
   background_tracking_enabled: boolean;
   sharing_preference: 'never' | 'ask' | 'always';
   data_retention_months: number | null;
   notifications_enabled: boolean;
-  notification_preferences: {
-    visit_detected?: boolean;
-    visit_ended?: boolean;
-    new_nearby_venues?: boolean;
-    weekly_summary?: boolean;
-    sharing_activity?: boolean;
-  };
+  notification_preferences: NotificationPreferences;
   created_at: string;
   updated_at: string;
 }
 
-const DEFAULT_PREFERENCES = {
+const DEFAULT_PREFERENCES: Omit<
+  UserPreferences,
+  'user_id' | 'user' | 'created_at' | 'updated_at'
+> = {
   location_tracking_enabled: true,
   background_tracking_enabled: false,
-  sharing_preference: 'ask' as const,
+  sharing_preference: 'ask',
   data_retention_months: null,
   notifications_enabled: true,
   notification_preferences: {
@@ -43,29 +45,25 @@ const DEFAULT_PREFERENCES = {
 
 @Injectable()
 export class UserService {
+  constructor(
+    @InjectRepository(UserPreferences)
+    private readonly preferencesRepository: Repository<UserPreferences>
+  ) {}
+
   /**
    * Get user preferences
    * Creates default preferences if none exist
    */
-  async getPreferences(userId: string): Promise<UserPreferences> {
-    const supabase = getSupabaseClient();
+  async getPreferences(userId: string): Promise<UserPreferencesResponse> {
+    let preferences = await this.preferencesRepository.findOne({
+      where: { user_id: userId },
+    });
 
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error && error.code === 'PGRST116') {
-      // No preferences found - create defaults
-      return this.createDefaultPreferences(userId);
+    if (!preferences) {
+      preferences = await this.createDefaultPreferences(userId);
     }
 
-    if (error) {
-      throw new Error(`Failed to fetch preferences: ${error.message}`);
-    }
-
-    return data as UserPreferences;
+    return this.toResponse(preferences);
   }
 
   /**
@@ -75,65 +73,66 @@ export class UserService {
   async updatePreferences(
     userId: string,
     dto: UpdatePreferencesDto
-  ): Promise<UserPreferences> {
-    const supabase = getSupabaseClient();
+  ): Promise<UserPreferencesResponse> {
+    let preferences = await this.preferencesRepository.findOne({
+      where: { user_id: userId },
+    });
 
-    // Get current preferences or create defaults
-    const current = await this.getPreferences(userId);
-
-    // Merge updates
-    const updated = {
-      ...current,
-      ...this.convertDtoToDb(dto),
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .upsert(updated, { onConflict: 'user_id' })
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update preferences: ${error.message}`);
+    if (!preferences) {
+      preferences = await this.createDefaultPreferences(userId);
     }
 
-    return data as UserPreferences;
+    // Merge updates
+    const updates = this.convertDtoToEntity(dto);
+    Object.assign(preferences, updates);
+
+    const saved = await this.preferencesRepository.save(preferences);
+    return this.toResponse(saved);
   }
 
   /**
    * Create default preferences for new user
+   * Called during registration or first preferences access
    */
-  private async createDefaultPreferences(
-    userId: string
-  ): Promise<UserPreferences> {
-    const supabase = getSupabaseClient();
-
-    const newPreferences = {
+  async createDefaultPreferences(userId: string): Promise<UserPreferences> {
+    const newPreferences = this.preferencesRepository.create({
       user_id: userId,
       ...DEFAULT_PREFERENCES,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    });
 
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .insert(newPreferences)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create default preferences: ${error.message}`);
-    }
-
-    return data as UserPreferences;
+    return this.preferencesRepository.save(newPreferences);
   }
 
   /**
-   * Convert DTO from camelCase to snake_case for database
+   * Convert entity to API response format
    */
-  private convertDtoToDb(dto: UpdatePreferencesDto): Partial<UserPreferences> {
-    const converted: any = {};
+  private toResponse(prefs: UserPreferences): UserPreferencesResponse {
+    return {
+      user_id: prefs.user_id,
+      location_tracking_enabled: prefs.location_tracking_enabled,
+      background_tracking_enabled: prefs.background_tracking_enabled,
+      sharing_preference: prefs.sharing_preference,
+      data_retention_months: prefs.data_retention_months,
+      notifications_enabled: prefs.notifications_enabled,
+      notification_preferences: prefs.notification_preferences,
+      created_at:
+        prefs.created_at instanceof Date
+          ? prefs.created_at.toISOString()
+          : prefs.created_at,
+      updated_at:
+        prefs.updated_at instanceof Date
+          ? prefs.updated_at.toISOString()
+          : prefs.updated_at,
+    };
+  }
+
+  /**
+   * Convert DTO from camelCase to entity format
+   */
+  private convertDtoToEntity(
+    dto: UpdatePreferencesDto
+  ): Partial<UserPreferences> {
+    const converted: Partial<UserPreferences> = {};
 
     if (dto.locationTrackingEnabled !== undefined) {
       converted.location_tracking_enabled = dto.locationTrackingEnabled;

@@ -25,12 +25,20 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
-import type { User } from '@supabase/supabase-js';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
+import { Public } from '../../auth/guards/public.decorator';
 import { SharingService } from './sharing.service';
 import { CreateShareDto } from './dto/create-share.dto';
-import { ApiResponse, SharedVisit } from '@blastoise/shared';
+import { SharedVisit } from '../../entities/shared-visit.entity';
+
+// API response wrapper (dates serialize to ISO strings automatically)
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: { code: string; message: string };
+  metadata?: Record<string, unknown>;
+}
 
 @ApiTags('sharing')
 @Controller()
@@ -54,13 +62,13 @@ export class SharingController {
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   @SwaggerApiResponse({ status: 404, description: 'Visit not found' })
   async createShare(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Param('visitId') visitId: string,
     @Body() dto: CreateShareDto
   ): Promise<ApiResponse<{ share_id: string; share_url: string; expires_at?: string }>> {
     const sharedVisit = await this.sharingService.createShare(
       visitId,
-      user.id,
+      user.user_id,
       dto
     );
 
@@ -73,7 +81,9 @@ export class SharingController {
       data: {
         share_id: sharedVisit.id,
         share_url: shareUrl,
-        expires_at: sharedVisit.expires_at,
+        expires_at: sharedVisit.expires_at instanceof Date
+          ? sharedVisit.expires_at.toISOString()
+          : sharedVisit.expires_at,
       },
     };
   }
@@ -119,10 +129,10 @@ export class SharingController {
   @SwaggerApiResponse({ status: 404, description: 'Share link not found' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteShare(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Param('shareId') shareId: string
   ): Promise<void> {
-    await this.sharingService.deleteShare(shareId, user.id);
+    await this.sharingService.deleteShare(shareId, user.user_id);
   }
 
   /**
@@ -137,9 +147,9 @@ export class SharingController {
   @SwaggerApiResponse({ status: 200, description: 'Share links retrieved successfully' })
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   async getUserShares(
-    @CurrentUser() user: User
+    @CurrentUser() user: JwtUser
   ): Promise<ApiResponse<SharedVisit[]>> {
-    const shares = await this.sharingService.getUserShares(user.id);
+    const shares = await this.sharingService.getUserShares(user.user_id);
 
     return {
       success: true,

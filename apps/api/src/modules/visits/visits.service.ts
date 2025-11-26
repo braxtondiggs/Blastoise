@@ -4,8 +4,10 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { VisitsRepository } from '@blastoise/data-backend';
-import { Visit, VisitValidation } from '@blastoise/shared';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { VisitValidation } from '@blastoise/shared';
+import { Visit } from '../../entities/visit.entity';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { BatchVisitSyncDto } from './dto/batch-visit-sync.dto';
@@ -13,11 +15,11 @@ import { BatchVisitSyncDto } from './dto/batch-visit-sync.dto';
 @Injectable()
 export class VisitsService {
   private readonly logger = new Logger(VisitsService.name);
-  private visitsRepo: VisitsRepository;
 
-  constructor() {
-    this.visitsRepo = new VisitsRepository();
-  }
+  constructor(
+    @InjectRepository(Visit)
+    private readonly visitRepository: Repository<Visit>
+  ) {}
 
   /**
    * Create a new visit (T092: POST /visits endpoint)
@@ -33,15 +35,18 @@ export class VisitsService {
     }
 
     try {
-      const visit = await this.visitsRepo.create({
+      const visit = this.visitRepository.create({
         ...dto,
         user_id: userId,
+        arrival_time: new Date(dto.arrival_time),
+        departure_time: dto.departure_time ? new Date(dto.departure_time) : undefined,
         detection_method: dto.detection_method || 'manual',
-        is_active: dto.is_active ?? !dto.departure_time, // Active if no departure
+        is_active: dto.is_active ?? !dto.departure_time,
       });
 
-      this.logger.log(`Created visit ${visit.id} for user ${userId}`);
-      return visit;
+      const savedVisit = await this.visitRepository.save(visit);
+      this.logger.log(`Created visit ${savedVisit.id} for user ${userId}`);
+      return savedVisit;
     } catch (error) {
       this.logger.error(`Failed to create visit: ${error}`);
       throw error;
@@ -62,10 +67,12 @@ export class VisitsService {
 
     try {
       const offset = (page - 1) * limit;
-      const [visits, total] = await Promise.all([
-        this.visitsRepo.findByUserId(userId, limit, offset),
-        this.visitsRepo.countByUserId(userId),
-      ]);
+      const [visits, total] = await this.visitRepository.findAndCount({
+        where: { user_id: userId },
+        order: { arrival_time: 'DESC' },
+        skip: offset,
+        take: limit,
+      });
 
       this.logger.debug(
         `Retrieved ${visits.length} visits (page ${page}) for user ${userId}`
@@ -83,7 +90,9 @@ export class VisitsService {
    */
   async findOne(visitId: string, userId: string): Promise<Visit> {
     try {
-      const visit = await this.visitsRepo.findById(visitId);
+      const visit = await this.visitRepository.findOne({
+        where: { id: visitId },
+      });
 
       if (!visit) {
         throw new NotFoundException(`Visit with ID ${visitId} not found`);
@@ -117,33 +126,33 @@ export class VisitsService {
 
     // Validate departure time if provided
     if (dto.departure_time) {
-      if (
-        !VisitValidation.isValidTimeSequence(
-          existingVisit.arrival_time,
-          dto.departure_time
-        )
-      ) {
+      const arrivalTimeStr = existingVisit.arrival_time instanceof Date
+        ? existingVisit.arrival_time.toISOString()
+        : existingVisit.arrival_time;
+
+      if (!VisitValidation.isValidTimeSequence(arrivalTimeStr, dto.departure_time)) {
         throw new BadRequestException(
           'Departure time must be after arrival time'
         );
       }
 
       // Calculate duration if departure time is set
-      const duration = VisitValidation.calculateDuration(
-        existingVisit.arrival_time,
-        dto.departure_time
-      );
+      const duration = VisitValidation.calculateDuration(arrivalTimeStr, dto.departure_time);
 
       // Update with duration and mark as inactive
-      return this.visitsRepo.update(visitId, {
+      await this.visitRepository.update(visitId, {
         ...dto,
+        departure_time: new Date(dto.departure_time),
         duration_minutes: duration,
         is_active: false,
       });
+
+      return this.findOne(visitId, userId);
     }
 
     try {
-      const updated = await this.visitsRepo.update(visitId, dto);
+      await this.visitRepository.update(visitId, dto);
+      const updated = await this.findOne(visitId, userId);
       this.logger.log(`Updated visit ${visitId}`);
       return updated;
     } catch (error) {
@@ -160,7 +169,7 @@ export class VisitsService {
     await this.findOne(visitId, userId);
 
     try {
-      await this.visitsRepo.delete(visitId);
+      await this.visitRepository.delete(visitId);
       this.logger.log(`Deleted visit ${visitId}`);
     } catch (error) {
       this.logger.error(`Failed to delete visit ${visitId}: ${error}`);
@@ -199,7 +208,7 @@ export class VisitsService {
     }
 
     try {
-      const visitsWithUserId = dto.visits.map((visit) => {
+      const visitsToCreate = dto.visits.map((visit) => {
         const duration =
           visit.departure_time
             ? VisitValidation.calculateDuration(
@@ -208,18 +217,18 @@ export class VisitsService {
               )
             : undefined;
 
-        return {
+        return this.visitRepository.create({
           ...visit,
           user_id: userId,
+          arrival_time: new Date(visit.arrival_time),
+          departure_time: visit.departure_time ? new Date(visit.departure_time) : undefined,
           detection_method: visit.detection_method || 'auto',
           is_active: visit.is_active ?? !visit.departure_time,
           duration_minutes: duration,
-        };
+        });
       });
 
-      const syncedVisits = await this.visitsRepo.batchCreate(
-        visitsWithUserId as any
-      );
+      const syncedVisits = await this.visitRepository.save(visitsToCreate);
 
       this.logger.log(
         `Batch synced ${syncedVisits.length} visits for user ${userId}`
@@ -237,7 +246,10 @@ export class VisitsService {
    */
   async getActiveVisit(userId: string): Promise<Visit | null> {
     try {
-      const activeVisit = await this.visitsRepo.findActiveByUserId(userId);
+      const activeVisit = await this.visitRepository.findOne({
+        where: { user_id: userId, is_active: true },
+        order: { arrival_time: 'DESC' },
+      });
       return activeVisit;
     } catch (error) {
       this.logger.error(`Failed to get active visit: ${error}`);

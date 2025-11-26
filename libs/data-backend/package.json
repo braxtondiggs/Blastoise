@@ -7,7 +7,6 @@
   "dependencies": {
     "tslib": "*",
     "@blastoise/shared": "*",
-    "redis": "*",
-    "@supabase/supabase-js": "*"
+    "redis": "*"
   }
 }

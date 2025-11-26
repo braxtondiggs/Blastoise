@@ -17,7 +17,7 @@
 - ✅ "Continue as Guest" anonymous mode
 - ✅ Form validation with inline errors
 - ✅ Loading states with disabled inputs
-- ✅ Error message mapping from Supabase
+- ✅ Error message mapping
 - ✅ ARIA attributes for accessibility
 
 **Signals**:
@@ -226,23 +226,26 @@ import { PasswordResetComponent } from '@blastoise/features/auth';
 
 ### AuthService (`services/auth.ts`)
 
-**Purpose**: Core authentication service integrating with Supabase
+**Purpose**: Core authentication service using self-hosted JWT authentication
 
 **Methods**:
 
 - `signInWithPassword(email, password)`: Email/password login
-- `signInWithMagicLink(email)`: Passwordless magic link
 - `signUp(email, password)`: Create new account
 - `signOut()`: Sign out current user
+- `refreshToken()`: Refresh access token using httpOnly cookie
+- `getAccessToken()`: Get current access token from memory
 - `enableAnonymousMode()`: Enable anonymous mode with localStorage
 - `upgradeToAuthenticated(email, password)`: Upgrade anonymous to authenticated
+- `forgotPassword(email)`: Request password reset email
+- `resetPassword(token, newPassword)`: Reset password with token
 
 **Signals** (from AuthStateService):
 
 - `isAuthenticated`: `Signal<boolean>`
 - `isAnonymous`: `Signal<boolean>`
 - `currentUser`: `Signal<User | null>`
-- `session`: `Signal<Session | null>`
+- `session`: `Signal<AuthSession | null>`
 
 ---
 
@@ -312,13 +315,13 @@ All forms implement:
 
 ### ✅ Network Error Detection (T140)
 
-All Supabase calls wrapped in try/catch:
+All API calls wrapped in try/catch with error mapping:
 
 ```typescript
 try {
-  const { error } = await this.supabase.auth.method();
-  if (error) {
-    this.error.set(this.mapErrorMessage(error));
+  const result = await this.authService.method();
+  if (result.error) {
+    this.error.set(mapAuthError(result.error));
   }
 } catch (err) {
   this.error.set('An unexpected error occurred. Please try again.');
@@ -405,8 +408,8 @@ async onSubmit() {
   }
 }
 
-private mapErrorMessage(error: any): string {
-  // Map Supabase errors to user-friendly messages
+private mapErrorMessage(error: Error): string {
+  return mapAuthError(error);
 }
 ```
 

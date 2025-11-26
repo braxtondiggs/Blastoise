@@ -3,7 +3,7 @@
  *
  * Endpoints for system health monitoring:
  * - GET /health: Overall system health
- * - GET /health/db: Database health (Supabase Postgres)
+ * - GET /health/db: Database health (PostgreSQL)
  * - GET /health/redis: Redis health
  *
  * Phase 7: Notifications & Observability
@@ -16,8 +16,11 @@ import {
   HealthCheckResult,
 } from '@nestjs/terminus';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Public } from '../decorators/public.decorator';
-import { getSupabaseClient, getRedisClient } from '@blastoise/data-backend';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { Public } from '../../auth/guards/public.decorator';
+import { getRedisClient } from '@blastoise/data-backend';
+import { Venue } from '../../entities/venue.entity';
 
 @Public()
 @ApiTags('health')
@@ -25,6 +28,9 @@ import { getSupabaseClient, getRedisClient } from '@blastoise/data-backend';
 export class HealthController {
   constructor(
     private health: HealthCheckService,
+    private dataSource: DataSource,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>
   ) {}
 
   /**
@@ -42,20 +48,21 @@ export class HealthController {
       // Check if API is responsive
       () => Promise.resolve({ api: { status: 'up' } }),
 
-      // Check database (Supabase Postgres)
+      // Check database (PostgreSQL via TypeORM)
       async () => {
         try {
-          const supabase = getSupabaseClient();
-          const { error } = await supabase.from('venues').select('id').limit(1);
-
-          if (error) {
+          const isConnected = this.dataSource.isInitialized;
+          if (!isConnected) {
             return {
               database: {
                 status: 'down',
-                message: error.message,
+                message: 'Database not initialized',
               },
             };
           }
+
+          // Test basic query
+          await this.venueRepository.findOne({ where: {} });
 
           return {
             database: {
@@ -101,45 +108,29 @@ export class HealthController {
   @Get('db')
   @ApiOperation({
     summary: 'Database health check',
-    description: 'Checks Supabase Postgres connection and query performance. No authentication required.',
+    description: 'Checks PostgreSQL connection and query performance. No authentication required.',
   })
   async checkDatabase(): Promise<{
     status: 'ok' | 'error';
     database: { status: string; message?: string };
   }> {
     try {
-      const supabase = getSupabaseClient();
-
-      // Test basic query
-      const { error } = await supabase
-        .from('venues')
-        .select('id')
-        .limit(1);
-
-      if (error) {
+      const isConnected = this.dataSource.isInitialized;
+      if (!isConnected) {
         return {
           status: 'error',
           database: {
             status: 'down',
-            message: error.message,
+            message: 'Database not initialized',
           },
         };
       }
+
+      // Test basic query
+      await this.venueRepository.findOne({ where: {} });
 
       // Test count query
-      const { count, error: countError } = await supabase
-        .from('venues')
-        .select('*', { count: 'exact', head: true });
-
-      if (countError) {
-        return {
-          status: 'error',
-          database: {
-            status: 'degraded',
-            message: 'Basic queries work but count queries fail',
-          },
-        };
-      }
+      const count = await this.venueRepository.count();
 
       return {
         status: 'ok',
