@@ -106,6 +106,9 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
+      // Log origin for debugging
+      Logger.debug(`CORS request from origin: ${origin}`);
+
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) {
         return callback(null, true);
@@ -113,6 +116,18 @@ async function bootstrap() {
 
       // Check if origin is in allowed list
       if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow Capacitor apps (iOS uses capacitor://, Android uses http://localhost)
+      if (
+        origin === 'capacitor://localhost' ||
+        origin === 'http://localhost' ||
+        origin === 'ionic://localhost' ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://10.') ||
+        origin.startsWith('http://192.168.')
+      ) {
         return callback(null, true);
       }
 
@@ -125,6 +140,9 @@ async function bootstrap() {
       if (origin.endsWith('.vercel.app')) {
         return callback(null, true);
       }
+
+      // Log rejected origin
+      Logger.warn(`CORS rejected origin: ${origin}`);
 
       // Reject other origins
       callback(new Error('Not allowed by CORS'));
