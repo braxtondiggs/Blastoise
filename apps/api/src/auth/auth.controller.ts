@@ -97,15 +97,18 @@ export class AuthController {
 
       // Check if request is from mobile app
       const isMobileApp = this.isMobileRequest(request);
+      console.log(`[Auth Login] isMobileApp: ${isMobileApp}, origin: ${request.headers.origin}`);
 
       // Return access token and user info (include refresh_token for mobile apps)
-      return {
+      const responsePayload = {
         access_token: result.access_token,
         ...(isMobileApp && { refresh_token: result.refresh_token }),
         token_type: result.token_type,
         expires_in: result.expires_in,
         user: result.user,
       };
+      console.log(`[Auth Login] Response includes refresh_token: ${!!responsePayload.refresh_token}`);
+      return responsePayload;
     } catch {
       throw new UnauthorizedException('Invalid email or password');
     }
