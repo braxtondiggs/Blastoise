@@ -28,6 +28,7 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async register(
     @Body() registerDto: RegisterDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response
   ) {
     try {
@@ -44,9 +45,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Return access token and user info
+      // Check if request is from mobile app (Capacitor sends specific origin)
+      const isMobileApp = this.isMobileRequest(request);
+
+      // Return access token and user info (include refresh_token for mobile apps)
       return {
         access_token: result.access_token,
+        ...(isMobileApp && { refresh_token: result.refresh_token }),
         token_type: result.token_type,
         expires_in: result.expires_in,
         user: result.user,
@@ -73,6 +78,7 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   async login(
     @Body() loginDto: LoginDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response
   ) {
     try {
@@ -89,9 +95,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Return access token and user info
+      // Check if request is from mobile app
+      const isMobileApp = this.isMobileRequest(request);
+
+      // Return access token and user info (include refresh_token for mobile apps)
       return {
         access_token: result.access_token,
+        ...(isMobileApp && { refresh_token: result.refresh_token }),
         token_type: result.token_type,
         expires_in: result.expires_in,
         user: result.user,
@@ -105,8 +115,12 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  async refresh(@Req() request: Request) {
-    const refreshToken = request.cookies?.refreshToken;
+  async refresh(
+    @Req() request: Request,
+    @Body() body: { refresh_token?: string }
+  ) {
+    // Accept refresh token from cookie (web) or request body (mobile)
+    const refreshToken = request.cookies?.refreshToken || body?.refresh_token;
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
@@ -114,7 +128,17 @@ export class AuthController {
 
     try {
       const result = await this.authService.refreshAccessToken(refreshToken);
-      return result;
+
+      // Check if request is from mobile app
+      const isMobileApp = this.isMobileRequest(request);
+
+      // Include new refresh token for mobile apps (token rotation)
+      return {
+        access_token: result.access_token,
+        ...(isMobileApp && { refresh_token: result.refresh_token }),
+        token_type: result.token_type,
+        expires_in: result.expires_in,
+      };
     } catch {
       throw new UnauthorizedException(
         'Invalid or expired refresh token. Please log in again.'
@@ -171,5 +195,23 @@ export class AuthController {
       }
       throw new BadRequestException('Password reset failed');
     }
+  }
+
+  /**
+   * Check if request is from a mobile app (Capacitor)
+   * Mobile apps send requests from capacitor://localhost or http://localhost origins
+   */
+  private isMobileRequest(request: Request): boolean {
+    const origin = request.headers.origin;
+    if (!origin) return false;
+
+    return (
+      origin === 'capacitor://localhost' ||
+      origin === 'http://localhost' ||
+      origin === 'ionic://localhost' ||
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://10.') ||
+      origin.startsWith('http://192.168.')
+    );
   }
 }

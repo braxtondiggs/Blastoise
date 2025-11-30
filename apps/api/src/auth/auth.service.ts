@@ -237,9 +237,16 @@ export class AuthService {
 
     const accessToken = this.generateAccessToken(user.id, user.email);
 
+    // Generate new refresh token (token rotation for security)
+    const newRefreshToken = await this.generateRefreshToken(user.id);
+
+    // Revoke the old refresh token
+    await this.revokeRefreshToken(token);
+
     return {
       access_token: accessToken,
-      token_type: 'Bearer',
+      refresh_token: newRefreshToken,
+      token_type: 'Bearer' as const,
       expires_in: 900,
     };
   }
