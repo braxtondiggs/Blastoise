@@ -179,6 +179,8 @@ export class VisitsService {
 
   /**
    * Batch sync visits from offline devices (T097: POST /visits/batch endpoint)
+   * Uses upsert logic: updates existing visits or creates new ones based on
+   * (user_id, venue_id, arrival_time) uniqueness
    */
   async batchSync(userId: string, dto: BatchVisitSyncDto): Promise<Visit[]> {
     if (!dto.visits || dto.visits.length === 0) {
@@ -208,7 +210,20 @@ export class VisitsService {
     }
 
     try {
-      const visitsToCreate = dto.visits.map((visit) => {
+      const syncedVisits: Visit[] = [];
+
+      for (const visit of dto.visits) {
+        const arrivalDate = new Date(visit.arrival_time);
+
+        // Check for existing visit with same (user_id, venue_id, arrival_time)
+        const existingVisit = await this.visitRepository.findOne({
+          where: {
+            user_id: userId,
+            venue_id: visit.venue_id,
+            arrival_time: arrivalDate,
+          },
+        });
+
         const duration =
           visit.departure_time
             ? VisitValidation.calculateDuration(
@@ -217,18 +232,50 @@ export class VisitsService {
               )
             : undefined;
 
-        return this.visitRepository.create({
-          ...visit,
-          user_id: userId,
-          arrival_time: new Date(visit.arrival_time),
-          departure_time: visit.departure_time ? new Date(visit.departure_time) : undefined,
-          detection_method: visit.detection_method || 'auto',
-          is_active: visit.is_active ?? !visit.departure_time,
-          duration_minutes: duration,
-        });
-      });
+        if (existingVisit) {
+          // Update existing visit (only if new data has more info)
+          const updates: Partial<Visit> = {};
 
-      const syncedVisits = await this.visitRepository.save(visitsToCreate);
+          // Update departure_time if provided and not already set
+          if (visit.departure_time && !existingVisit.departure_time) {
+            updates.departure_time = new Date(visit.departure_time);
+            updates.duration_minutes = duration;
+            updates.is_active = false;
+          }
+
+          // Update is_active if explicitly set to false
+          if (visit.is_active === false && existingVisit.is_active) {
+            updates.is_active = false;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await this.visitRepository.update(existingVisit.id, updates);
+            const updatedVisit = await this.visitRepository.findOne({
+              where: { id: existingVisit.id },
+            });
+            if (updatedVisit) {
+              syncedVisits.push(updatedVisit);
+            }
+          } else {
+            // No updates needed, return existing visit
+            syncedVisits.push(existingVisit);
+          }
+        } else {
+          // Create new visit
+          const newVisit = this.visitRepository.create({
+            ...visit,
+            user_id: userId,
+            arrival_time: arrivalDate,
+            departure_time: visit.departure_time ? new Date(visit.departure_time) : undefined,
+            detection_method: visit.detection_method || 'auto',
+            is_active: visit.is_active ?? !visit.departure_time,
+            duration_minutes: duration,
+          });
+
+          const savedVisit = await this.visitRepository.save(newVisit);
+          syncedVisits.push(savedVisit);
+        }
+      }
 
       this.logger.log(
         `Batch synced ${syncedVisits.length} visits for user ${userId}`

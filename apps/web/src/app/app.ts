@@ -1,4 +1,4 @@
-import { Component, signal, inject, PLATFORM_ID, OnInit, ElementRef, HostListener, computed } from '@angular/core';
+import { Component, signal, inject, PLATFORM_ID, OnInit, ElementRef, HostListener, computed, effect } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -60,6 +60,27 @@ export class App implements OnInit {
   private readonly elementRef = inject(ElementRef);
 
   private notificationPermissionRequested = false;
+  private trackingInitialized = false;
+
+  constructor() {
+    // Reactive effect: start tracking when user becomes authenticated
+    effect(async () => {
+      const isAuthenticated = this.authState.isAuthenticated();
+      const isInitialized = this.authState.isInitialized();
+
+      // Only proceed if auth is initialized and we haven't already initialized tracking
+      if (!isInitialized || this.trackingInitialized) {
+        return;
+      }
+
+      if (isAuthenticated) {
+        this.trackingInitialized = true;
+        console.log('[App] User authenticated - initializing tracking');
+        await this.trackingManager.initialize();
+        await this.requestNotificationPermission();
+      }
+    });
+  }
 
   ngOnInit(): void {
     // Detect platform: show web limitation notice only on web (not iOS/Android)
@@ -72,34 +93,6 @@ export class App implements OnInit {
       this.router.events
         .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
         .subscribe((event) => this.currentRoute.set(event.urlAfterRedirects));
-
-      // Initialize tracking manager (starts tracking based on user preferences)
-      this.initializeTracking();
-    }
-  }
-
-  /**
-   * Initialize location tracking based on user preferences
-   */
-  private async initializeTracking(): Promise<void> {
-    // Wait for auth to initialize before starting tracking
-    if (this.authState.isAuthenticated()) {
-      await this.trackingManager.initialize();
-      await this.requestNotificationPermission();
-    } else {
-      // Wait for auth state changes
-      const checkAuth = setInterval(async () => {
-        if (this.authState.isInitialized()) {
-          clearInterval(checkAuth);
-          if (this.authState.isAuthenticated()) {
-            await this.trackingManager.initialize();
-            await this.requestNotificationPermission();
-          }
-        }
-      }, 500);
-
-      // Cleanup after 10 seconds if auth never initializes
-      setTimeout(() => clearInterval(checkAuth), 10000);
     }
   }
 
@@ -177,6 +170,7 @@ export class App implements OnInit {
 
   async onSignOut(): Promise<void> {
     await this.authService.signOut();
+    this.trackingInitialized = false; // Reset so tracking can restart on next login
     this.closeDropdown();
   }
 

@@ -195,7 +195,7 @@ export class AuthController {
 
   /**
    * Check if request is from a mobile app (Capacitor)
-   * Mobile apps send requests from capacitor://localhost or http://localhost origins
+   * Mobile apps send requests from capacitor://localhost or https://localhost origins
    */
   private isMobileRequest(request: Request): boolean {
     const origin = request.headers.origin;
@@ -204,8 +204,10 @@ export class AuthController {
     return (
       origin === 'capacitor://localhost' ||
       origin === 'http://localhost' ||
+      origin === 'https://localhost' ||
       origin === 'ionic://localhost' ||
       origin.startsWith('http://localhost:') ||
+      origin.startsWith('https://localhost:') ||
       origin.startsWith('http://10.') ||
       origin.startsWith('http://192.168.')
     );

@@ -17,10 +17,16 @@ const DWELL_TIME_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes minimum dwell time
 const LOCATION_UPDATE_INTERVAL_MS = 30 * 1000; // 30 seconds
 const HIGH_ACCURACY = true;
 const TIMEOUT_MS = 10000; // 10 seconds
+const GEOFENCE_STATE_KEY = 'blastoise_geofence_state';
 
 interface ActiveGeofence extends GeofenceConfig {
   enteredAt?: number; // Timestamp when geofence was entered
   lastCheck?: number; // Last time we checked if still inside
+}
+
+interface PersistedGeofenceState {
+  venueId: string;
+  enteredAt: number;
 }
 
 @Injectable({
@@ -170,6 +176,10 @@ export class GeofenceService {
   private registerGeofences(venues: Venue[]): void {
     const activeGeofences = new Map<string, ActiveGeofence>();
 
+    // Load persisted state from previous session
+    const persistedState = this.loadPersistedState();
+    const persistedMap = new Map(persistedState.map(s => [s.venueId, s.enteredAt]));
+
     for (const venue of venues) {
       const geofence: ActiveGeofence = {
         venue_id: venue.id,
@@ -179,10 +189,73 @@ export class GeofenceService {
         },
         radius_meters: DEFAULT_GEOFENCE_RADIUS_METERS,
       };
+
+      // Restore enteredAt from persisted state if available
+      const persistedEnteredAt = persistedMap.get(venue.id);
+      if (persistedEnteredAt) {
+        geofence.enteredAt = persistedEnteredAt;
+        geofence.lastCheck = Date.now();
+      }
+
       activeGeofences.set(venue.id, geofence);
     }
 
     this.activeGeofencesSignal.set(activeGeofences);
+  }
+
+  /**
+   * Load persisted geofence state from localStorage
+   * Filters out entries older than 24 hours to prevent stale state
+   */
+  private loadPersistedState(): PersistedGeofenceState[] {
+    try {
+      const stored = localStorage.getItem(GEOFENCE_STATE_KEY);
+      if (!stored) {
+        return [];
+      }
+      const state = JSON.parse(stored) as PersistedGeofenceState[];
+
+      // Filter out entries older than 24 hours
+      const maxAge = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      return state.filter(s => (now - s.enteredAt) < maxAge);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Save current geofence state to localStorage
+   */
+  private persistState(): void {
+    try {
+      const activeGeofences = this.activeGeofencesSignal();
+      const state: PersistedGeofenceState[] = [];
+
+      activeGeofences.forEach((geofence, venueId) => {
+        if (geofence.enteredAt !== undefined) {
+          state.push({
+            venueId,
+            enteredAt: geofence.enteredAt,
+          });
+        }
+      });
+
+      localStorage.setItem(GEOFENCE_STATE_KEY, JSON.stringify(state));
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  /**
+   * Clear persisted geofence state
+   */
+  clearPersistedState(): void {
+    try {
+      localStorage.removeItem(GEOFENCE_STATE_KEY);
+    } catch {
+      // Ignore storage errors
+    }
   }
 
   /**
@@ -275,6 +348,9 @@ export class GeofenceService {
     geofence.enteredAt = timestamp;
     geofence.lastCheck = timestamp;
 
+    // Persist state to survive app restarts
+    this.persistState();
+
     // Emit ENTER transition
     const transition: GeofenceTransition = {
       venue_id: venueId,
@@ -330,6 +406,9 @@ export class GeofenceService {
     // Reset geofence state
     delete geofence.enteredAt;
     delete geofence.lastCheck;
+
+    // Persist state to survive app restarts
+    this.persistState();
   }
 
   /**

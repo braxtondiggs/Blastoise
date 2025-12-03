@@ -8,8 +8,8 @@ const config: CapacitorConfig = {
 
   // Server configuration for CORS
   server: {
-    // Use http://localhost origin for Android (matches CORS whitelist)
-    androidScheme: 'http',
+    // Use https for Android (required for ES modules to work properly)
+    androidScheme: 'https',
     // Allow navigation to API
     allowNavigation: ['blastoise-api.up.railway.app'],
   },

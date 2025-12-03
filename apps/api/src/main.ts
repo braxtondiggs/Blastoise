@@ -119,12 +119,14 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      // Allow Capacitor apps (iOS uses capacitor://, Android uses http://localhost)
+      // Allow Capacitor apps (iOS uses capacitor://, Android uses https://localhost)
       if (
         origin === 'capacitor://localhost' ||
         origin === 'http://localhost' ||
+        origin === 'https://localhost' ||
         origin === 'ionic://localhost' ||
         origin.startsWith('http://localhost:') ||
+        origin.startsWith('https://localhost:') ||
         origin.startsWith('http://10.') ||
         origin.startsWith('http://192.168.')
       ) {

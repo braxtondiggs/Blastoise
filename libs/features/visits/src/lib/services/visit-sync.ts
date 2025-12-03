@@ -225,11 +225,16 @@ export class VisitSyncService {
       const result = await this.visitsApi.batchSync(batch).toPromise();
 
       if (result?.data) {
-        // Update local visits with server IDs and mark as synced
-        for (let i = 0; i < visits.length; i++) {
-          const localVisit = visits[i];
+        // Mark local visits as synced
+        // The deduped array matches the order of result.data
+        for (let i = 0; i < deduped.length; i++) {
+          const localVisit = deduped[i];
           const serverVisit = result.data[i];
 
+          // Delete the old local record first (it has the client-generated ID)
+          await this.localRepository.delete(localVisit.id);
+
+          // Save with server ID and mark as synced
           const syncedVisit: Visit = {
             ...localVisit,
             id: serverVisit.id, // Use server ID
@@ -239,7 +244,7 @@ export class VisitSyncService {
 
           await this.localRepository.save(syncedVisit);
 
-          // Remove from retry state
+          // Remove from retry state and sync queue
           this.retryStates.delete(localVisit.id);
           this.syncQueue.delete(localVisit.id);
         }
