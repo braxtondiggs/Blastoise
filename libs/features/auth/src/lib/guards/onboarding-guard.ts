@@ -1,8 +1,10 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth';
 
 /**
- * Checks localStorage for onboarding completion status.
+ * Checks onboarding completion status from server (for authenticated users)
+ * or localStorage (for anonymous/unauthenticated users).
  * If user hasn't completed onboarding, redirects to /auth/onboarding
  *
  * This guard should be applied to main app routes (visits, map, settings)
@@ -11,13 +13,14 @@ import { CanActivateFn, Router } from '@angular/router';
 
 export const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
 
-export const onboardingGuard: CanActivateFn = (route, state) => {
+export const onboardingGuard: CanActivateFn = async (route, state) => {
   const router = inject(Router);
+  const authService = inject(AuthService);
 
-  // Check if onboarding has been completed
-  const onboardingComplete = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+  // Check if onboarding has been completed (server-side for authenticated users)
+  const { completed } = await authService.getOnboardingStatus();
 
-  if (onboardingComplete === 'true') {
+  if (completed) {
     return true;
   }
 

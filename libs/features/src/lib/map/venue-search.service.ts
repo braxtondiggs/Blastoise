@@ -3,7 +3,7 @@ import { VenuesApiService } from '@blastoise/data';
 import type { Venue, Coordinates, ApiResponse } from '@blastoise/shared';
 import { BehaviorSubject, debounceTime, switchMap, catchError, of, map } from 'rxjs';
 import { calculateDistance } from '@blastoise/shared';
-import { NotificationService } from '@blastoise/shared';
+import { NotificationService } from '@blastoise/data-frontend';
 
 /**
  * Handles venue search and proximity queries:

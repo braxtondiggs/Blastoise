@@ -2,7 +2,7 @@
  * Displays list of past imports with timestamps, visit counts, and processing times
  */
 
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
@@ -60,19 +60,20 @@ interface ImportHistoryItem {
     }),
   ],
   template: `
-    <div class="min-h-screen bg-base-100 p-4">
-      <div class="max-w-6xl mx-auto">
+    <div class="min-h-screen bg-base-100">
+      <div class="container mx-auto px-4 max-w-4xl py-6">
         <!-- Header -->
-        <div class="mb-6 flex items-center gap-4">
-          <button class="btn btn-ghost btn-circle" (click)="goBack()">
-            <ng-icon name="heroArrowLeft" class="w-6 h-6" />
+        <div class="mb-8">
+          <button
+            type="button"
+            class="flex items-center gap-2 text-sm text-base-content/60 hover:text-primary transition-colors mb-4"
+            (click)="goBack()"
+          >
+            <ng-icon name="heroArrowLeft" size="16" />
+            Back to Settings
           </button>
-          <div>
-            <h1 class="text-3xl font-bold">Import History</h1>
-            <p class="text-base-content/70">
-              View your past Google Timeline imports
-            </p>
-          </div>
+          <h1 class="text-2xl font-bold text-base-content">Import History</h1>
+          <p class="text-base-content/50 mt-1">View your past Google Timeline imports</p>
         </div>
 
         <!-- Loading State -->
@@ -84,111 +85,113 @@ interface ImportHistoryItem {
 
         <!-- Empty State -->
         @if (!isLoading() && imports().length === 0) {
-          <div class="card bg-base-200 shadow-xl">
-            <div class="card-body items-center text-center py-12">
-              <ng-icon name="heroDocumentText" class="w-16 h-16 text-base-content/30 mb-4" />
-              <h3 class="text-xl font-bold">No Import History</h3>
-              <p class="text-base-content/70 mb-4">
-                You haven't imported any Timeline data yet.
-              </p>
-              <button class="btn btn-primary" (click)="startNewImport()">
-                Import Timeline Data
-              </button>
+          <div class="rounded-2xl bg-base-200/50 border border-base-300/50 p-8 text-center">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-xl bg-base-300/50 mb-4">
+              <ng-icon name="heroDocumentText" size="32" class="text-base-content/40" />
             </div>
+            <h3 class="text-lg font-semibold mb-2">No Import History</h3>
+            <p class="text-sm text-base-content/60 mb-6">
+              You haven't imported any Timeline data yet.
+            </p>
+            <button class="btn btn-primary" (click)="startNewImport()">
+              Import Timeline Data
+            </button>
           </div>
         }
 
-        <!-- Import List (T083) -->
+        <!-- Import List -->
         @if (!isLoading() && imports().length > 0) {
           <div class="space-y-4">
             @for (import of imports(); track import.id) {
-              <div
-                class="card bg-base-200 shadow hover:shadow-lg transition-shadow cursor-pointer"
+              <button
+                type="button"
+                class="w-full text-left rounded-xl bg-base-100/80 border border-base-300/50 p-5 hover:border-primary/30 hover:bg-base-100 transition-all cursor-pointer"
                 (click)="viewDetails(import)"
               >
-                <div class="card-body">
-                  <div class="flex items-start justify-between">
-                    <!-- Left: Import Info -->
-                    <div class="flex-1">
-                      <div class="flex items-center gap-2 mb-2">
-                        <ng-icon name="heroDocumentText" class="w-5 h-5 text-primary" />
-                        <h3 class="font-bold text-lg">
-                          {{ import.file_name || 'Google Timeline Import' }}
-                        </h3>
+                <div class="flex items-start justify-between">
+                  <!-- Left: Import Info -->
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                        <ng-icon name="heroDocumentText" size="18" class="text-primary" />
                       </div>
-
-                      <!-- Date and Time -->
-                      <div class="flex items-center gap-4 text-sm text-base-content/70 mb-3">
-                        <div class="flex items-center gap-1">
-                          <ng-icon name="heroCalendar" class="w-4 h-4" />
-                          <span>{{ formatDate(import.imported_at) }}</span>
-                        </div>
-                        @if (import.processing_time_ms) {
-                          <div class="flex items-center gap-1">
-                            <ng-icon name="heroClock" class="w-4 h-4" />
-                            <span>{{ formatProcessingTime(import.processing_time_ms) }}</span>
-                          </div>
-                        }
-                      </div>
-
-                      <!-- Stats Grid -->
-                      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="stat bg-base-300 rounded-lg p-3">
-                          <div class="stat-title text-xs">Places</div>
-                          <div class="stat-value text-2xl">{{ import.total_places }}</div>
-                        </div>
-                        <div class="stat bg-base-300 rounded-lg p-3">
-                          <div class="stat-title text-xs">Visits Created</div>
-                          <div class="stat-value text-2xl text-success">{{ import.visits_created }}</div>
-                        </div>
-                        <div class="stat bg-base-300 rounded-lg p-3">
-                          <div class="stat-title text-xs">Skipped</div>
-                          <div class="stat-value text-2xl text-warning">{{ import.visits_skipped }}</div>
-                        </div>
-                        <div class="stat bg-base-300 rounded-lg p-3">
-                          <div class="stat-title text-xs">New Venues</div>
-                          <div class="stat-value text-2xl">{{ import.new_venues_created }}</div>
-                        </div>
-                      </div>
-
+                      <h3 class="font-semibold">
+                        {{ import.file_name || 'Google Timeline Import' }}
+                      </h3>
                       <!-- Success/Error Badge -->
                       @if (hasErrors(import)) {
-                        <div class="badge badge-warning gap-1 mt-3">
-                          <ng-icon name="heroXCircle" class="w-3 h-3" />
+                        <div class="badge badge-warning badge-sm gap-1">
+                          <ng-icon name="heroXCircle" size="12" />
                           {{ import.metadata!.errors!.length }} errors
                         </div>
                       } @else {
-                        <div class="badge badge-success gap-1 mt-3">
-                          <ng-icon name="heroCheckCircle" class="w-3 h-3" />
+                        <div class="badge badge-success badge-sm gap-1">
+                          <ng-icon name="heroCheckCircle" size="12" />
                           Success
                         </div>
                       }
                     </div>
 
-                    <!-- Right: View Details Arrow -->
-                    <div class="ml-4">
-                      <ng-icon name="heroChevronRight" class="w-6 h-6 text-base-content/50" />
+                    <!-- Date and Time -->
+                    <div class="flex items-center gap-4 text-xs text-base-content/60 mb-4 ml-10">
+                      <div class="flex items-center gap-1">
+                        <ng-icon name="heroCalendar" size="14" />
+                        <span>{{ formatDate(import.imported_at) }}</span>
+                      </div>
+                      @if (import.processing_time_ms) {
+                        <div class="flex items-center gap-1">
+                          <ng-icon name="heroClock" size="14" />
+                          <span>{{ formatProcessingTime(import.processing_time_ms) }}</span>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-4 gap-3 ml-10">
+                      <div class="rounded-lg bg-base-200/50 p-3">
+                        <div class="text-xs text-base-content/50 mb-1">Places</div>
+                        <div class="text-xl font-bold">{{ import.total_places }}</div>
+                      </div>
+                      <div class="rounded-lg bg-base-200/50 p-3">
+                        <div class="text-xs text-base-content/50 mb-1">Created</div>
+                        <div class="text-xl font-bold text-success">{{ import.visits_created }}</div>
+                      </div>
+                      <div class="rounded-lg bg-base-200/50 p-3">
+                        <div class="text-xs text-base-content/50 mb-1">Skipped</div>
+                        <div class="text-xl font-bold text-warning">{{ import.visits_skipped }}</div>
+                      </div>
+                      <div class="rounded-lg bg-base-200/50 p-3">
+                        <div class="text-xs text-base-content/50 mb-1">New</div>
+                        <div class="text-xl font-bold">{{ import.new_venues_created }}</div>
+                      </div>
                     </div>
                   </div>
+
+                  <!-- Right: View Details Arrow -->
+                  <div class="ml-4 flex items-center h-full">
+                    <ng-icon name="heroChevronRight" size="20" class="text-base-content/30" />
+                  </div>
                 </div>
-              </div>
+              </button>
             }
 
             <!-- Pagination -->
             @if (totalCount() > pageSize) {
-              <div class="flex justify-center gap-2 mt-6">
+              <div class="flex items-center justify-center gap-3 mt-8">
                 <button
-                  class="btn btn-outline"
+                  type="button"
+                  class="btn btn-sm btn-ghost"
                   [disabled]="currentPage() === 0"
                   (click)="previousPage()"
                 >
                   Previous
                 </button>
-                <div class="btn btn-ghost">
+                <span class="text-sm text-base-content/60">
                   Page {{ currentPage() + 1 }} of {{ totalPages() }}
-                </div>
+                </span>
                 <button
-                  class="btn btn-outline"
+                  type="button"
+                  class="btn btn-sm btn-ghost"
                   [disabled]="currentPage() >= totalPages() - 1"
                   (click)="nextPage()"
                 >
@@ -199,107 +202,120 @@ interface ImportHistoryItem {
           </div>
         }
 
-        <!-- Detail Modal (T084) -->
+        <!-- Detail Modal -->
         @if (selectedImport()) {
           <div class="modal modal-open">
-            <div class="modal-box max-w-3xl">
-              <h3 class="font-bold text-xl mb-4">Import Details</h3>
+            <div class="modal-box max-w-2xl rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold">Import Details</h3>
+                <button type="button" class="btn btn-sm btn-ghost btn-circle" (click)="closeDetails()">✕</button>
+              </div>
 
               <!-- Basic Info -->
-              <div class="mb-6">
-                <div class="text-sm text-base-content/70 mb-1">File</div>
-                <div class="font-semibold">{{ selectedImport()!.file_name || 'Google Timeline Import' }}</div>
-              </div>
-
-              <div class="mb-6">
-                <div class="text-sm text-base-content/70 mb-1">Imported</div>
-                <div class="font-semibold">{{ formatDate(selectedImport()!.imported_at) }}</div>
-              </div>
-
-              @if (selectedImport()!.processing_time_ms !== undefined) {
-                <div class="mb-6">
-                  <div class="text-sm text-base-content/70 mb-1">Processing Time</div>
-                  <div class="font-semibold">{{ formatProcessingTime(selectedImport()!.processing_time_ms!) }}</div>
+              <div class="rounded-xl bg-base-200/50 p-4 mb-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-xs text-base-content/50 mb-1">File</div>
+                    <div class="font-medium text-sm">{{ selectedImport()!.file_name || 'Google Timeline Import' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-base-content/50 mb-1">Imported</div>
+                    <div class="font-medium text-sm">{{ formatDate(selectedImport()!.imported_at) }}</div>
+                  </div>
+                  @if (selectedImport()!.processing_time_ms !== undefined) {
+                    <div>
+                      <div class="text-xs text-base-content/50 mb-1">Processing Time</div>
+                      <div class="font-medium text-sm">{{ formatProcessingTime(selectedImport()!.processing_time_ms!) }}</div>
+                    </div>
+                  }
                 </div>
-              }
+              </div>
 
               <!-- Statistics -->
-              <div class="divider">Statistics</div>
-              <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
-                <div class="stat">
-                  <div class="stat-title">Total Places</div>
-                  <div class="stat-value text-primary">{{ selectedImport()!.total_places }}</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title">Visits Created</div>
-                  <div class="stat-value text-success">{{ selectedImport()!.visits_created }}</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title">Skipped</div>
-                  <div class="stat-value text-warning">{{ selectedImport()!.visits_skipped }}</div>
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-base-content/70 mb-3">Statistics</h4>
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="rounded-xl bg-primary/10 p-4 text-center">
+                    <div class="text-2xl font-bold text-primary">{{ selectedImport()!.total_places }}</div>
+                    <div class="text-xs text-base-content/60">Total Places</div>
+                  </div>
+                  <div class="rounded-xl bg-success/10 p-4 text-center">
+                    <div class="text-2xl font-bold text-success">{{ selectedImport()!.visits_created }}</div>
+                    <div class="text-xs text-base-content/60">Created</div>
+                  </div>
+                  <div class="rounded-xl bg-warning/10 p-4 text-center">
+                    <div class="text-2xl font-bold text-warning">{{ selectedImport()!.visits_skipped }}</div>
+                    <div class="text-xs text-base-content/60">Skipped</div>
+                  </div>
                 </div>
               </div>
 
-              <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
-                <div class="stat">
-                  <div class="stat-title">New Venues</div>
-                  <div class="stat-value">{{ selectedImport()!.new_venues_created }}</div>
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="rounded-xl bg-base-200/50 p-4 text-center">
+                  <div class="text-xl font-bold">{{ selectedImport()!.new_venues_created }}</div>
+                  <div class="text-xs text-base-content/60">New Venues</div>
                 </div>
                 @if (selectedImport()!.existing_venues_matched !== undefined) {
-                  <div class="stat">
-                    <div class="stat-title">Matched Venues</div>
-                    <div class="stat-value">{{ selectedImport()!.existing_venues_matched }}</div>
+                  <div class="rounded-xl bg-base-200/50 p-4 text-center">
+                    <div class="text-xl font-bold">{{ selectedImport()!.existing_venues_matched }}</div>
+                    <div class="text-xs text-base-content/60">Matched Venues</div>
                   </div>
                 }
               </div>
 
               <!-- Tier Statistics -->
               @if (selectedImport()!.metadata?.tier_statistics) {
-                <div class="divider">Verification Breakdown</div>
-                <div class="flex gap-2 flex-wrap mb-6">
-                  <div class="badge badge-primary badge-lg">
-                    Tier 1: {{ selectedImport()!.metadata!.tier_statistics!.tier1_matches }}
-                  </div>
-                  <div class="badge badge-secondary badge-lg">
-                    Tier 2: {{ selectedImport()!.metadata!.tier_statistics!.tier2_matches }}
-                  </div>
-                  <div class="badge badge-accent badge-lg">
-                    Tier 3: {{ selectedImport()!.metadata!.tier_statistics!.tier3_matches }}
-                  </div>
-                  <div class="badge badge-ghost badge-lg">
-                    Unverified: {{ selectedImport()!.metadata!.tier_statistics!.unverified }}
+                <div class="mb-4">
+                  <h4 class="text-sm font-semibold text-base-content/70 mb-3">Verification Breakdown</h4>
+                  <div class="flex gap-2 flex-wrap">
+                    <div class="badge badge-primary">
+                      Tier 1: {{ selectedImport()!.metadata!.tier_statistics!.tier1_matches }}
+                    </div>
+                    <div class="badge badge-secondary">
+                      Tier 2: {{ selectedImport()!.metadata!.tier_statistics!.tier2_matches }}
+                    </div>
+                    <div class="badge badge-accent">
+                      Tier 3: {{ selectedImport()!.metadata!.tier_statistics!.tier3_matches }}
+                    </div>
+                    <div class="badge badge-ghost">
+                      Unverified: {{ selectedImport()!.metadata!.tier_statistics!.unverified }}
+                    </div>
                   </div>
                 </div>
               }
 
               <!-- Errors -->
               @if (selectedImport()!.metadata?.errors && selectedImport()!.metadata!.errors!.length > 0) {
-                <div class="divider">Errors</div>
-                <div class="alert alert-warning mb-6">
-                  <ng-icon name="heroXCircle" class="w-5 h-5" />
-                  <span>{{ selectedImport()!.metadata!.errors!.length }} places failed to import</span>
-                </div>
-                <div class="max-h-64 overflow-y-auto space-y-2">
-                  @for (error of selectedImport()!.metadata!.errors!.slice(0, 10); track error.timestamp) {
-                    <div class="bg-base-300 p-3 rounded-lg text-sm">
-                      <div class="font-bold">{{ error.place_name }}</div>
-                      @if (error.address) {
-                        <div class="text-base-content/70 text-xs">{{ error.address }}</div>
-                      }
-                      <div class="text-error text-xs mt-1">{{ error.error }}</div>
+                <div>
+                  <h4 class="text-sm font-semibold text-base-content/70 mb-3">Errors</h4>
+                  <div class="rounded-xl bg-warning/10 border border-warning/20 p-3 mb-3">
+                    <div class="flex items-center gap-2 text-sm text-warning">
+                      <ng-icon name="heroXCircle" size="18" />
+                      <span>{{ selectedImport()!.metadata!.errors!.length }} places failed to import</span>
                     </div>
-                  }
-                  @if (selectedImport()!.metadata!.errors!.length > 10) {
-                    <div class="text-sm text-base-content/70 text-center">
-                      ...and {{ selectedImport()!.metadata!.errors!.length - 10 }} more
-                    </div>
-                  }
+                  </div>
+                  <div class="max-h-48 overflow-y-auto space-y-2">
+                    @for (error of selectedImport()!.metadata!.errors!.slice(0, 10); track error.timestamp) {
+                      <div class="rounded-lg bg-base-200/50 p-3">
+                        <div class="font-medium text-sm">{{ error.place_name }}</div>
+                        @if (error.address) {
+                          <div class="text-xs text-base-content/60">{{ error.address }}</div>
+                        }
+                        <div class="text-xs text-error mt-1">{{ error.error }}</div>
+                      </div>
+                    }
+                    @if (selectedImport()!.metadata!.errors!.length > 10) {
+                      <div class="text-xs text-base-content/50 text-center py-2">
+                        ...and {{ selectedImport()!.metadata!.errors!.length - 10 }} more
+                      </div>
+                    }
+                  </div>
                 </div>
               }
 
               <!-- Modal Actions -->
-              <div class="modal-action">
-                <button class="btn" (click)="closeDetails()">Close</button>
+              <div class="modal-action mt-6">
+                <button type="button" class="btn btn-primary" (click)="closeDetails()">Close</button>
               </div>
             </div>
             <div class="modal-backdrop" (click)="closeDetails()"></div>
@@ -310,8 +326,8 @@ interface ImportHistoryItem {
   `,
 })
 export class ImportHistoryComponent implements OnInit {
-  private readonly importHistoryService = new ImportHistoryService();
-  private readonly router = new Router();
+  private readonly importHistoryService = inject(ImportHistoryService);
+  private readonly router = inject(Router);
 
   // State
   imports = signal<ImportHistoryItem[]>([]);

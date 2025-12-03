@@ -7,3 +7,7 @@ export * from './api/sharing.api';
 // IndexedDB for offline storage
 export * from './local/indexeddb.service';
 export * from './local/visits-local.repository';
+
+// Frontend services
+export * from './services/feature-flags.service';
+export * from './services/notification.service';

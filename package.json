@@ -20,7 +20,13 @@
     "migration:revert": "npx tsx ./node_modules/typeorm/cli.js migration:revert -d apps/api/src/database/migration.config.ts",
     "migration:generate": "npx tsx ./node_modules/typeorm/cli.js migration:generate -d apps/api/src/database/migration.config.ts",
     "migration:show": "npx tsx ./node_modules/typeorm/cli.js migration:show -d apps/api/src/database/migration.config.ts",
-    "migration:create": "npx tsx ./node_modules/typeorm/cli.js migration:create"
+    "migration:create": "npx tsx ./node_modules/typeorm/cli.js migration:create",
+    "cap:sync": "nx sync mobile",
+    "cap:open:ios": "nx open:ios mobile",
+    "cap:open:android": "nx open:android mobile",
+    "cap:run:ios": "nx run:ios mobile",
+    "cap:run:android": "nx run:android mobile",
+    "cap:assets": "npx capacitor-assets generate"
   },
   "private": true,
   "dependencies": {
@@ -34,9 +40,11 @@
     "@angular/router": "^20.0.0",
     "@angular/service-worker": "^20.0.0",
     "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.1.0",
     "@capacitor/core": "^7.0.0",
     "@capacitor/geolocation": "^7.0.0",
     "@capacitor/ios": "^7.0.0",
+    "@capacitor/preferences": "^7.0.2",
     "@capacitor/status-bar": "^7.0.3",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bullmq": "^11.0.4",

@@ -7,7 +7,6 @@
   "dependencies": {
     "tslib": "*",
     "@angular/core": "*",
-    "rxjs": "*",
     "jest-preset-angular": "*"
   }
 }

@@ -1,88 +1,245 @@
-<!-- Onboarding Template with DaisyUI -->
-<div class="flex items-center justify-center min-h-screen p-4 bg-base-100">
-  <div class="w-full max-w-lg shadow-xl card bg-base-200">
-    <div class="card-body">
-      <!-- Progress Indicator with Dots -->
+<!-- Onboarding Template - Modern Redesign with DaisyUI -->
+<div class="flex flex-col min-h-screen bg-base-100 overflow-hidden relative">
+  <!-- Background Gradient Overlay -->
+  <div
+    class="absolute inset-0 bg-gradient-to-br opacity-5 transition-all duration-700 ease-out pointer-events-none"
+    [class]="'bg-gradient-to-br ' + currentStepData().gradient"
+  ></div>
+
+  <!-- Skip Button - Top Right -->
+  @if (!isLastStep()) {
+  <div class="absolute top-6 right-6 z-20">
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm gap-1 text-base-content/60 hover:text-base-content hover:bg-base-200/50"
+      (click)="skip()"
+      aria-label="Skip onboarding"
+    >
+      Skip
+      <ng-icon name="heroXMark" size="16" />
+    </button>
+  </div>
+  }
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col items-center justify-center px-6 py-16 relative z-10">
+    <!-- Icon Container with Animation -->
+    <div
+      class="relative mb-10 transition-all duration-500 ease-out"
+      [class.opacity-0]="isAnimating()"
+      [class.scale-95]="isAnimating()"
+    >
+      <!-- Outer Glow Ring -->
       <div
-        class="flex justify-center gap-2 mb-6"
-        role="progressbar"
-        aria-valuenow="{{currentStep() + 1}}"
-        aria-valuemin="1"
-        aria-valuemax="{{totalSteps}}"
-        aria-label="Onboarding progress: Step {{currentStep() + 1}} of {{totalSteps}}"
+        class="absolute inset-0 -m-6 rounded-full opacity-20 blur-2xl bg-gradient-to-br"
+        [class]="'bg-gradient-to-br ' + currentStepData().gradient"
+      ></div>
+
+      <!-- Decorative Dashed Ring -->
+      <div
+        class="absolute inset-0 -m-5 rounded-full border-2 border-dashed border-base-content/10"
+      ></div>
+
+      <!-- Main Icon Circle -->
+      <div
+        class="relative w-36 h-36 rounded-full flex items-center justify-center shadow-2xl bg-gradient-to-br"
+        [class]="'bg-gradient-to-br ' + currentStepData().gradient"
       >
-        @for (step of steps; track $index) {
-        <div
-          class="w-3 h-3 rounded-full transition-colors duration-200 {{$index === currentStep() ? 'bg-primary' : $index < currentStep() ? 'bg-primary/50' : 'bg-base-300'}}"
-          [attr.aria-label]="$index === currentStep() ? 'Current step: ' + step.title : $index < currentStep() ? 'Completed step: ' + step.title : 'Upcoming step: ' + step.title"
-        ></div>
-        }
+        <!-- Inner shadow/depth effect -->
+        <div class="absolute inset-2 rounded-full bg-gradient-to-br from-white/20 to-transparent"></div>
+        <!-- Icon -->
+        <ng-icon [name]="currentStepData().icon" size="64" class="text-white relative z-10 drop-shadow-lg" />
       </div>
 
-      <!-- Step Content -->
-      <h2 class="justify-center mb-4 text-2xl font-bold text-center card-title">
-        {{ steps[currentStep()].title }}
-      </h2>
-      <p class="mb-8 text-center text-base-content/80">{{ steps[currentStep()].content }}</p>
-
-      <!-- Show auth options on final step -->
-      @if (currentStep() === totalSteps - 1) {
-      <div class="mb-6 space-y-3">
-        <button
-          type="button"
-          class="w-full btn btn-primary"
-          (click)="onSignIn()"
-          aria-label="Sign in to your account"
-        >
-          Sign In
-        </button>
-
-        <button
-          type="button"
-          class="w-full btn btn-outline"
-          (click)="onContinueAsGuest()"
-          aria-label="Continue using the app without signing in"
-        >
-          Continue as Guest
-        </button>
+      <!-- Accent Icon Badge -->
+      @if (currentStepData().accentIcon) {
+      <div
+        class="absolute -top-1 -right-1 w-14 h-14 rounded-full bg-base-200 shadow-xl flex items-center justify-center border-4 border-base-100"
+      >
+        <ng-icon
+          [name]="currentStepData().accentIcon"
+          size="28"
+          class="text-primary"
+        />
       </div>
       }
+    </div>
 
-      <!-- Navigation Buttons -->
-      <div class="flex items-center justify-between mt-4">
-        <!-- Show Back if not first step, else show Skip -->
-        @if (currentStep() > 0) {
-        <button
-          type="button"
-          class="btn btn-ghost"
-          (click)="previousStep()"
-          aria-label="Go back to previous step"
+    <!-- Text Content with Animation -->
+    <div
+      class="text-center max-w-lg mx-auto transition-all duration-500 ease-out"
+      [class.opacity-0]="isAnimating()"
+      [class.translate-y-4]="isAnimating()"
+    >
+      <!-- Subtitle Badge -->
+      <div class="mb-5">
+        <span
+          class="inline-block px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-full bg-gradient-to-r text-white shadow-lg"
+          [class]="'bg-gradient-to-r ' + currentStepData().gradient"
         >
-          Back
-        </button>
-        } @else {
-        <button type="button" class="btn btn-ghost" (click)="skip()" aria-label="Skip onboarding">
-          Skip
-        </button>
-        }
-
-        <!-- Show Next if not last step, else show Get Started -->
-        @if (currentStep() < totalSteps - 1) {
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="nextStep()"
-          aria-label="Continue to next step"
-        >
-          Next
-        </button>
-        }
+          {{ currentStepData().subtitle }}
+        </span>
       </div>
 
-      <!-- Step Counter -->
-      <div class="mt-4 text-sm text-center text-base-content/50">
-        Step {{ currentStep() + 1 }} of {{ totalSteps }}
+      <!-- Title -->
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-base-content mb-5 leading-tight">
+        {{ currentStepData().title }}
+      </h1>
+
+      <!-- Description -->
+      <p class="text-base-content/60 text-lg sm:text-xl leading-relaxed max-w-md mx-auto">
+        {{ currentStepData().content }}
+      </p>
+    </div>
+
+    <!-- Action Buttons for Final Step -->
+    @if (isLastStep()) {
+    <div
+      class="mt-12 w-full max-w-sm space-y-4 transition-all duration-500 ease-out"
+      [class.opacity-0]="isAnimating()"
+      [class.translate-y-4]="isAnimating()"
+    >
+      @if (isAuthenticated()) {
+      <!-- User is already logged in - show start exploring button -->
+      <button
+        type="button"
+        class="btn btn-primary btn-lg w-full gap-3 shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02]"
+        (click)="complete()"
+        aria-label="Start exploring breweries and wineries"
+      >
+        Start Exploring
+        <ng-icon name="heroArrowRight" size="20" />
+      </button>
+      } @else {
+      <!-- User is not logged in - show auth options -->
+      <button
+        type="button"
+        class="btn btn-primary btn-lg w-full gap-3 shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02]"
+        (click)="onSignIn()"
+        aria-label="Sign in to your account"
+      >
+        Sign In to Get Started
+        <ng-icon name="heroArrowRight" size="20" />
+      </button>
+
+      @if (guestModeEnabled()) {
+      <button
+        type="button"
+        class="btn btn-ghost btn-lg w-full gap-2 hover:bg-base-200/50"
+        (click)="onContinueAsGuest()"
+        aria-label="Continue using the app without signing in"
+      >
+        <ng-icon name="heroUserCircle" size="24" />
+        Continue as Guest
+      </button>
+      <p class="text-xs text-center text-base-content/40 mt-3">
+        Guest mode stores visits locally on your device only
+      </p>
+      }
+      }
+    </div>
+    }
+  </div>
+
+  <!-- Bottom Navigation Area -->
+  <div class="px-6 pb-10 pt-6 relative z-10 bg-gradient-to-t from-base-100 via-base-100 to-transparent">
+    <!-- Progress Bar -->
+    <div class="max-w-md mx-auto mb-8">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-base-content/40">
+          Step {{ currentStep() + 1 }} of {{ totalSteps }}
+        </span>
+        <span class="text-sm font-semibold text-base-content/60">
+          {{ progressPercentage() | number:'1.0-0' }}%
+        </span>
       </div>
+      <div
+        class="h-2 w-full bg-base-200 rounded-full overflow-hidden"
+        role="progressbar"
+        [attr.aria-valuenow]="currentStep() + 1"
+        [attr.aria-valuemin]="1"
+        [attr.aria-valuemax]="totalSteps"
+        [attr.aria-label]="'Onboarding progress: Step ' + (currentStep() + 1) + ' of ' + totalSteps"
+      >
+        <div
+          class="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r shadow-sm"
+          [class]="'bg-gradient-to-r ' + currentStepData().gradient"
+          [style.width.%]="progressPercentage()"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Step Indicators -->
+    <div class="flex justify-center gap-4 mb-8">
+      @for (step of steps; track $index) {
+      <button
+        type="button"
+        class="group relative transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full"
+        [class.cursor-pointer]="$index <= currentStep()"
+        [class.cursor-default]="$index > currentStep()"
+        (click)="goToStep($index)"
+        [attr.aria-label]="$index === currentStep() ? 'Current step: ' + step.title : $index < currentStep() ? 'Go back to: ' + step.title : 'Upcoming step: ' + step.title"
+        [disabled]="$index > currentStep()"
+      >
+        <div
+          class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 border-2"
+          [class.shadow-lg]="$index <= currentStep()"
+          [class.scale-110]="$index === currentStep()"
+          [ngClass]="{
+            'bg-gradient-to-br border-transparent': $index <= currentStep(),
+            'bg-base-200/50 border-base-300/50': $index > currentStep()
+          }"
+          [class]="$index <= currentStep() ? step.gradient : ''"
+        >
+          @if ($index < currentStep()) {
+          <ng-icon name="heroCheck" size="24" class="text-white" />
+          } @else {
+          <span
+            class="text-sm font-bold transition-colors"
+            [class.text-white]="$index <= currentStep()"
+            [class.text-base-content/30]="$index > currentStep()"
+          >
+            {{ $index + 1 }}
+          </span>
+          }
+        </div>
+        <!-- Active indicator dot -->
+        @if ($index === currentStep()) {
+        <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary shadow-sm"></div>
+        }
+      </button>
+      }
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="flex items-center justify-center max-w-md mx-auto gap-4">
+      <!-- Back Button -->
+      @if (!isFirstStep()) {
+      <button
+        type="button"
+        class="btn btn-ghost gap-2 min-w-[120px]"
+        (click)="previousStep()"
+        [disabled]="isAnimating()"
+        aria-label="Go back to previous step"
+      >
+        <ng-icon name="heroArrowLeft" size="20" />
+        Back
+      </button>
+      }
+
+      <!-- Next / Continue Button -->
+      @if (!isLastStep()) {
+      <button
+        type="button"
+        class="btn btn-primary gap-2 min-w-[160px] shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+        (click)="nextStep()"
+        [disabled]="isAnimating()"
+        aria-label="Continue to next step"
+      >
+        Continue
+        <ng-icon name="heroArrowRight" size="20" />
+      </button>
+      }
     </div>
   </div>
 </div>

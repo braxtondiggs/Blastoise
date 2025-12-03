@@ -31,6 +31,9 @@ export class User {
   @UpdateDateColumn()
   updated_at!: Date;
 
+  @Column({ type: 'boolean', default: false })
+  onboarding_completed!: boolean;
+
   @OneToMany(() => RefreshToken, (token) => token.user, { cascade: true })
   refresh_tokens!: Relation<RefreshToken>[];
 

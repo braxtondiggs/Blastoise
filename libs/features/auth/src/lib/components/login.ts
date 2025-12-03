@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit, effect, PLATFORM_ID, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, effect, PLATFORM_ID, OnDestroy, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 import { emailValidator } from '../services/form-validators';
 import { mapAuthError } from '@blastoise/shared';
+import { FeatureFlagsService } from '@blastoise/data-frontend';
 import { Capacitor } from '@capacitor/core';
 
 @Component({
@@ -25,6 +26,7 @@ export class Login implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly featureFlags = inject(FeatureFlagsService);
   private subscription: Subscription | null = null;
 
   // Reactive form for email/password login
@@ -45,8 +47,14 @@ export class Login implements OnInit, OnDestroy {
   // Success message signal for magic link (T045)
   readonly showSuccessMessage = signal(false);
 
-  // Platform detection: show anonymous button only on native mobile platforms
-  readonly showAnonymousButton = signal(false);
+  // Platform detection for native-only features
+  private readonly isNativePlatform = signal(false);
+
+  // Feature flags combined with platform detection
+  readonly showAnonymousButton = computed(() =>
+    this.featureFlags.guestModeEnabled() && this.isNativePlatform()
+  );
+  readonly showMagicLinkOption = this.featureFlags.magicLinkEnabled;
 
   constructor() {
     // Watch mode changes and update password field validators
@@ -69,13 +77,13 @@ export class Login implements OnInit, OnDestroy {
   /**
    * Check if user is already authenticated on component initialization
    * If authenticated, redirect to main app
-   * Also detect platform to show/hide anonymous button
+   * Also detect platform for feature flag combinations
    */
   ngOnInit(): void {
-    // Detect platform: show anonymous button only on native mobile (iOS/Android)
+    // Detect platform: native mobile (iOS/Android)
     if (isPlatformBrowser(this.platformId)) {
       const platform = Capacitor.getPlatform();
-      this.showAnonymousButton.set(platform === 'ios' || platform === 'android');
+      this.isNativePlatform.set(platform === 'ios' || platform === 'android');
     }
 
     if (this.authState.isAuthenticated()) {

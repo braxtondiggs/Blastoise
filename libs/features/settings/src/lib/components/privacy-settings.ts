@@ -18,191 +18,182 @@ import { PreferencesService, type UserPreferences } from '../services/preference
   viewProviders: [provideIcons({ heroMapPin, heroGlobeAlt, heroShare, heroCalendar, heroShieldCheck })],
   template: `
     <div class="space-y-6">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="avatar placeholder">
-          <div class="bg-primary/10 text-primary rounded-lg w-12 flex items-center justify-center">
-            <ng-icon name="heroShieldCheck" size="24" />
-          </div>
+      <!-- Section Header -->
+      <div class="flex items-center gap-4 mb-6">
+        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
+          <ng-icon name="heroShieldCheck" size="24" class="text-primary" />
         </div>
         <div>
           <h2 class="text-2xl font-bold">Privacy Settings</h2>
-          <p class="text-sm text-base-content/60">
-            Control how your data is used and shared
-          </p>
+          <p class="text-sm text-base-content/60">Control how your data is used and shared</p>
         </div>
       </div>
 
       <!-- Location Settings Card -->
-      <div class="card bg-base-100 shadow-sm border border-base-300">
-        <div class="card-body p-4">
-          <div class="flex items-center gap-2 mb-3">
-            <ng-icon name="heroMapPin" size="20" class="text-primary" />
-            <h3 class="font-semibold text-lg">Location Tracking</h3>
+      <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+        <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+          <div class="flex items-center gap-2">
+            <ng-icon name="heroMapPin" size="18" class="text-primary" />
+            <h3 class="font-semibold">Location Tracking</h3>
           </div>
-
-          <div class="space-y-4">
-            <!-- Location Tracking -->
-            <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-4">
-                <input
-                  type="checkbox"
-                  class="toggle toggle-primary"
-                  [(ngModel)]="preferences().locationTrackingEnabled"
-                  (change)="savePreferences()"
-                />
-                <span class="label-text">
-                  <div class="font-medium">Enable automatic visit detection</div>
-                  <div class="text-sm text-base-content/60">Track brewery and winery visits automatically</div>
-                </span>
-              </label>
+        </div>
+        <div class="p-4 space-y-1">
+          <!-- Location Tracking -->
+          <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
+            <div class="flex-1 pr-4">
+              <div class="font-medium text-sm">Automatic visit detection</div>
+              <div class="text-xs text-base-content/60 mt-0.5">Track brewery and winery visits automatically</div>
             </div>
+            <input
+              type="checkbox"
+              class="toggle toggle-primary toggle-sm"
+              [(ngModel)]="preferences().locationTrackingEnabled"
+              (change)="savePreferences()"
+            />
+          </label>
 
-            <!-- Background Tracking -->
-            <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-4">
-                <input
-                  type="checkbox"
-                  class="toggle toggle-primary"
-                  [(ngModel)]="preferences().backgroundTrackingEnabled"
-                  (change)="savePreferences()"
-                  [disabled]="!preferences().locationTrackingEnabled"
-                />
-                <span class="label-text">
-                  <div class="font-medium">Background tracking</div>
-                  <div class="text-sm text-base-content/60">Continue tracking when app is closed</div>
-                </span>
-              </label>
+          <!-- Background Tracking -->
+          <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors"
+                 [class.opacity-50]="!preferences().locationTrackingEnabled">
+            <div class="flex-1 pr-4">
+              <div class="font-medium text-sm">Background tracking</div>
+              <div class="text-xs text-base-content/60 mt-0.5">Continue tracking when app is closed</div>
             </div>
-          </div>
+            <input
+              type="checkbox"
+              class="toggle toggle-primary toggle-sm"
+              [(ngModel)]="preferences().backgroundTrackingEnabled"
+              (change)="savePreferences()"
+              [disabled]="!preferences().locationTrackingEnabled"
+            />
+          </label>
         </div>
       </div>
 
       <!-- Sharing Settings Card -->
-      <div class="card bg-base-100 shadow-sm border border-base-300">
-        <div class="card-body p-4">
-          <div class="flex items-center gap-2 mb-4">
-            <ng-icon name="heroShare" size="20" class="text-primary" />
-            <h3 class="font-semibold text-lg">Sharing Preferences</h3>
+      <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+        <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+          <div class="flex items-center gap-2">
+            <ng-icon name="heroShare" size="18" class="text-primary" />
+            <h3 class="font-semibold">Sharing Preferences</h3>
           </div>
+          <p class="text-xs text-base-content/60 mt-1">Choose when you want to share visits</p>
+        </div>
+        <div class="p-4 space-y-2">
+          <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                 [class]="preferences().sharingPreference === 'never'
+                   ? 'bg-primary/10 border-2 border-primary/30'
+                   : 'bg-base-200/30 border-2 border-transparent hover:bg-base-200/50'">
+            <input
+              type="radio"
+              name="sharing"
+              value="never"
+              class="radio radio-primary radio-sm"
+              [(ngModel)]="preferences().sharingPreference"
+              (change)="savePreferences()"
+            />
+            <div class="flex-1">
+              <div class="font-medium text-sm">Never share automatically</div>
+              <div class="text-xs text-base-content/60">Keep all visits private by default</div>
+            </div>
+          </label>
 
-          <p class="text-sm text-base-content/60 mb-4">Choose when you want to share visits with others</p>
+          <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                 [class]="preferences().sharingPreference === 'ask'
+                   ? 'bg-primary/10 border-2 border-primary/30'
+                   : 'bg-base-200/30 border-2 border-transparent hover:bg-base-200/50'">
+            <input
+              type="radio"
+              name="sharing"
+              value="ask"
+              class="radio radio-primary radio-sm"
+              [(ngModel)]="preferences().sharingPreference"
+              (change)="savePreferences()"
+            />
+            <div class="flex-1">
+              <div class="font-medium text-sm">Ask me each time</div>
+              <div class="text-xs text-base-content/60">Review sharing on a per-visit basis</div>
+            </div>
+          </label>
 
-          <div class="space-y-3">
-            <label class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-base-200"
-                   [class.border-primary]="preferences().sharingPreference === 'never'"
-                   [class.bg-primary/5]="preferences().sharingPreference === 'never'"
-                   [class.border-base-300]="preferences().sharingPreference !== 'never'">
-              <input
-                type="radio"
-                name="sharing"
-                value="never"
-                class="radio radio-primary"
-                [(ngModel)]="preferences().sharingPreference"
-                (change)="savePreferences()"
-              />
-              <div class="flex-1">
-                <div class="font-medium">Never share automatically</div>
-                <div class="text-sm text-base-content/60">Keep all visits private by default</div>
-              </div>
-            </label>
-
-            <label class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-base-200"
-                   [class.border-primary]="preferences().sharingPreference === 'ask'"
-                   [class.bg-primary/5]="preferences().sharingPreference === 'ask'"
-                   [class.border-base-300]="preferences().sharingPreference !== 'ask'">
-              <input
-                type="radio"
-                name="sharing"
-                value="ask"
-                class="radio radio-primary"
-                [(ngModel)]="preferences().sharingPreference"
-                (change)="savePreferences()"
-              />
-              <div class="flex-1">
-                <div class="font-medium">Ask me each time</div>
-                <div class="text-sm text-base-content/60">Review sharing on a per-visit basis</div>
-              </div>
-            </label>
-
-            <label class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-base-200"
-                   [class.border-primary]="preferences().sharingPreference === 'always'"
-                   [class.bg-primary/5]="preferences().sharingPreference === 'always'"
-                   [class.border-base-300]="preferences().sharingPreference !== 'always'">
-              <input
-                type="radio"
-                name="sharing"
-                value="always"
-                class="radio radio-primary"
-                [(ngModel)]="preferences().sharingPreference"
-                (change)="savePreferences()"
-              />
-              <div class="flex-1">
-                <div class="font-medium">Always allow sharing</div>
-                <div class="text-sm text-base-content/60">Automatically share all visits</div>
-              </div>
-            </label>
-          </div>
+          <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                 [class]="preferences().sharingPreference === 'always'
+                   ? 'bg-primary/10 border-2 border-primary/30'
+                   : 'bg-base-200/30 border-2 border-transparent hover:bg-base-200/50'">
+            <input
+              type="radio"
+              name="sharing"
+              value="always"
+              class="radio radio-primary radio-sm"
+              [(ngModel)]="preferences().sharingPreference"
+              (change)="savePreferences()"
+            />
+            <div class="flex-1">
+              <div class="font-medium text-sm">Always allow sharing</div>
+              <div class="text-xs text-base-content/60">Automatically share all visits</div>
+            </div>
+          </label>
         </div>
       </div>
 
       <!-- Data Retention Card -->
-      <div class="card bg-base-100 shadow-sm border border-base-300">
-        <div class="card-body p-4">
-          <div class="flex items-center gap-2 mb-4">
-            <ng-icon name="heroCalendar" size="20" class="text-primary" />
-            <h3 class="font-semibold text-lg">Data Retention</h3>
+      <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+        <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+          <div class="flex items-center gap-2">
+            <ng-icon name="heroCalendar" size="18" class="text-primary" />
+            <h3 class="font-semibold">Data Retention</h3>
           </div>
-
-          <p class="text-sm text-base-content/60 mb-4">How long to keep your visit history</p>
-
-          <div class="relative">
-            <select
-              class="select select-bordered select-lg w-full font-semibold text-base focus:select-primary transition-all"
-              [(ngModel)]="preferences().dataRetentionMonths"
-              (change)="savePreferences()"
-            >
-              <option [ngValue]="1">1 month</option>
-              <option [ngValue]="3">3 months</option>
-              <option [ngValue]="6">6 months</option>
-              <option [ngValue]="12">1 year</option>
-              <option [ngValue]="24">2 years</option>
-              <option [ngValue]="null">Forever - Keep all history</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
-              <ng-icon name="heroCalendar" size="20" class="text-base-content/40" />
-            </div>
-          </div>
+          <p class="text-xs text-base-content/60 mt-1">How long to keep your visit history</p>
+        </div>
+        <div class="p-4">
+          <select
+            class="select select-bordered w-full bg-base-100"
+            [(ngModel)]="preferences().dataRetentionMonths"
+            (change)="savePreferences()"
+          >
+            <option [ngValue]="1">1 month</option>
+            <option [ngValue]="3">3 months</option>
+            <option [ngValue]="6">6 months</option>
+            <option [ngValue]="12">1 year</option>
+            <option [ngValue]="24">2 years</option>
+            <option [ngValue]="null">Forever - Keep all history</option>
+          </select>
 
           @if (preferences().dataRetentionMonths !== null) {
-            <div class="mt-3 text-xs text-base-content/50 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="mt-3 flex items-center gap-2 text-xs text-base-content/50">
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Older visits will be automatically deleted after this period</span>
+              <span>Older visits will be automatically deleted</span>
             </div>
           }
         </div>
       </div>
 
       <!-- Privacy Notice -->
-      <div class="alert alert-info shadow-sm">
-        <ng-icon name="heroShieldCheck" size="24" class="shrink-0" />
-        <div>
-          <h4 class="font-bold">Your Privacy Matters</h4>
-          <p class="text-sm">GPS coordinates are never stored or shared. Only venue names and approximate dates are saved.</p>
+      <div class="rounded-xl bg-gradient-to-r from-info/10 to-info/5 border border-info/20 p-4">
+        <div class="flex gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-info/15 shrink-0">
+            <ng-icon name="heroShieldCheck" size="20" class="text-info" />
+          </div>
+          <div>
+            <h4 class="font-semibold text-sm">Your Privacy Matters</h4>
+            <p class="text-xs text-base-content/60 mt-1">GPS coordinates are never stored or shared. Only venue names and approximate dates are saved.</p>
+          </div>
         </div>
       </div>
 
+      <!-- Status Messages -->
       @if (saveStatus() === 'saving') {
-        <div class="alert alert-info">
-          <span class="loading loading-spinner"></span>
-          <span>Saving preferences...</span>
+        <div class="flex items-center gap-3 p-3 rounded-xl bg-base-200/50 text-sm">
+          <span class="loading loading-spinner loading-sm"></span>
+          <span class="text-base-content/70">Saving preferences...</span>
         </div>
       }
 
       @if (saveStatus() === 'saved') {
-        <div class="alert alert-success">
-          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <div class="flex items-center gap-3 p-3 rounded-xl bg-success/10 border border-success/20 text-sm text-success">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>Preferences saved successfully!</span>
@@ -210,8 +201,8 @@ import { PreferencesService, type UserPreferences } from '../services/preference
       }
 
       @if (saveStatus() === 'error') {
-        <div class="alert alert-error">
-          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <div class="flex items-center gap-3 p-3 rounded-xl bg-error/10 border border-error/20 text-sm text-error">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>Failed to save preferences. Please try again.</span>

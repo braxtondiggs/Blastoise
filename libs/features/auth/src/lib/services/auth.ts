@@ -4,11 +4,15 @@ import { Router } from '@angular/router';
 import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
 import { catchError, tap, map, switchMap, take } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 import { User, DEFAULT_USER_PREFERENCES, UserPreferences } from '@blastoise/shared';
 import { AuthStateService, AuthSession } from '@blastoise/shared/auth-state';
 
 const ANONYMOUS_USER_KEY = 'anonymous_user_id';
 const ANONYMOUS_MODE_KEY = 'anonymous_mode';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+const ACCESS_TOKEN_KEY = 'access_token';
 
 /**
  * Injection token for API base URL
@@ -30,6 +34,7 @@ interface JwtPayload {
  */
 interface AuthResponse {
   access_token: string;
+  refresh_token?: string; // Included for mobile apps
   token_type: 'Bearer';
   expires_in: number;
   user: {
@@ -44,6 +49,7 @@ interface AuthResponse {
  */
 interface RefreshResponse {
   access_token: string;
+  refresh_token?: string; // Included for mobile apps (new refresh token rotation)
   token_type: 'Bearer';
   expires_in: number;
 }
@@ -66,6 +72,12 @@ export class AuthService {
 
   // In-memory access token storage (not localStorage for security)
   private accessToken: string | null = null;
+
+  // Refresh token for mobile apps (stored in Capacitor Preferences)
+  private storedRefreshToken: string | null = null;
+
+  // Check if running on native mobile platform
+  private readonly isNative = Capacitor.isNativePlatform();
 
   // Refresh in progress flag to prevent multiple simultaneous refreshes
   private refreshInProgress$ = new BehaviorSubject<boolean>(false);
@@ -94,14 +106,74 @@ export class AuthService {
       this.loadAnonymousUser();
       this.authState.setInitialized(true);
     } else {
-      // Try to refresh token on app load (refresh token is in httpOnly cookie)
+      // On native platforms, load persisted tokens from Capacitor Preferences
+      if (this.isNative) {
+        await this.loadPersistedTokens();
+      }
+
+      // Try to refresh token on app load
       try {
-        await this.refreshToken().pipe(take(1)).toPromise();
+        await this.refreshAccessToken().pipe(take(1)).toPromise();
       } catch {
         // No valid refresh token - user will need to log in
         this.authState.setCurrentUser(null);
       }
       this.authState.setInitialized(true);
+    }
+  }
+
+  /**
+   * Load persisted tokens from Capacitor Preferences (mobile only)
+   */
+  private async loadPersistedTokens(): Promise<void> {
+    try {
+      const { value: storedRefreshToken } = await Preferences.get({ key: REFRESH_TOKEN_KEY });
+      const { value: storedAccessToken } = await Preferences.get({ key: ACCESS_TOKEN_KEY });
+
+      if (storedRefreshToken) {
+        this.storedRefreshToken = storedRefreshToken;
+      }
+
+      if (storedAccessToken && !this.isTokenExpired(storedAccessToken)) {
+        this.accessToken = storedAccessToken;
+        this.authState.setAccessToken(storedAccessToken);
+
+        // Decode token to restore user state
+        const decoded = jwtDecode<JwtPayload>(storedAccessToken);
+        this.loadUserFromToken(decoded);
+      }
+    } catch {
+      // Failed to load persisted tokens - user will need to log in
+    }
+  }
+
+  /**
+   * Persist tokens to Capacitor Preferences (mobile only)
+   */
+  private async persistTokens(accessToken: string, refreshToken?: string): Promise<void> {
+    if (!this.isNative) return;
+
+    try {
+      await Preferences.set({ key: ACCESS_TOKEN_KEY, value: accessToken });
+      if (refreshToken) {
+        await Preferences.set({ key: REFRESH_TOKEN_KEY, value: refreshToken });
+      }
+    } catch (error) {
+      console.error('Failed to persist tokens:', error);
+    }
+  }
+
+  /**
+   * Clear persisted tokens from Capacitor Preferences (mobile only)
+   */
+  private async clearPersistedTokens(): Promise<void> {
+    if (!this.isNative) return;
+
+    try {
+      await Preferences.remove({ key: ACCESS_TOKEN_KEY });
+      await Preferences.remove({ key: REFRESH_TOKEN_KEY });
+    } catch (error) {
+      console.error('Failed to clear persisted tokens:', error);
     }
   }
 
@@ -209,9 +281,9 @@ export class AuthService {
   }
 
   /**
-   * Refresh access token using httpOnly refresh token cookie
+   * Refresh access token using httpOnly refresh token cookie (web) or stored token (mobile)
    */
-  refreshToken(): Observable<void> {
+  refreshAccessToken(): Observable<void> {
     // Prevent multiple simultaneous refresh requests
     if (this.refreshInProgress$.value) {
       return this.refreshInProgress$.pipe(
@@ -227,12 +299,25 @@ export class AuthService {
 
     this.refreshInProgress$.next(true);
 
+    // On native platforms, include refresh token in request body
+    const body = this.isNative && this.storedRefreshToken
+      ? { refresh_token: this.storedRefreshToken }
+      : {};
+
     return this.http
-      .post<RefreshResponse>(`${this.apiUrl}/auth/refresh`, {}, { withCredentials: true })
+      .post<RefreshResponse>(`${this.apiUrl}/auth/refresh`, body, { withCredentials: true })
       .pipe(
         tap((response) => {
           this.accessToken = response.access_token;
           this.authState.setAccessToken(response.access_token);
+
+          // Persist tokens on mobile (fire and forget)
+          if (this.isNative) {
+            this.persistTokens(response.access_token, response.refresh_token);
+            if (response.refresh_token) {
+              this.storedRefreshToken = response.refresh_token;
+            }
+          }
 
           // Decode token to get user info
           const decoded = jwtDecode<JwtPayload>(response.access_token);
@@ -241,9 +326,12 @@ export class AuthService {
         map(() => undefined),
         catchError((error) => {
           this.accessToken = null;
+          this.storedRefreshToken = null;
           this.authState.setAccessToken(null);
           this.authState.setCurrentUser(null);
           this.authState.setSession(null);
+          // Clear persisted tokens (fire and forget)
+          this.clearPersistedTokens();
           return throwError(() => error);
         }),
         tap({
@@ -251,6 +339,13 @@ export class AuthService {
           error: () => this.refreshInProgress$.next(false),
         })
       );
+  }
+
+  /**
+   * @deprecated Use refreshAccessToken() instead
+   */
+  refreshToken(): Observable<void> {
+    return this.refreshAccessToken();
   }
 
   /**
@@ -266,6 +361,8 @@ export class AuthService {
     }
 
     this.accessToken = null;
+    this.storedRefreshToken = null;
+    await this.clearPersistedTokens();
     this.authState.clear();
     this.router.navigate(['/']);
   }
@@ -307,9 +404,15 @@ export class AuthService {
   /**
    * Handle successful auth response
    */
-  private handleAuthResponse(response: AuthResponse): void {
+  private async handleAuthResponse(response: AuthResponse): Promise<void> {
     this.accessToken = response.access_token;
     this.authState.setAccessToken(response.access_token);
+
+    // Persist tokens on mobile
+    if (this.isNative && response.refresh_token) {
+      this.storedRefreshToken = response.refresh_token;
+      await this.persistTokens(response.access_token, response.refresh_token);
+    }
 
     const session: AuthSession = {
       access_token: response.access_token,
@@ -477,5 +580,53 @@ export class AuthService {
    */
   async signInWithMagicLink(_email: string): Promise<{ error?: Error }> {
     return { error: new Error('Magic link authentication is not supported in self-hosted mode') };
+  }
+
+  /**
+   * Get onboarding status from server
+   * Returns whether user has completed onboarding
+   */
+  async getOnboardingStatus(): Promise<{ completed: boolean }> {
+    if (this.authState.isAnonymous() || !this.authState.isAuthenticated()) {
+      // For anonymous users, use localStorage
+      return { completed: localStorage.getItem('onboarding_complete') === 'true' };
+    }
+
+    try {
+      const response = await this.http
+        .get<{ success: boolean; data: { completed: boolean } }>(`${this.apiUrl}/user/onboarding`)
+        .toPromise();
+
+      return { completed: response?.data?.completed ?? false };
+    } catch {
+      // Fallback to localStorage if API fails
+      return { completed: localStorage.getItem('onboarding_complete') === 'true' };
+    }
+  }
+
+  /**
+   * Mark onboarding as completed on server
+   */
+  async completeOnboarding(): Promise<{ error?: Error }> {
+    // Always store locally for fallback
+    localStorage.setItem('onboarding_complete', 'true');
+
+    if (this.authState.isAnonymous() || !this.authState.isAuthenticated()) {
+      // For anonymous users, localStorage is sufficient
+      return {};
+    }
+
+    try {
+      await this.http
+        .post(`${this.apiUrl}/user/onboarding/complete`, {})
+        .toPromise();
+
+      return {};
+    } catch (error) {
+      // Local storage already set, so user won't see onboarding again
+      // Log error but don't fail the operation
+      console.error('Failed to sync onboarding status to server:', error);
+      return {};
+    }
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, signal, inject } from '@angular/core';
 import { GeofenceService } from './geofence';
 import { VisitSyncService } from './visit-sync';
 import { AuthService } from '@blastoise/features-auth';
-import { NotificationService } from '@blastoise/shared';
+import { NotificationService } from '@blastoise/data-frontend';
 import {
   Visit,
   Venue,

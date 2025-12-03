@@ -4,9 +4,10 @@
  * Business logic for user preferences management using TypeORM
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { User } from '../../entities/user.entity';
 import {
   UserPreferences,
   NotificationPreferences,
@@ -43,9 +44,16 @@ const DEFAULT_PREFERENCES: Omit<
   },
 };
 
+export interface OnboardingStatus {
+  completed: boolean;
+  completed_at?: string;
+}
+
 @Injectable()
 export class UserService {
   constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(UserPreferences)
     private readonly preferencesRepository: Repository<UserPreferences>
   ) {}
@@ -160,5 +168,42 @@ export class UserService {
     }
 
     return converted;
+  }
+
+  /**
+   * Get onboarding status for a user
+   */
+  async getOnboardingStatus(userId: string): Promise<OnboardingStatus> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'onboarding_completed', 'updated_at'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      completed: user.onboarding_completed,
+      ...(user.onboarding_completed && { completed_at: user.updated_at.toISOString() }),
+    };
+  }
+
+  /**
+   * Mark onboarding as completed for a user
+   */
+  async completeOnboarding(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.onboarding_completed) {
+      user.onboarding_completed = true;
+      await this.userRepository.save(user);
+    }
   }
 }

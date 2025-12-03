@@ -1,60 +1,86 @@
-import { Component, signal, inject, PLATFORM_ID, OnInit } from '@angular/core';
+import { Component, signal, inject, PLATFORM_ID, OnInit, ElementRef, HostListener, computed } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AuthStateService } from '@blastoise/shared/auth-state';
-import { AuthService, WebLimitationNotice } from '@blastoise/features-auth';
+import { AuthService, WebLimitationNotice, LocationPermissionNotice } from '@blastoise/features-auth';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectangle } from '@ng-icons/heroicons/outline';
+import { heroHome, heroCog6Tooth, heroArrowRightOnRectangle, heroBars3, heroXMark } from '@ng-icons/heroicons/outline';
 import { Capacitor } from '@capacitor/core';
 
 /**
  * Main App Component with Navigation
  *
- * Root component with navigation to:
- * - Timeline (visits)
- * - Map (venue discovery)
+ * Root component with dropdown navigation containing:
+ * - Timeline/Home
  * - Settings
+ * - Sign out
  *
  * User Story 2: Visual Timeline of Visits
  */
 
 @Component({
-  imports: [CommonModule, RouterModule, NgIconComponent, WebLimitationNotice],
+  imports: [CommonModule, RouterModule, NgIconComponent, WebLimitationNotice, LocationPermissionNotice],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',
-  viewProviders: [provideIcons({ heroBars3, heroClock, heroMapPin, heroCog6Tooth, heroArrowRightOnRectangle })],
+  viewProviders: [provideIcons({ heroHome, heroCog6Tooth, heroArrowRightOnRectangle, heroBars3, heroXMark })],
 })
 export class App implements OnInit {
   protected title = 'Blastoise';
 
-  // Mobile menu state
-  readonly isMobileMenuOpen = signal(false);
+  // Dropdown menu state
+  readonly isDropdownOpen = signal(false);
 
   // Platform detection: show web limitation notice only on web platforms
-  readonly showWebNotice = signal(false);
+  private readonly isWebPlatform = signal(false);
+  private readonly currentRoute = signal('');
+
+  // Computed: show notice only on web AND not on onboarding page
+  readonly showWebNotice = computed(() =>
+    this.isWebPlatform() && !this.currentRoute().startsWith('/auth/onboarding')
+  );
+
+  // Computed: show location notice when not on onboarding page
+  readonly showLocationNotice = computed(() =>
+    !this.currentRoute().startsWith('/auth/onboarding')
+  );
 
   // Injected services
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
   private readonly authService = inject(AuthService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly elementRef = inject(ElementRef);
 
   ngOnInit(): void {
     // Detect platform: show web limitation notice only on web (not iOS/Android)
     if (isPlatformBrowser(this.platformId)) {
       const platform = Capacitor.getPlatform();
-      const isWeb = platform === 'web';
-      this.showWebNotice.set(isWeb);
+      this.isWebPlatform.set(platform === 'web');
+
+      // Track current route for conditional display
+      this.currentRoute.set(this.router.url);
+      this.router.events
+        .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+        .subscribe((event) => this.currentRoute.set(event.urlAfterRedirects));
     }
   }
 
-  toggleMobileMenu(): void {
-    this.isMobileMenuOpen.update((open) => !open);
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    // Close dropdown when clicking outside
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.closeDropdown();
+    }
   }
 
-  closeMobileMenu(): void {
-    this.isMobileMenuOpen.set(false);
+  toggleDropdown(): void {
+    this.isDropdownOpen.update((open) => !open);
+  }
+
+  closeDropdown(): void {
+    this.isDropdownOpen.set(false);
   }
 
   isActiveRoute(path: string): boolean {
@@ -71,6 +97,11 @@ export class App implements OnInit {
 
   async onSignOut(): Promise<void> {
     await this.authService.signOut();
-    this.closeMobileMenu();
+    this.closeDropdown();
+  }
+
+  navigateTo(path: string): void {
+    this.router.navigate([path]);
+    this.closeDropdown();
   }
 }

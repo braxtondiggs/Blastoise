@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth';
+import { AuthStateService } from '@blastoise/shared/auth-state';
 
 /**
  * Auth Guard - Protects routes that require authentication
@@ -11,12 +11,19 @@ import { AuthService } from '../services/auth';
  *
  * Redirects to login if not authenticated and not in anonymous mode
  */
-export const authGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+export const authGuard: CanActivateFn = async (route, state) => {
+  const authState = inject(AuthStateService);
   const router = inject(Router);
 
-  const isAuthenticated = authService.isAuthenticated();
-  const isAnonymous = authService.isAnonymous();
+  // Wait for auth to initialize (poll until initialized)
+  const maxWaitMs = 5000;
+  const startTime = Date.now();
+  while (!authState.isInitialized() && Date.now() - startTime < maxWaitMs) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  const isAuthenticated = authState.isAuthenticated();
+  const isAnonymous = authState.isAnonymous();
 
   if (isAuthenticated || isAnonymous) {
     return true;
@@ -32,12 +39,19 @@ export const authGuard: CanActivateFn = (route, state) => {
  * Authenticated Only Guard - Requires a real authenticated session
  * (Excludes anonymous users)
  */
-export const authenticatedOnlyGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+export const authenticatedOnlyGuard: CanActivateFn = async (route, state) => {
+  const authState = inject(AuthStateService);
   const router = inject(Router);
 
-  const isAuthenticated = authService.isAuthenticated();
-  const isAnonymous = authService.isAnonymous();
+  // Wait for auth to initialize (poll until initialized)
+  const maxWaitMs = 5000;
+  const startTime = Date.now();
+  while (!authState.isInitialized() && Date.now() - startTime < maxWaitMs) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  const isAuthenticated = authState.isAuthenticated();
+  const isAnonymous = authState.isAnonymous();
 
   if (isAuthenticated && !isAnonymous) {
     return true;

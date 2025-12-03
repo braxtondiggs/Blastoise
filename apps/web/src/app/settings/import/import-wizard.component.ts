@@ -43,177 +43,245 @@ interface FileValidationResult {
     }),
   ],
   template: `
-    <div class="min-h-screen bg-base-100 p-4">
-      <div class="max-w-4xl mx-auto">
+    <div class="min-h-screen bg-base-100">
+      <div class="max-w-4xl mx-auto px-4 py-6">
         <!-- Header -->
         <div class="mb-8">
-          <h1 class="text-3xl font-bold mb-2">Import Google Timeline</h1>
-          <p class="text-base-content/70">
-            Import your brewery and winery visits from Google Timeline
-          </p>
+          <button
+            type="button"
+            class="flex items-center gap-2 text-sm text-base-content/60 hover:text-primary transition-colors mb-4"
+            (click)="cancel()"
+          >
+            <ng-icon name="heroArrowLeft" size="16" />
+            Back to Settings
+          </button>
+          <h1 class="text-2xl font-bold text-base-content">Import Timeline</h1>
+          <p class="text-base-content/50 mt-1">Bring your brewery visits from Google Maps</p>
         </div>
 
         <!-- Progress Steps -->
-        <div class="mb-8">
-          <ul class="steps steps-horizontal w-full">
-            <li class="step" [class.step-primary]="currentStep() >= 1">Choose Source</li>
-            <li class="step" [class.step-primary]="currentStep() >= 2">Instructions</li>
-            <li class="step" [class.step-primary]="currentStep() >= 3">Upload File</li>
-            <li class="step" [class.step-primary]="currentStep() >= 4">Processing</li>
-            <li class="step" [class.step-primary]="currentStep() >= 5">Results</li>
-          </ul>
-        </div>
+        <div class="mb-6">
+          <div class="flex items-center justify-between relative">
+            <!-- Progress Line -->
+            <div class="absolute top-5 left-0 right-0 h-0.5 bg-base-300">
+              <div
+                class="h-full bg-primary transition-all duration-300"
+                [style.width]="((currentStep() - 1) / 4 * 100) + '%'"
+              ></div>
+            </div>
 
-        <!-- Step Content Card -->
-        <div class="card bg-base-200 shadow-xl">
-          <div class="card-body">
-            <!-- Step 1: Choose Import Source (T047) -->
-            @if (currentStep() === 1) {
-              <h2 class="card-title mb-4">Choose Import Source</h2>
-              <p class="mb-6 text-base-content/70">
-                Select where you want to import your visit history from:
-              </p>
-              <button
-                class="btn btn-primary btn-lg w-full mb-4"
-                (click)="selectGoogleTimeline()"
-              >
-                <ng-icon name="heroDocumentText" class="w-6 h-6" />
-                Google Timeline
-              </button>
-              <div class="alert alert-info">
-                <ng-icon name="heroExclamationTriangle" class="w-5 h-5" />
-                <span>
-                  Only Google Timeline imports are supported in this version. Apple Maps
-                  support coming soon.
+            <!-- Step Indicators -->
+            @for (step of [1, 2, 3, 4, 5]; track step) {
+              <div class="relative z-10 flex flex-col items-center">
+                <div
+                  class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300"
+                  [class]="currentStep() >= step
+                    ? 'bg-primary text-primary-content shadow-md'
+                    : 'bg-base-200 text-base-content/50 border-2 border-base-300'"
+                >
+                  @if (currentStep() > step) {
+                    <ng-icon name="heroCheckCircle" size="20" />
+                  } @else {
+                    {{ step }}
+                  }
+                </div>
+                <span class="text-xs mt-2 text-base-content/60 hidden sm:block">
+                  {{ ['Source', 'Instructions', 'Upload', 'Processing', 'Results'][step - 1] }}
                 </span>
               </div>
             }
+          </div>
+        </div>
 
-            <!-- Step 2: Export Instructions (T048) -->
-            @if (currentStep() === 2) {
-              <h2 class="card-title mb-4">Export Your Timeline Data</h2>
-              <p class="mb-4 text-base-content/70">
-                Follow these instructions to export your Google Timeline data:
-              </p>
-
-              <div class="tabs tabs-boxed mb-4">
-                <a
-                  class="tab"
-                  [class.tab-active]="selectedPlatform() === 'android'"
-                  (click)="selectedPlatform.set('android')"
-                >
-                  Android
-                </a>
-                <a
-                  class="tab"
-                  [class.tab-active]="selectedPlatform() === 'ios'"
-                  (click)="selectedPlatform.set('ios')"
-                >
-                  iOS
-                </a>
-                <a
-                  class="tab"
-                  [class.tab-active]="selectedPlatform() === 'takeout'"
-                  (click)="selectedPlatform.set('takeout')"
-                >
-                  Google Takeout
-                </a>
+        <!-- Step Content Card -->
+        <div class="bg-base-200/50 rounded-2xl border border-base-300/50 shadow-sm">
+          <div class="p-5 sm:p-6">
+            <!-- Step 1: Choose Import Source -->
+            @if (currentStep() === 1) {
+              <div class="text-center mb-6">
+                <h2 class="text-xl font-bold mb-2">Choose Import Source</h2>
+                <p class="text-base-content/60 text-sm">Select where to import your visit history from</p>
               </div>
 
-              <!-- Android Instructions -->
-              @if (selectedPlatform() === 'android') {
-                <div class="prose max-w-none">
-                  <ol>
-                    <li>Open Google Maps app on your Android device</li>
-                    <li>Tap your profile picture in the top right</li>
-                    <li>Select "Your Timeline"</li>
-                    <li>Tap the three dots (⋮) menu</li>
-                    <li>Select "Settings and privacy"</li>
-                    <li>Scroll to "Location History" section</li>
-                    <li>Tap "Download your Timeline data"</li>
-                    <li>Choose JSON format and download</li>
-                  </ol>
-                </div>
-              }
+              <div class="max-w-md mx-auto">
+                <button
+                  type="button"
+                  class="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-5 hover:border-primary/50 hover:shadow-lg transition-all duration-300"
+                  (click)="selectGoogleTimeline()"
+                >
+                  <div class="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                  <div class="relative flex items-center gap-4">
+                    <div class="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/15 group-hover:scale-110 transition-transform">
+                      <svg class="w-7 h-7 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                      </svg>
+                    </div>
+                    <div class="flex-1 text-left">
+                      <div class="font-semibold text-lg">Google Timeline</div>
+                      <div class="text-sm text-base-content/60">Import from Google Maps location history</div>
+                    </div>
+                    <ng-icon name="heroArrowRight" size="20" class="text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
 
-              <!-- iOS Instructions -->
-              @if (selectedPlatform() === 'ios') {
-                <div class="prose max-w-none">
-                  <ol>
-                    <li>Open Google Maps app on your iPhone</li>
-                    <li>Tap your profile picture in the top right</li>
-                    <li>Select "Your Timeline"</li>
-                    <li>Tap the settings gear icon</li>
-                    <li>Select "Export Timeline data"</li>
-                    <li>Choose JSON format and share to Files app</li>
-                    <li>Save the file and note its location</li>
-                  </ol>
+                <div class="mt-4 rounded-xl bg-info/10 border border-info/20 p-4">
+                  <div class="flex gap-3">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-info/15 shrink-0">
+                      <ng-icon name="heroExclamationTriangle" size="16" class="text-info" />
+                    </div>
+                    <p class="text-xs text-base-content/60">
+                      Apple Maps Timeline import coming soon. Currently only Google Timeline is supported.
+                    </p>
+                  </div>
                 </div>
-              }
+              </div>
+            }
 
-              <!-- Google Takeout Instructions -->
-              @if (selectedPlatform() === 'takeout') {
-                <div class="prose max-w-none">
-                  <ol>
-                    <li>Visit <a href="https://takeout.google.com" target="_blank" class="link link-primary">takeout.google.com</a></li>
-                    <li>Deselect all products, then select only "Location History"</li>
-                    <li>Click "Next step"</li>
-                    <li>Choose delivery method (email or Drive)</li>
-                    <li>Select file type: ZIP and size: 2GB</li>
-                    <li>Click "Create export"</li>
-                    <li>Wait for email notification (can take hours/days for large exports)</li>
-                    <li>Download and extract the ZIP file</li>
-                    <li>Locate the JSON file in "Location History" folder</li>
-                  </ol>
+            <!-- Step 2: Export Instructions -->
+            @if (currentStep() === 2) {
+              <div class="mb-6">
+                <h2 class="text-xl font-bold mb-2">Export Your Timeline Data</h2>
+                <p class="text-base-content/60 text-sm">Follow these instructions to export your data</p>
+              </div>
+
+              <!-- Platform Tabs -->
+              <div class="bg-base-200/80 rounded-xl p-1 mb-6">
+                <div class="grid grid-cols-3 gap-1">
+                  <button
+                    type="button"
+                    class="py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
+                    [class]="selectedPlatform() === 'android'
+                      ? 'bg-primary text-primary-content shadow-sm'
+                      : 'text-base-content/70 hover:bg-base-300/50'"
+                    (click)="selectedPlatform.set('android')"
+                  >
+                    Android
+                  </button>
+                  <button
+                    type="button"
+                    class="py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
+                    [class]="selectedPlatform() === 'ios'
+                      ? 'bg-primary text-primary-content shadow-sm'
+                      : 'text-base-content/70 hover:bg-base-300/50'"
+                    (click)="selectedPlatform.set('ios')"
+                  >
+                    iOS
+                  </button>
+                  <button
+                    type="button"
+                    class="py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
+                    [class]="selectedPlatform() === 'takeout'
+                      ? 'bg-primary text-primary-content shadow-sm'
+                      : 'text-base-content/70 hover:bg-base-300/50'"
+                    (click)="selectedPlatform.set('takeout')"
+                  >
+                    Takeout
+                  </button>
                 </div>
-              }
+              </div>
+
+              <!-- Instructions List -->
+              <div class="rounded-xl bg-base-100/80 border border-base-300/50 p-5">
+                @if (selectedPlatform() === 'android') {
+                  <ol class="space-y-3 text-sm">
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>Open Google Maps app on your Android device</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap your profile picture in the top right</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Select "Your Timeline"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Tap the three dots (⋮) menu</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Select "Settings and privacy"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Scroll to "Location History" section</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Tap "Download your Timeline data"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>Choose JSON format and download</span></li>
+                  </ol>
+                }
+
+                @if (selectedPlatform() === 'ios') {
+                  <ol class="space-y-3 text-sm">
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>Open Google Maps app on your iPhone</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap your profile picture in the top right</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Select "Your Timeline"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Tap the settings gear icon</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Select "Export Timeline data"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Choose JSON format and share to Files app</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Save the file and note its location</span></li>
+                  </ol>
+                }
+
+                @if (selectedPlatform() === 'takeout') {
+                  <ol class="space-y-3 text-sm">
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>Visit <a href="https://takeout.google.com" target="_blank" class="text-primary hover:underline">takeout.google.com</a></span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Deselect all, then select only "Location History"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Click "Next step"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Choose delivery method (email or Drive)</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Select file type: ZIP and size: 2GB</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Click "Create export"</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Wait for email (can take hours/days)</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>Download and extract the ZIP file</span></li>
+                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">9</span><span>Find JSON in "Location History" folder</span></li>
+                  </ol>
+                }
+              </div>
             }
 
             <!-- Step 3: File Upload -->
             @if (currentStep() === 3) {
-              <h2 class="card-title mb-4">Upload Timeline File</h2>
-              <p class="mb-6 text-base-content/70">
-                Select your Google Timeline JSON file to import:
-              </p>
+              <div class="mb-6">
+                <h2 class="text-xl font-bold mb-2">Upload Timeline File</h2>
+                <p class="text-base-content/60 text-sm">Select your Google Timeline JSON file</p>
+              </div>
 
               <!-- Info about intelligent matching -->
-              <div class="alert alert-info mb-4">
-                <ng-icon name="heroCheckCircle" class="w-5 h-5" />
-                <div>
-                  <div class="font-bold">Duplicate Detection Active</div>
-                  <div class="text-sm">
-                    We'll automatically match venues by Place ID and proximity to prevent duplicates.
-                    You can safely re-upload the same file.
+              <div class="rounded-xl bg-success/10 border border-success/20 p-4 mb-6">
+                <div class="flex gap-3">
+                  <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-success/15 shrink-0">
+                    <ng-icon name="heroCheckCircle" size="20" class="text-success" />
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-sm">Duplicate Detection Active</h4>
+                    <p class="text-xs text-base-content/60 mt-1">We'll match venues by Place ID and proximity. You can safely re-upload the same file.</p>
                   </div>
                 </div>
               </div>
 
-              <!-- File Input -->
-              <div class="form-control w-full mb-4">
-                <label class="label">
-                  <span class="label-text">Choose JSON file</span>
-                </label>
+              <!-- File Drop Zone -->
+              <div class="rounded-xl border-2 border-dashed border-base-300 hover:border-primary/50 transition-colors p-8 text-center bg-base-100/50">
                 <input
                   type="file"
                   accept=".json"
-                  class="file-input file-input-bordered w-full"
+                  class="hidden"
+                  id="file-input"
                   (change)="onFileSelected($event)"
                 />
+                <label for="file-input" class="cursor-pointer">
+                  <div class="flex flex-col items-center">
+                    <div class="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 mb-4">
+                      <ng-icon name="heroCloudArrowUp" size="28" class="text-primary" />
+                    </div>
+                    <p class="font-medium text-sm mb-1">Click to upload or drag and drop</p>
+                    <p class="text-xs text-base-content/50">JSON files only (max 100MB)</p>
+                  </div>
+                </label>
               </div>
 
               <!-- File Info -->
               @if (selectedFile()) {
-                <div class="alert" [class.alert-success]="fileValidation().valid" [class.alert-error]="!fileValidation().valid">
-                  <ng-icon [name]="fileValidation().valid ? 'heroCheckCircle' : 'heroXCircle'" class="w-5 h-5" />
-                  <div>
-                    <div class="font-bold">{{ selectedFile()?.name }}</div>
-                    <div class="text-sm">
-                      @if (fileValidation().valid) {
-                        Size: {{ formatFileSize(fileValidation().fileSize!) }} •
-                        Places: {{ fileValidation().placeCount }}
-                      } @else {
-                        {{ fileValidation().error }}
-                      }
+                <div class="mt-4 rounded-xl p-4"
+                     [class]="fileValidation().valid ? 'bg-success/10 border border-success/20' : 'bg-error/10 border border-error/20'">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
+                         [class]="fileValidation().valid ? 'bg-success/15' : 'bg-error/15'">
+                      <ng-icon [name]="fileValidation().valid ? 'heroCheckCircle' : 'heroXCircle'" size="20"
+                               [class]="fileValidation().valid ? 'text-success' : 'text-error'" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-sm truncate">{{ selectedFile()?.name }}</div>
+                      <div class="text-xs text-base-content/60">
+                        @if (fileValidation().valid) {
+                          {{ formatFileSize(fileValidation().fileSize!) }} • {{ fileValidation().placeCount }} places
+                        } @else {
+                          {{ fileValidation().error }}
+                        }
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -222,24 +290,25 @@ interface FileValidationResult {
               <!-- Upload Button -->
               @if (selectedFile() && fileValidation().valid) {
                 <button
-                  class="btn btn-primary btn-block mt-4"
+                  type="button"
+                  class="w-full mt-4 py-3 px-4 rounded-xl bg-primary text-primary-content font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   (click)="startUpload()"
                   [disabled]="isUploading()"
                 >
-                  <ng-icon name="heroCloudArrowUp" class="w-5 h-5" />
+                  <ng-icon name="heroCloudArrowUp" size="20" />
                   Start Import
                 </button>
               }
             }
 
-            <!-- Step 4: Processing (T051 +-T078) -->
+            <!-- Step 4: Processing -->
             @if (currentStep() === 4) {
-              <h2 class="card-title mb-4">Processing Import</h2>
-              <p class="mb-6 text-base-content/70">
-                Please wait while we process your Timeline data...
-              </p>
+              <div class="text-center mb-6">
+                <h2 class="text-xl font-bold mb-2">Processing Import</h2>
+                <p class="text-base-content/60 text-sm">Please wait while we process your data</p>
+              </div>
 
-              <!-- Async Import Progress (T076-T078) -->
+              <!-- Async Import Progress -->
               @if (isAsyncImport() && asyncJobId()) {
                 <app-import-progress
                   [jobId]="asyncJobId()!"
@@ -249,78 +318,98 @@ interface FileValidationResult {
               }
 
               <!-- Sync Import Loading -->
-              @if (!isAsyncImport()) {
-                <div class="flex flex-col items-center justify-center py-8">
-                  <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
-                  <p class="text-lg font-semibold">Importing visits...</p>
-                  <p class="text-sm text-base-content/70 mt-2">
-                    This may take a few minutes for large files
-                  </p>
+              @if (!isAsyncImport() && !uploadError()) {
+                <div class="flex flex-col items-center justify-center py-12">
+                  <div class="relative">
+                    <div class="w-16 h-16 rounded-full border-4 border-primary/20"></div>
+                    <div class="absolute inset-0 w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                  </div>
+                  <p class="font-semibold mt-6">Importing visits...</p>
+                  <p class="text-sm text-base-content/60 mt-2">This may take a few minutes for large files</p>
                 </div>
               }
 
               @if (uploadError()) {
-                <div class="alert alert-error mt-4">
-                  <ng-icon name="heroXCircle" class="w-5 h-5" />
-                  <div>
-                    <div class="font-bold">Import Failed</div>
-                    <div class="text-sm">{{ uploadError() }}</div>
+                <div class="rounded-xl bg-error/10 border border-error/20 p-4 mt-4">
+                  <div class="flex gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-error/15 shrink-0">
+                      <ng-icon name="heroXCircle" size="20" class="text-error" />
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-sm text-error">Import Failed</h4>
+                      <p class="text-xs text-base-content/60 mt-1">{{ uploadError() }}</p>
+                    </div>
                   </div>
                 </div>
-                <button class="btn btn-outline mt-4" (click)="resetWizard()">
+                <button
+                  type="button"
+                  class="w-full mt-4 py-2.5 px-4 rounded-xl bg-base-200 text-base-content font-medium hover:bg-base-300 transition-colors"
+                  (click)="resetWizard()"
+                >
                   Try Again
                 </button>
               }
             }
 
-            <!-- Step 5: Results (T052) -->
+            <!-- Step 5: Results -->
             @if (currentStep() === 5) {
-              <h2 class="card-title mb-4">Import Complete!</h2>
+              <div class="text-center mb-6">
+                <div class="flex items-center justify-center w-16 h-16 rounded-full bg-success/15 mx-auto mb-4">
+                  <ng-icon name="heroCheckCircle" size="32" class="text-success" />
+                </div>
+                <h2 class="text-xl font-bold mb-2">Import Complete!</h2>
+                <p class="text-base-content/60 text-sm">Your visits have been imported successfully</p>
+              </div>
 
               @if (importResult()) {
-                <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
-                  <div class="stat">
-                    <div class="stat-title">Total Places</div>
-                    <div class="stat-value text-primary">{{ importResult()!.total_places }}</div>
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                  <div class="rounded-xl bg-primary/10 border border-primary/20 p-4 text-center">
+                    <div class="text-2xl font-bold text-primary">{{ importResult()!.total_places }}</div>
+                    <div class="text-xs text-base-content/60 mt-1">Total Places</div>
                   </div>
-                  <div class="stat">
-                    <div class="stat-title">Visits Created</div>
-                    <div class="stat-value text-success">{{ importResult()!.visits_created }}</div>
+                  <div class="rounded-xl bg-success/10 border border-success/20 p-4 text-center">
+                    <div class="text-2xl font-bold text-success">{{ importResult()!.visits_created }}</div>
+                    <div class="text-xs text-base-content/60 mt-1">Created</div>
                   </div>
-                  <div class="stat">
-                    <div class="stat-title">Skipped</div>
-                    <div class="stat-value text-warning">{{ importResult()!.visits_skipped }}</div>
+                  <div class="rounded-xl bg-warning/10 border border-warning/20 p-4 text-center">
+                    <div class="text-2xl font-bold text-warning">{{ importResult()!.visits_skipped }}</div>
+                    <div class="text-xs text-base-content/60 mt-1">Skipped</div>
                   </div>
-                  <div class="stat">
-                    <div class="stat-title">New Venues</div>
-                    <div class="stat-value">{{ importResult()!.new_venues_created }}</div>
+                  <div class="rounded-xl bg-secondary/10 border border-secondary/20 p-4 text-center">
+                    <div class="text-2xl font-bold text-secondary">{{ importResult()!.new_venues_created }}</div>
+                    <div class="text-xs text-base-content/60 mt-1">New Venues</div>
                   </div>
                 </div>
 
                 <!-- Processing Time -->
-                <div class="alert alert-info mb-4">
-                  <ng-icon name="heroCheckCircle" class="w-5 h-5" />
-                  <span>
-                    Processing completed in {{ formatProcessingTime(importResult()!.processing_time_ms) }}
-                  </span>
+                <div class="rounded-xl bg-info/10 border border-info/20 p-3 mb-4">
+                  <div class="flex items-center justify-center gap-2 text-sm">
+                    <ng-icon name="heroCheckCircle" size="16" class="text-info" />
+                    <span>Completed in {{ formatProcessingTime(importResult()!.processing_time_ms) }}</span>
+                  </div>
                 </div>
 
                 <!-- Tier Statistics -->
                 @if (importResult()!.tier_statistics) {
-                  <div class="mb-4">
-                    <h3 class="font-bold mb-2">Verification Breakdown:</h3>
-                    <div class="flex gap-2 flex-wrap">
-                      <div class="badge badge-primary badge-lg">
-                        Tier 1: {{ importResult()!.tier_statistics!.tier1_matches }}
+                  <div class="rounded-xl bg-base-100/80 border border-base-300/50 p-4 mb-4">
+                    <h3 class="font-semibold text-sm mb-3">Verification Breakdown</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                      <div class="p-2 rounded-lg bg-primary/10">
+                        <div class="font-semibold text-primary">{{ importResult()!.tier_statistics!.tier1_matches }}</div>
+                        <div class="text-xs text-base-content/50">Tier 1</div>
                       </div>
-                      <div class="badge badge-secondary badge-lg">
-                        Tier 2: {{ importResult()!.tier_statistics!.tier2_matches }}
+                      <div class="p-2 rounded-lg bg-secondary/10">
+                        <div class="font-semibold text-secondary">{{ importResult()!.tier_statistics!.tier2_matches }}</div>
+                        <div class="text-xs text-base-content/50">Tier 2</div>
                       </div>
-                      <div class="badge badge-accent badge-lg">
-                        Tier 3: {{ importResult()!.tier_statistics!.tier3_matches }}
+                      <div class="p-2 rounded-lg bg-accent/10">
+                        <div class="font-semibold text-accent">{{ importResult()!.tier_statistics!.tier3_matches }}</div>
+                        <div class="text-xs text-base-content/50">Tier 3</div>
                       </div>
-                      <div class="badge badge-ghost badge-lg">
-                        Unverified: {{ importResult()!.tier_statistics!.unverified }}
+                      <div class="p-2 rounded-lg bg-base-200">
+                        <div class="font-semibold">{{ importResult()!.tier_statistics!.unverified }}</div>
+                        <div class="text-xs text-base-content/50">Unverified</div>
                       </div>
                     </div>
                   </div>
@@ -328,40 +417,46 @@ interface FileValidationResult {
 
                 <!-- Errors -->
                 @if (importResult()!.errors.length > 0) {
-                  <div class="collapse collapse-arrow bg-base-300 mb-4">
-                    <input type="checkbox" />
-                    <div class="collapse-title font-medium">
-                      <ng-icon name="heroExclamationTriangle" class="w-5 h-5 inline" />
+                  <details class="rounded-xl bg-base-100/80 border border-base-300/50 mb-4">
+                    <summary class="p-4 cursor-pointer font-medium text-sm flex items-center gap-2">
+                      <ng-icon name="heroExclamationTriangle" size="16" class="text-warning" />
                       View Errors ({{ importResult()!.errors.length }})
-                    </div>
-                    <div class="collapse-content">
+                    </summary>
+                    <div class="px-4 pb-4">
                       <ul class="space-y-2">
                         @for (error of importResult()!.errors.slice(0, 10); track error.timestamp) {
-                          <li class="text-sm">
-                            <span class="font-bold">{{ error.place_name }}</span>
+                          <li class="text-sm p-2 rounded-lg bg-error/5">
+                            <span class="font-medium">{{ error.place_name }}</span>
                             @if (error.address) {
-                              <span class="text-base-content/70"> - {{ error.address }}</span>
+                              <span class="text-base-content/60"> - {{ error.address }}</span>
                             }
-                            <br />
-                            <span class="text-error">{{ error.error }}</span>
+                            <div class="text-xs text-error mt-1">{{ error.error }}</div>
                           </li>
                         }
                         @if (importResult()!.errors.length > 10) {
-                          <li class="text-sm text-base-content/70">
+                          <li class="text-xs text-base-content/50 text-center">
                             ...and {{ importResult()!.errors.length - 10 }} more
                           </li>
                         }
                       </ul>
                     </div>
-                  </div>
+                  </details>
                 }
 
                 <!-- Action Buttons -->
-                <div class="flex gap-4">
-                  <button class="btn btn-primary flex-1" (click)="viewTimeline()">
+                <div class="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    class="py-3 px-4 rounded-xl bg-primary text-primary-content font-medium hover:bg-primary/90 transition-colors"
+                    (click)="viewTimeline()"
+                  >
                     View Timeline
                   </button>
-                  <button class="btn btn-outline flex-1" (click)="importAnother()">
+                  <button
+                    type="button"
+                    class="py-3 px-4 rounded-xl bg-base-200 text-base-content font-medium hover:bg-base-300 transition-colors"
+                    (click)="importAnother()"
+                  >
                     Import Another
                   </button>
                 </div>
@@ -369,22 +464,35 @@ interface FileValidationResult {
             }
 
             <!-- Navigation Buttons -->
-            <div class="card-actions justify-between mt-8">
+            <div class="flex justify-between mt-8 pt-6 border-t border-base-300/50">
               @if (currentStep() > 1 && currentStep() < 4) {
-                <button class="btn btn-ghost" (click)="previousStep()">
-                  <ng-icon name="heroArrowLeft" class="w-4 h-4" />
+                <button
+                  type="button"
+                  class="flex items-center gap-2 py-2.5 px-4 rounded-xl text-base-content/70 hover:bg-base-200 transition-colors"
+                  (click)="previousStep()"
+                >
+                  <ng-icon name="heroArrowLeft" size="16" />
                   Back
                 </button>
               }
               @if (currentStep() === 1) {
-                <button class="btn btn-ghost" (click)="cancel()">
+                <button
+                  type="button"
+                  class="py-2.5 px-4 rounded-xl text-base-content/70 hover:bg-base-200 transition-colors"
+                  (click)="cancel()"
+                >
                   Cancel
                 </button>
+                <div></div>
               }
               @if (currentStep() === 2) {
-                <button class="btn btn-primary" (click)="nextStep()">
+                <button
+                  type="button"
+                  class="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-primary text-primary-content font-medium hover:bg-primary/90 transition-colors ml-auto"
+                  (click)="nextStep()"
+                >
                   Next
-                  <ng-icon name="heroArrowRight" class="w-4 h-4" />
+                  <ng-icon name="heroArrowRight" size="16" />
                 </button>
               }
             </div>

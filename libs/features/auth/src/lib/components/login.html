@@ -26,7 +26,8 @@
       <div class="divider">OR</div>
       }
 
-      <!-- Tab Navigation (T042) -->
+      <!-- Tab Navigation (only show if magic link is enabled) -->
+      @if (showMagicLinkOption()) {
       <div role="tablist" class="mb-4 tabs tabs-border">
         <button
           role="tab"
@@ -51,6 +52,7 @@
           Magic Link
         </button>
       </div>
+      }
 
       <!-- Email/Password Sign In Form -->
       <form

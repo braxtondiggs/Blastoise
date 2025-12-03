@@ -14,3 +14,4 @@ export * from './lib/components/upgrade-prompt';
 export * from './lib/components/auth-callback';
 export * from './lib/components/password-reset';
 export * from './lib/components/web-limitation-notice';
+export * from './lib/components/location-permission-notice';

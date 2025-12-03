@@ -32,243 +32,196 @@ export interface NotificationPreferences {
   viewProviders: [provideIcons({ heroBell, heroMapPin, heroGlobeAlt, heroChartBar, heroShare })],
   template: `
     <div class="space-y-6">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="avatar placeholder">
-          <div class="bg-primary/10 text-primary rounded-lg w-12 flex items-center justify-center">
-            <ng-icon name="heroBell" size="24" />
-          </div>
+      <!-- Section Header -->
+      <div class="flex items-center gap-4 mb-6">
+        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
+          <ng-icon name="heroBell" size="24" class="text-primary" />
         </div>
         <div>
           <h2 class="text-2xl font-bold">Notification Settings</h2>
-          <p class="text-sm text-base-content/60">
-            Choose which notifications you'd like to receive
-          </p>
+          <p class="text-sm text-base-content/60">Choose which notifications you'd like to receive</p>
         </div>
       </div>
 
-        <!-- Loading State -->
-        @if (isLoading()) {
-          <div class="flex items-center justify-center py-8">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
-          </div>
-        }
+      <!-- Loading State -->
+      @if (isLoading()) {
+        <div class="flex items-center justify-center py-12">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+      }
 
       <!-- Settings Form -->
       @if (!isLoading()) {
         <div class="space-y-6">
           <!-- Visit Notifications Section -->
-          <div class="card bg-base-100 shadow-sm border border-base-300">
-            <div class="card-body p-4">
-              <div class="flex items-center gap-2 mb-4">
-                <ng-icon name="heroMapPin" size="20" class="text-primary" />
-                <h3 class="font-semibold text-lg">Visit Tracking</h3>
+          <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+            <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+              <div class="flex items-center gap-2">
+                <ng-icon name="heroMapPin" size="18" class="text-primary" />
+                <h3 class="font-semibold">Visit Tracking</h3>
               </div>
-              <div class="space-y-4">
-                <!-- Visit Detected -->
-                <div class="form-control">
-                  <label class="label cursor-pointer justify-start gap-4">
-                    <input
-                      type="checkbox"
-                      [(ngModel)]="preferences.visitDetected"
-                      (change)="onPreferenceChange()"
-                      class="toggle toggle-primary"
-                      aria-label="Enable visit detected notifications"
-                    />
-                    <span class="label-text">
-                      <div class="font-medium">Visit Detected (Arrival)</div>
-                      <div class="text-sm text-base-content/60">Notify when you arrive at a brewery or winery</div>
-                    </span>
-                  </label>
+            </div>
+            <div class="p-4 space-y-1">
+              <!-- Visit Detected -->
+              <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
+                <div class="flex-1 pr-4">
+                  <div class="font-medium text-sm">Visit Detected (Arrival)</div>
+                  <div class="text-xs text-base-content/60 mt-0.5">Notify when you arrive at a brewery or winery</div>
                 </div>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="preferences.visitDetected"
+                  (change)="onPreferenceChange()"
+                  class="toggle toggle-primary toggle-sm"
+                  aria-label="Enable visit detected notifications"
+                />
+              </label>
 
-                <!-- Visit Ended -->
-                <div class="form-control">
-                  <label class="label cursor-pointer justify-start gap-4">
-                    <input
-                      type="checkbox"
-                      [(ngModel)]="preferences.visitEnded"
-                      (change)="onPreferenceChange()"
-                      class="toggle toggle-primary"
-                      aria-label="Enable visit ended notifications"
-                    />
-                    <span class="label-text">
-                      <div class="font-medium">Visit Ended (Departure)</div>
-                      <div class="text-sm text-base-content/60">Notify when you leave a venue with visit summary</div>
-                    </span>
-                  </label>
+              <!-- Visit Ended -->
+              <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
+                <div class="flex-1 pr-4">
+                  <div class="font-medium text-sm">Visit Ended (Departure)</div>
+                  <div class="text-xs text-base-content/60 mt-0.5">Notify when you leave a venue with visit summary</div>
                 </div>
-              </div>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="preferences.visitEnded"
+                  (change)="onPreferenceChange()"
+                  class="toggle toggle-primary toggle-sm"
+                  aria-label="Enable visit ended notifications"
+                />
+              </label>
             </div>
           </div>
 
           <!-- Discovery Notifications Section -->
-          <div class="card bg-base-100 shadow-sm border border-base-300">
-            <div class="card-body p-4">
-              <div class="flex items-center gap-2 mb-4">
-                <ng-icon name="heroGlobeAlt" size="20" class="text-primary" />
-                <h3 class="font-semibold text-lg">Venue Discovery</h3>
+          <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+            <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+              <div class="flex items-center gap-2">
+                <ng-icon name="heroGlobeAlt" size="18" class="text-primary" />
+                <h3 class="font-semibold">Venue Discovery</h3>
               </div>
-              <div class="space-y-4">
-                <!-- New Nearby Venues -->
-                <div class="form-control">
-                  <label class="label cursor-pointer justify-start gap-4">
-                    <input
-                      type="checkbox"
-                      [(ngModel)]="preferences.newNearbyVenues"
-                      (change)="onPreferenceChange()"
-                      class="toggle toggle-primary"
-                      aria-label="Enable new nearby venues notifications"
-                    />
-                    <span class="label-text">
-                      <div class="font-medium">New Nearby Venues</div>
-                      <div class="text-sm text-base-content/60">Notify when new breweries or wineries are added near you</div>
-                    </span>
-                  </label>
+            </div>
+            <div class="p-4">
+              <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
+                <div class="flex-1 pr-4">
+                  <div class="font-medium text-sm">New Nearby Venues</div>
+                  <div class="text-xs text-base-content/60 mt-0.5">Notify when new breweries or wineries are added near you</div>
                 </div>
-              </div>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="preferences.newNearbyVenues"
+                  (change)="onPreferenceChange()"
+                  class="toggle toggle-primary toggle-sm"
+                  aria-label="Enable new nearby venues notifications"
+                />
+              </label>
             </div>
           </div>
 
           <!-- Summary Notifications Section -->
-          <div class="card bg-base-100 shadow-sm border border-base-300">
-            <div class="card-body p-4">
-              <div class="flex items-center gap-2 mb-4">
-                <ng-icon name="heroChartBar" size="20" class="text-primary" />
-                <h3 class="font-semibold text-lg">Summaries</h3>
+          <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+            <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+              <div class="flex items-center gap-2">
+                <ng-icon name="heroChartBar" size="18" class="text-primary" />
+                <h3 class="font-semibold">Summaries</h3>
               </div>
-              <div class="space-y-4">
-                <!-- Weekly Summary -->
-                <div class="form-control">
-                  <label class="label cursor-pointer justify-start gap-4">
-                    <input
-                      type="checkbox"
-                      [(ngModel)]="preferences.weeklySummary"
-                      (change)="onPreferenceChange()"
-                      class="toggle toggle-primary"
-                      aria-label="Enable weekly summary notifications"
-                    />
-                    <span class="label-text">
-                      <div class="font-medium">Weekly Visit Summary</div>
-                      <div class="text-sm text-base-content/60">Receive a weekly recap of your visits every Sunday</div>
-                    </span>
-                  </label>
+            </div>
+            <div class="p-4">
+              <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
+                <div class="flex-1 pr-4">
+                  <div class="font-medium text-sm">Weekly Visit Summary</div>
+                  <div class="text-xs text-base-content/60 mt-0.5">Receive a weekly recap of your visits every Sunday</div>
                 </div>
-              </div>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="preferences.weeklySummary"
+                  (change)="onPreferenceChange()"
+                  class="toggle toggle-primary toggle-sm"
+                  aria-label="Enable weekly summary notifications"
+                />
+              </label>
             </div>
           </div>
 
           <!-- Sharing Notifications Section -->
-          <div class="card bg-base-100 shadow-sm border border-base-300">
-            <div class="card-body p-4">
-              <div class="flex items-center gap-2 mb-4">
-                <ng-icon name="heroShare" size="20" class="text-primary" />
-                <h3 class="font-semibold text-lg">Sharing</h3>
+          <div class="rounded-xl bg-base-100/80 border border-base-300/50 overflow-hidden">
+            <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+              <div class="flex items-center gap-2">
+                <ng-icon name="heroShare" size="18" class="text-primary" />
+                <h3 class="font-semibold">Sharing</h3>
               </div>
-              <div class="space-y-4">
-                <!-- Sharing Activity -->
-                <div class="form-control">
-                  <label class="label cursor-pointer justify-start gap-4">
-                    <input
-                      type="checkbox"
-                      [(ngModel)]="preferences.sharingActivity"
-                      (change)="onPreferenceChange()"
-                      class="toggle toggle-primary"
-                      aria-label="Enable sharing activity notifications"
-                    />
-                    <span class="label-text">
-                      <div class="font-medium">Sharing Activity</div>
-                      <div class="text-sm text-base-content/60">Notify when someone views your shared visits</div>
-                    </span>
-                  </label>
+            </div>
+            <div class="p-4">
+              <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
+                <div class="flex-1 pr-4">
+                  <div class="font-medium text-sm">Sharing Activity</div>
+                  <div class="text-xs text-base-content/60 mt-0.5">Notify when someone views your shared visits</div>
                 </div>
-              </div>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="preferences.sharingActivity"
+                  (change)="onPreferenceChange()"
+                  class="toggle toggle-primary toggle-sm"
+                  aria-label="Enable sharing activity notifications"
+                />
+              </label>
             </div>
           </div>
 
           <!-- Permission Request Notice -->
           @if (canRequestPermission()) {
-            <div class="alert alert-info shadow-sm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="stroke-current shrink-0 h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div class="flex-1">
-                <h4 class="font-bold">Enable Browser Notifications</h4>
-                <p class="text-sm">Allow notifications to receive visit alerts and updates.</p>
+            <div class="rounded-xl bg-gradient-to-r from-info/10 to-info/5 border border-info/20 p-4">
+              <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-info/15 shrink-0">
+                  <ng-icon name="heroBell" size="20" class="text-info" />
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-semibold text-sm">Enable Browser Notifications</h4>
+                  <p class="text-xs text-base-content/60 mt-1">Allow notifications to receive visit alerts and updates.</p>
+                </div>
+                <button
+                  type="button"
+                  class="py-2 px-4 rounded-xl bg-info text-info-content font-medium text-sm hover:bg-info/90 transition-colors"
+                  (click)="requestPermission()"
+                >
+                  Enable
+                </button>
               </div>
-              <button class="btn btn-sm btn-primary" (click)="requestPermission()">
-                Enable Notifications
-              </button>
             </div>
           }
 
           <!-- Permission Denied Notice -->
           @if (isPermissionDenied()) {
-            <div class="alert alert-warning shadow-sm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="stroke-current shrink-0 h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              <div>
-                <h4 class="font-bold">Notifications Blocked</h4>
-                <p class="text-sm">You previously denied notification permission. To receive alerts, please enable notifications in your browser settings for this site.</p>
+            <div class="rounded-xl bg-gradient-to-r from-warning/10 to-warning/5 border border-warning/20 p-4">
+              <div class="flex gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/15 shrink-0">
+                  <svg class="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-sm">Notifications Blocked</h4>
+                  <p class="text-xs text-base-content/60 mt-1">You previously denied notification permission. Please enable it in your browser settings for this site.</p>
+                </div>
               </div>
             </div>
           }
 
-          <!-- Save Success Message -->
+          <!-- Status Messages -->
           @if (saveSuccess()) {
-            <div class="alert alert-success shadow-sm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="stroke-current shrink-0 h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-success/10 border border-success/20 text-sm text-success">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Notification preferences saved successfully!</span>
             </div>
           }
 
-          <!-- Error Message -->
           @if (error()) {
-            <div class="alert alert-error shadow-sm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="stroke-current shrink-0 h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-error/10 border border-error/20 text-sm text-error">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{{ error() }}</span>
             </div>

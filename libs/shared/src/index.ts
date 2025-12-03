@@ -11,7 +11,6 @@ export * from './types/geolocation.types';
 
 // Services (abstractions only - no platform-specific code)
 export * from './services/geolocation-provider';
-export * from './services/notification.service';
 
 // Utils
 export * from './utils/date.utils';

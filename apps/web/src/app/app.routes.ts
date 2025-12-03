@@ -1,4 +1,5 @@
 import { Route } from '@angular/router';
+import { authGuard, onboardingGuard } from '@blastoise/features-auth';
 
 /**
  * App routing configuration with lazy-loaded modules
@@ -8,6 +9,8 @@ import { Route } from '@angular/router';
  * - Auth guard is lazy loaded to reduce initial bundle
  * - Feature modules split into separate chunks
  * - Public routes (shared visits) loaded independently
+ *
+ * Note: Map page removed - map is now integrated into the visits/timeline page
  */
 export const appRoutes: Route[] = [
   {
@@ -42,19 +45,8 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'visits',
-    canActivate: [
-      async () => (await import('@blastoise/features-auth')).authGuard,
-      async () => (await import('@blastoise/features-auth')).onboardingGuard,
-    ],
+    canActivate: [authGuard, onboardingGuard],
     loadChildren: () => import('./pages/visits/visits.routes').then((m) => m.visitsRoutes),
-  },
-  {
-    path: 'map',
-    canActivate: [
-      async () => (await import('@blastoise/features-auth')).authGuard,
-      async () => (await import('@blastoise/features-auth')).onboardingGuard,
-    ],
-    loadChildren: () => import('./pages/map/map.routes').then((m) => m.mapRoutes),
   },
   {
     path: 'shared/:shareId',
@@ -62,10 +54,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'settings',
-    canActivate: [
-      async () => (await import('@blastoise/features-auth')).authGuard,
-      async () => (await import('@blastoise/features-auth')).onboardingGuard,
-    ],
+    canActivate: [authGuard, onboardingGuard],
     loadChildren: () => import('./pages/settings/settings.routes').then((m) => m.settingsRoutes),
   },
   {

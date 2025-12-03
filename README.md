@@ -351,6 +351,10 @@ NODE_ENV=production
 # Security
 CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
+# Feature Flags
+ENABLE_GUEST_MODE=false    # Enable anonymous usage without account (mobile only)
+ENABLE_MAGIC_LINK=false    # Enable passwordless login via email
+
 # Monitoring
 SENTRY_DSN=your-sentry-dsn
 ```

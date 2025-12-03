@@ -314,6 +314,10 @@ DATABASE_PORT=5432
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=postgres
 DATABASE_NAME=blastoise
+
+# Feature Flags (Optional)
+ENABLE_GUEST_MODE=false    # Enable anonymous usage without account (mobile only)
+ENABLE_MAGIC_LINK=false    # Enable passwordless login via email
 ```
 
 **Web/Mobile Environment** (`apps/web/.env` or `apps/mobile/.env`):

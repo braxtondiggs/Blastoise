@@ -38,12 +38,7 @@ export class AuthController {
       );
 
       // Set refresh token in httpOnly cookie
-      response.cookie('refreshToken', result.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      this.setRefreshTokenCookie(response, result.refresh_token);
 
       // Check if request is from mobile app (Capacitor sends specific origin)
       const isMobileApp = this.isMobileRequest(request);
@@ -88,27 +83,19 @@ export class AuthController {
       );
 
       // Set refresh token in httpOnly cookie
-      response.cookie('refreshToken', result.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      this.setRefreshTokenCookie(response, result.refresh_token);
 
       // Check if request is from mobile app
       const isMobileApp = this.isMobileRequest(request);
-      console.log(`[Auth Login] isMobileApp: ${isMobileApp}, origin: ${request.headers.origin}`);
 
       // Return access token and user info (include refresh_token for mobile apps)
-      const responsePayload = {
+      return {
         access_token: result.access_token,
         ...(isMobileApp && { refresh_token: result.refresh_token }),
         token_type: result.token_type,
         expires_in: result.expires_in,
         user: result.user,
       };
-      console.log(`[Auth Login] Response includes refresh_token: ${!!responsePayload.refresh_token}`);
-      return responsePayload;
     } catch {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -120,6 +107,7 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async refresh(
     @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
     @Body() body: { refresh_token?: string }
   ) {
     // Accept refresh token from cookie (web) or request body (mobile)
@@ -131,6 +119,11 @@ export class AuthController {
 
     try {
       const result = await this.authService.refreshAccessToken(refreshToken);
+
+      // Update the refresh token cookie (token rotation for web)
+      if (result.refresh_token) {
+        this.setRefreshTokenCookie(response, result.refresh_token);
+      }
 
       // Check if request is from mobile app
       const isMobileApp = this.isMobileRequest(request);
@@ -216,5 +209,22 @@ export class AuthController {
       origin.startsWith('http://10.') ||
       origin.startsWith('http://192.168.')
     );
+  }
+
+  /**
+   * Set refresh token cookie with appropriate settings for dev/prod
+   */
+  private setRefreshTokenCookie(response: Response, refreshToken: string): void {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    response.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      // Use 'lax' for same-site requests (works across ports in dev)
+      // In production with different domains, may need 'none' with secure: true
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
   }
 }
