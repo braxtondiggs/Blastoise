@@ -36,6 +36,7 @@ export class TrackingManagerService implements OnDestroy {
   private backgroundWatcherId: string | null = null;
   private isInitialized = false;
   private isTrackingActive = false;
+  private isPaused = false; // Track if we're paused (vs fully stopped)
 
   /**
    * Initialize tracking manager
@@ -120,7 +121,7 @@ export class TrackingManagerService implements OnDestroy {
    * Stop location tracking
    */
   async stopTracking(): Promise<void> {
-    if (!this.isTrackingActive) {
+    if (!this.isTrackingActive && !this.isPaused) {
       return;
     }
 
@@ -132,6 +133,7 @@ export class TrackingManagerService implements OnDestroy {
       }
 
       this.isTrackingActive = false;
+      this.isPaused = false; // Reset paused state on explicit stop
     } catch (error) {
       console.error('[TrackingManager] Failed to stop tracking:', error);
     }
@@ -262,17 +264,70 @@ export class TrackingManagerService implements OnDestroy {
 
       if (isActive) {
         // App came to foreground
-        if (prefs.locationTrackingEnabled && !this.isTrackingActive) {
-          await this.startTracking(prefs.backgroundTrackingEnabled);
+        if (prefs.locationTrackingEnabled) {
+          if (this.isPaused) {
+            // Resume from paused state (preserves visit state)
+            await this.resumeTracking();
+          } else if (!this.isTrackingActive) {
+            // Fresh start
+            await this.startTracking(prefs.backgroundTrackingEnabled);
+          }
         }
       } else {
         // App went to background
         if (!prefs.backgroundTrackingEnabled && this.isTrackingActive) {
-          // Stop tracking if background tracking is disabled
-          await this.stopTracking();
+          // PAUSE (not stop) tracking if background tracking is disabled
+          // This preserves the active visit state
+          await this.pauseTracking();
         }
       }
     });
+  }
+
+  /**
+   * Pause tracking (for background mode) - preserves visit state
+   */
+  private async pauseTracking(): Promise<void> {
+    if (!this.isTrackingActive || this.isPaused) {
+      return;
+    }
+
+    try {
+      await this.visitTrackerService.pauseTracking();
+
+      if (Capacitor.isNativePlatform()) {
+        await this.disableBackgroundTracking();
+      }
+
+      this.isPaused = true;
+      this.isTrackingActive = false;
+      console.log('[TrackingManager] Paused tracking (visit state preserved)');
+    } catch (error) {
+      console.error('[TrackingManager] Failed to pause tracking:', error);
+    }
+  }
+
+  /**
+   * Resume tracking from paused state
+   */
+  private async resumeTracking(): Promise<void> {
+    if (!this.isPaused) {
+      return;
+    }
+
+    try {
+      await this.visitTrackerService.resumeTracking();
+
+      this.isPaused = false;
+      this.isTrackingActive = true;
+      console.log('[TrackingManager] Resumed tracking (visit state restored)');
+    } catch (error) {
+      console.error('[TrackingManager] Failed to resume tracking:', error);
+      // If resume fails, try a fresh start
+      this.isPaused = false;
+      const prefs = this.preferencesService.getCurrentPreferences();
+      await this.startTracking(prefs.backgroundTrackingEnabled);
+    }
   }
 
   /**

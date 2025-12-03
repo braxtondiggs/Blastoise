@@ -171,6 +171,86 @@ export class GeofenceService {
   }
 
   /**
+   * Pause tracking (for background mode) - keeps geofence state
+   * Use this when app goes to background to avoid losing visit state
+   */
+  async pauseTracking(): Promise<void> {
+    if (this.watchId) {
+      await this.geolocationProvider.clearWatch(this.watchId);
+      this.watchId = null;
+    }
+
+    if (this.locationCheckInterval) {
+      clearInterval(this.locationCheckInterval);
+      this.locationCheckInterval = null;
+    }
+
+    // Persist state before pausing (in case app gets killed)
+    this.persistState();
+
+    this.isTrackingSignal.set(false);
+    // NOTE: We intentionally DO NOT clear activeGeofencesSignal here
+    // This preserves the geofence entry state across background transitions
+  }
+
+  /**
+   * Resume tracking (after pause) - reuses existing geofence state
+   * Use this when app returns from background to continue existing visits
+   */
+  async resumeTracking(): Promise<void> {
+    // Check permissions first
+    const permission = await this.checkPermissions();
+    if (permission !== LocationPermission.GRANTED) {
+      throw new Error('Location permission not granted');
+    }
+
+    // Start watching position (geofences are already registered)
+    try {
+      this.watchId = await this.geolocationProvider.watchPosition(
+        (position, error) => {
+          if (error) {
+            console.error('Error watching position:', error);
+            return;
+          }
+
+          if (position) {
+            this.currentPositionSignal.set(position.coords);
+            this.checkGeofences(position.coords, position.timestamp);
+          }
+        },
+        {
+          enableHighAccuracy: HIGH_ACCURACY,
+          timeout: TIMEOUT_MS,
+          maximumAge: 0,
+        }
+      );
+
+      this.isTrackingSignal.set(true);
+
+      // Restart interval-based check
+      this.locationCheckInterval = setInterval(() => {
+        this.performLocationCheck();
+      }, LOCATION_UPDATE_INTERVAL_MS);
+    } catch (error) {
+      console.error('Error resuming location tracking:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if there are active geofences (user currently inside venues)
+   */
+  hasActiveGeofences(): boolean {
+    const activeGeofences = this.activeGeofencesSignal();
+    for (const geofence of activeGeofences.values()) {
+      if (geofence.enteredAt !== undefined) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Register geofences for venues
    */
   private registerGeofences(venues: Venue[]): void {

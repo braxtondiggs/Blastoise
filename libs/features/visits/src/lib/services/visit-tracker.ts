@@ -44,6 +44,10 @@ export class VisitTrackerService {
     lastReset: new Date(),
   };
 
+  // Track recent departures to prevent duplicate visits from GPS fluctuation
+  private recentDepartures = new Map<string, number>(); // venueId -> timestamp
+  private readonly DUPLICATE_PREVENTION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
   /**
    * Start tracking visits for given venues
    */
@@ -76,6 +80,38 @@ export class VisitTrackerService {
 
     // Clear active visits (but they should already be saved locally)
     this.activeVisitsSignal.set(new Map());
+  }
+
+  /**
+   * Pause tracking (for background mode) - keeps visit state
+   * Use this when app goes to background without background tracking enabled
+   */
+  async pauseTracking(): Promise<void> {
+    await this.geofenceService.pauseTracking();
+
+    if (this.geofenceSubscription) {
+      this.geofenceSubscription.unsubscribe();
+      this.geofenceSubscription = null;
+    }
+
+    // NOTE: We intentionally DO NOT clear activeVisitsSignal here
+    // This preserves the active visit state across background transitions
+  }
+
+  /**
+   * Resume tracking (after pause) - continues existing visits
+   * Use this when app returns from background
+   */
+  async resumeTracking(): Promise<void> {
+    // Resume geofence tracking
+    await this.geofenceService.resumeTracking();
+
+    // Re-subscribe to geofence transitions
+    this.geofenceSubscription = this.geofenceService
+      .getGeofenceTransitions()
+      .subscribe((transition) => {
+        this.handleGeofenceTransition(transition);
+      });
   }
 
   /**
@@ -118,6 +154,20 @@ export class VisitTrackerService {
     if (activeVisits.has(venue.id)) {
       console.log(`Already have active visit for venue ${venue.id}`);
       return;
+    }
+
+    // Check for recent departure (prevents duplicate visits from GPS fluctuation/app lifecycle)
+    const recentDepartureTime = this.recentDepartures.get(venue.id);
+    if (recentDepartureTime) {
+      const timeSinceDeparture = Date.now() - recentDepartureTime;
+      if (timeSinceDeparture < this.DUPLICATE_PREVENTION_WINDOW_MS) {
+        console.log(
+          `Ignoring arrival for venue ${venue.id} - departed ${Math.round(timeSinceDeparture / 1000)}s ago (within ${this.DUPLICATE_PREVENTION_WINDOW_MS / 1000}s window)`
+        );
+        return;
+      }
+      // Outside window, clear the record
+      this.recentDepartures.delete(venue.id);
     }
 
     // Create new visit with rounded timestamp (T088: Timestamp rounding)
@@ -207,6 +257,9 @@ export class VisitTrackerService {
 
     // Send visit ended notification
     this.notificationService.notifyVisitEnded(venue.name, durationMinutes, updatedVisit.id);
+
+    // Record departure to prevent duplicate visits from GPS fluctuation
+    this.recentDepartures.set(venue.id, Date.now());
 
     console.log(
       `Visit ended at ${venue.name} (departure: ${updatedVisit.departure_time}, duration: ${durationMinutes}m)`
