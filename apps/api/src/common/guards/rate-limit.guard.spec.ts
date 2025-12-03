@@ -3,16 +3,6 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { RateLimitGuard, RateLimitOptions } from './rate-limit.guard';
 
-var backendMocks: {
-  cacheServiceMock?: {
-    get: jest.Mock;
-    set: jest.Mock;
-    increment: jest.Mock;
-    ttl: jest.Mock;
-  };
-  rateLimitKeyMock?: jest.Mock;
-} = {};
-
 jest.mock('@blastoise/data-backend', () => {
   const cacheServiceMock = {
     get: jest.fn(),
@@ -26,16 +16,18 @@ jest.mock('@blastoise/data-backend', () => {
       `ratelimit:${identifier}:${endpoint}`
   );
 
-  backendMocks.cacheServiceMock = cacheServiceMock;
-  backendMocks.rateLimitKeyMock = rateLimitKeyMock;
-
   return {
     CacheService: jest.fn(() => cacheServiceMock),
     CacheKeys: {
       rateLimit: rateLimitKeyMock,
     },
+    __cacheServiceMock: cacheServiceMock,
+    __rateLimitKeyMock: rateLimitKeyMock,
   };
 });
+
+const { __cacheServiceMock: cacheServiceMock, __rateLimitKeyMock: rateLimitKeyMock } =
+  jest.requireMock('@blastoise/data-backend');
 
 const createContext = (
   rateLimit?: RateLimitOptions,
@@ -83,19 +75,19 @@ describe('RateLimitGuard', () => {
     const result = await guard.canActivate(context);
 
     expect(result).toBe(true);
-    expect(backendMocks.cacheServiceMock?.get).not.toHaveBeenCalled();
+    expect(cacheServiceMock.get).not.toHaveBeenCalled();
   });
 
   it('sets initial counter on first request in window', async () => {
     const rateLimit: RateLimitOptions = { ttl: 60, limit: 2 };
     const context = createContext(rateLimit);
-    backendMocks.cacheServiceMock?.get.mockResolvedValue(null);
+    cacheServiceMock.get.mockResolvedValue(null);
 
     const guard = (context as any).guard as RateLimitGuard;
     const allowed = await guard.canActivate(context);
 
     expect(allowed).toBe(true);
-    expect(backendMocks.cacheServiceMock?.set).toHaveBeenCalledWith(
+    expect(cacheServiceMock.set).toHaveBeenCalledWith(
       'ratelimit:ip:unknown:GET:/test',
       1,
       { ttl: 60 }
@@ -105,8 +97,8 @@ describe('RateLimitGuard', () => {
   it('throws when request limit exceeded', async () => {
     const rateLimit: RateLimitOptions = { ttl: 30, limit: 1 };
     const context = createContext(rateLimit);
-    backendMocks.cacheServiceMock?.get.mockResolvedValue(2);
-    backendMocks.cacheServiceMock?.ttl.mockResolvedValue(12);
+    cacheServiceMock.get.mockResolvedValue(2);
+    cacheServiceMock.ttl.mockResolvedValue(12);
 
     const guard = (context as any).guard as RateLimitGuard;
 
@@ -123,13 +115,13 @@ describe('RateLimitGuard', () => {
       url: '/actions',
       route: { path: '/actions' },
     });
-    backendMocks.cacheServiceMock?.get.mockResolvedValue(0);
+    cacheServiceMock.get.mockResolvedValue(0);
 
     const guard = (context as any).guard as RateLimitGuard;
     await guard.canActivate(context);
 
-    expect(backendMocks.rateLimitKeyMock).toHaveBeenCalledWith('user:user-1', 'POST:/actions');
-    expect(backendMocks.cacheServiceMock?.increment).toHaveBeenCalledWith(
+    expect(rateLimitKeyMock).toHaveBeenCalledWith('user:user-1', 'POST:/actions');
+    expect(cacheServiceMock.increment).toHaveBeenCalledWith(
       'ratelimit:user:user-1:POST:/actions'
     );
   });

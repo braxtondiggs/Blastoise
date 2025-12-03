@@ -15,8 +15,7 @@
         "jestConfig": "apps/api-e2e/jest.config.ts",
         "passWithNoTests": true,
         "testTimeout": 30000
-      },
-      "dependsOn": ["api:build", "api:serve"]
+      }
     }
   }
 }

@@ -18,18 +18,8 @@ const config: Config = {
   ],
   coveragePathIgnorePatterns: [
     '/src/migrations/',
-    '/src/scripts/',
-    '/src/workers/',
-    '/src/modules/import/',
-    '/src/common/email/',
-    '/src/common/filters/',
-    '/src/common/interceptors/',
-    '/src/common/sentry/',
-    '/src/common/health/',
-    '/src/auth/jobs/',
-    '/src/auth/strategies/',
-    '/src/modules/sharing/',
-  ]
+    '/src/database/',
+  ],
 };
 
 export default config;

@@ -130,6 +130,11 @@ export class AuthService {
       const { value: storedRefreshToken } = await Preferences.get({ key: REFRESH_TOKEN_KEY });
       const { value: storedAccessToken } = await Preferences.get({ key: ACCESS_TOKEN_KEY });
 
+      console.log('[AuthService] loadPersistedTokens', {
+        hasRefreshToken: !!storedRefreshToken,
+        hasAccessToken: !!storedAccessToken,
+      });
+
       if (storedRefreshToken) {
         this.storedRefreshToken = storedRefreshToken;
       }
@@ -142,8 +147,8 @@ export class AuthService {
         const decoded = jwtDecode<JwtPayload>(storedAccessToken);
         this.loadUserFromToken(decoded);
       }
-    } catch {
-      // Failed to load persisted tokens - user will need to log in
+    } catch (error) {
+      console.error('[AuthService] Failed to load persisted tokens:', error);
     }
   }
 
@@ -151,15 +156,19 @@ export class AuthService {
    * Persist tokens to Capacitor Preferences (mobile only)
    */
   private async persistTokens(accessToken: string, refreshToken?: string): Promise<void> {
-    if (!this.isNative) return;
+    if (!this.isNative) {
+      console.log('[AuthService] persistTokens skipped - not native');
+      return;
+    }
 
     try {
+      console.log('[AuthService] persistTokens', { hasRefreshToken: !!refreshToken });
       await Preferences.set({ key: ACCESS_TOKEN_KEY, value: accessToken });
       if (refreshToken) {
         await Preferences.set({ key: REFRESH_TOKEN_KEY, value: refreshToken });
       }
     } catch (error) {
-      console.error('Failed to persist tokens:', error);
+      console.error('[AuthService] Failed to persist tokens:', error);
     }
   }
 
@@ -304,6 +313,12 @@ export class AuthService {
       ? { refresh_token: this.storedRefreshToken }
       : {};
 
+    console.log('[AuthService] refreshAccessToken called', {
+      isNative: this.isNative,
+      hasStoredToken: !!this.storedRefreshToken,
+      bodyHasToken: !!body.refresh_token,
+    });
+
     return this.http
       .post<RefreshResponse>(`${this.apiUrl}/auth/refresh`, body, { withCredentials: true })
       .pipe(
@@ -405,6 +420,11 @@ export class AuthService {
    * Handle successful auth response
    */
   private async handleAuthResponse(response: AuthResponse): Promise<void> {
+    console.log('[AuthService] handleAuthResponse', {
+      isNative: this.isNative,
+      hasRefreshToken: !!response.refresh_token,
+    });
+
     this.accessToken = response.access_token;
     this.authState.setAccessToken(response.access_token);
 
@@ -412,6 +432,8 @@ export class AuthService {
     if (this.isNative && response.refresh_token) {
       this.storedRefreshToken = response.refresh_token;
       await this.persistTokens(response.access_token, response.refresh_token);
+    } else if (this.isNative && !response.refresh_token) {
+      console.warn('[AuthService] Native platform but no refresh_token in response!');
     }
 
     const session: AuthSession = {

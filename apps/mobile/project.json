@@ -16,13 +16,29 @@
       },
       "dependsOn": ["web:build"]
     },
+    "sync:ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["npx cap sync ios"],
+        "cwd": "apps/mobile"
+      },
+      "dependsOn": ["web:build"]
+    },
+    "sync:android": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["npx cap sync android"],
+        "cwd": "apps/mobile"
+      },
+      "dependsOn": ["web:build"]
+    },
     "open:ios": {
       "executor": "nx:run-commands",
       "options": {
         "commands": ["npx cap open ios"],
         "cwd": "apps/mobile"
       },
-      "dependsOn": ["sync"]
+      "dependsOn": ["sync:ios"]
     },
     "open:android": {
       "executor": "nx:run-commands",
@@ -30,7 +46,7 @@
         "commands": ["npx cap open android"],
         "cwd": "apps/mobile"
       },
-      "dependsOn": ["sync"]
+      "dependsOn": ["sync:android"]
     },
     "run:ios": {
       "executor": "nx:run-commands",
@@ -38,7 +54,7 @@
         "commands": ["npx cap run ios"],
         "cwd": "apps/mobile"
       },
-      "dependsOn": ["sync"]
+      "dependsOn": ["sync:ios"]
     },
     "run:android": {
       "executor": "nx:run-commands",
@@ -46,7 +62,7 @@
         "commands": ["npx cap run android"],
         "cwd": "apps/mobile"
       },
-      "dependsOn": ["sync"]
+      "dependsOn": ["sync:android"]
     }
   }
 }

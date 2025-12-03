@@ -16,22 +16,25 @@
       "path": "../../libs/workers"
     },
     {
-      "path": "../../libs/features/visits"
-    },
-    {
-      "path": "../../libs/features/settings"
-    },
-    {
       "path": "../../libs/data"
     },
     {
+      "path": "../../libs/features/visits"
+    },
+    {
       "path": "../../libs/features"
+    },
+    {
+      "path": "../../libs/features/settings"
     },
     {
       "path": "../../libs/shared/auth-state"
     },
     {
       "path": "../../libs/features/auth"
+    },
+    {
+      "path": "../../libs/data-frontend"
     },
     {
       "path": "../../libs/shared/tsconfig.lib.json"
