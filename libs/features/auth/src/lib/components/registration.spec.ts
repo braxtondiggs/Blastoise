@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Registration } from './registration';
 import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
+import { Subject } from 'rxjs';
 
 // Mock Capacitor
 jest.mock('@capacitor/core', () => ({
@@ -16,6 +17,7 @@ describe('Registration', () => {
   let authService: SpyObject<AuthService>;
   let authState: AuthStateService;
   let router: SpyObject<Router>;
+  let signUpSubject: Subject<any>;
 
   const createComponent = createComponentFactory({
     component: Registration,
@@ -29,10 +31,11 @@ describe('Registration', () => {
     authService = spectator.inject(AuthService);
     authState = spectator.inject(AuthStateService);
     router = spectator.inject(Router);
+    signUpSubject = new Subject<any>();
 
     // Default mock setup - use real AuthStateService with setter methods
     authState.setCurrentUser(null);
-    authService.signUp.mockResolvedValue({});
+    authService.signUp.mockReturnValue(signUpSubject.asObservable());
     router.navigate.mockResolvedValue(true);
 
     spectator.detectChanges();
@@ -83,7 +86,7 @@ describe('Registration', () => {
 
       expect(passwordControl.errors?.['minlength']).toBeTruthy();
 
-      passwordControl.setValue('validpassword');
+      passwordControl.setValue('Password123');
 
       expect(passwordControl.valid).toBe(true);
     });
@@ -228,34 +231,37 @@ describe('Registration', () => {
       spectator.detectChanges();
     });
 
-    it('should call AuthService.signUp on form submit', async () => {
-      await spectator.component.onSubmit();
+    it('should call AuthService.signUp on form submit', () => {
+      spectator.component.onSubmit();
+      signUpSubject.next({});
+      signUpSubject.complete();
 
       expect(authService.signUp).toHaveBeenCalledWith('test@example.com', 'password123');
     });
 
-    it('should show loading state during sign up', async () => {
-      const submitPromise = spectator.component.onSubmit();
+    it('should show loading state during sign up', () => {
+      spectator.component.onSubmit();
 
       expect(spectator.component.isLoading()).toBe(true);
 
-      await submitPromise;
+      signUpSubject.complete();
 
       expect(spectator.component.isLoading()).toBe(false);
     });
 
-    it('should navigate on successful sign up', async () => {
-      await spectator.component.onSubmit();
+    it('should navigate on successful sign up', () => {
+      spectator.component.onSubmit();
+      signUpSubject.next({});
+      signUpSubject.complete();
 
-      expect(router.navigate).toHaveBeenCalledWith(['/']);
+      expect(router.navigate).toHaveBeenCalledWith(['/visits']);
     });
 
-    it('should display error message on failed sign up', async () => {
-      authService.signUp.mockResolvedValue({
-        error: { message: 'User already registered' },
-      });
+    it('should display error message on failed sign up', () => {
+      spectator.component.onSubmit();
+      signUpSubject.next({ error: { message: 'User already registered' } });
+      signUpSubject.complete();
 
-      await spectator.component.onSubmit();
       spectator.detectChanges();
 
       expect(spectator.component.error()).toBeTruthy();

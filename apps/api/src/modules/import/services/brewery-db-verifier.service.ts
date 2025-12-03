@@ -122,14 +122,42 @@ export class BreweryDbVerifierService {
   }
 
   /**
+   * Discover breweries near a location (for venue discovery, not verification)
+   * Uses the same rate limiter as verification
+   * Returns all breweries found near the location (up to perPage limit)
+   */
+  async discoverNearby(
+    latitude: number,
+    longitude: number,
+    perPage = 20
+  ): Promise<BreweryDbResult[]> {
+    try {
+      this.logger.debug(`Discovering breweries near (${latitude}, ${longitude})`);
+
+      // Rate-limited API call
+      const breweries = await this.limiter.schedule(() =>
+        this.fetchBreweriesNearby(latitude, longitude, perPage)
+      );
+
+      this.logger.log(`Discovered ${breweries.length} breweries near (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+
+      return breweries;
+    } catch (error) {
+      this.logger.error(`Failed to discover breweries: ${error}`);
+      return [];
+    }
+  }
+
+  /**
    * Fetch breweries from Open Brewery DB API
-   * Returns up to 10 breweries sorted by distance
+   * Returns up to perPage breweries sorted by distance
    */
   private async fetchBreweriesNearby(
     latitude: number,
-    longitude: number
+    longitude: number,
+    perPage = 10
   ): Promise<BreweryDbResult[]> {
-    const url = `${this.baseUrl}?by_dist=${latitude},${longitude}&per_page=10`;
+    const url = `${this.baseUrl}?by_dist=${latitude},${longitude}&per_page=${perPage}`;
 
     try {
       const response = await fetch(url, {

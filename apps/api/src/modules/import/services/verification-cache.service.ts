@@ -23,10 +23,12 @@ export class VerificationCacheService {
   // Cache TTL in seconds
   private readonly TIER2_TTL = 30 * 24 * 60 * 60; // 30 days
   private readonly TIER3_TTL = 60 * 24 * 60 * 60; // 60 days
+  private readonly DISCOVERY_TTL = 24 * 60 * 60; // 24 hours
 
   // Redis key prefixes
   private readonly TIER2_PREFIX = 'venue:verify:tier2:';
   private readonly TIER3_PREFIX = 'venue:verify:tier3:';
+  private readonly DISCOVERY_PREFIX = 'venue:discovery:';
 
   constructor() {
     // Connect to Redis
@@ -203,19 +205,94 @@ export class VerificationCacheService {
   }
 
   /**
+   * Cache that an area has been searched for venue discovery
+   * Uses geo-grid with 0.1° precision (~11km grid cells)
+   * TTL: 24 hours
+   */
+  async cacheDiscoverySearch(
+    latitude: number,
+    longitude: number,
+    venuesFound: number
+  ): Promise<void> {
+    try {
+      const key = this.buildDiscoveryKey(latitude, longitude);
+      const value = {
+        searched_at: new Date().toISOString(),
+        venues_found: venuesFound,
+      };
+
+      await this.redis.setex(key, this.DISCOVERY_TTL, JSON.stringify(value));
+
+      this.logger.debug(
+        `Cached discovery search for grid (${this.roundToGrid(latitude)}, ${this.roundToGrid(longitude)}) - found ${venuesFound} venues`
+      );
+    } catch (error) {
+      this.logger.error(`Failed to cache discovery search: ${error}`);
+    }
+  }
+
+  /**
+   * Check if an area has been searched recently for venue discovery
+   * Returns null if not searched, or the search info if cached
+   */
+  async getDiscoverySearch(
+    latitude: number,
+    longitude: number
+  ): Promise<{ searched_at: string; venues_found: number } | null> {
+    try {
+      const key = this.buildDiscoveryKey(latitude, longitude);
+      const cached = await this.redis.get(key);
+
+      if (!cached) {
+        return null;
+      }
+
+      const result = JSON.parse(cached);
+
+      this.logger.debug(
+        `Discovery cache HIT for grid (${this.roundToGrid(latitude)}, ${this.roundToGrid(longitude)})`
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to retrieve discovery cache: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Build Redis key for discovery cache (geo-grid based)
+   * Format: venue:discovery:{lat_grid}:{lng_grid}
+   * Grid precision: 0.1° (~11km)
+   */
+  private buildDiscoveryKey(latitude: number, longitude: number): string {
+    const latGrid = this.roundToGrid(latitude);
+    const lngGrid = this.roundToGrid(longitude);
+    return `${this.DISCOVERY_PREFIX}${latGrid}:${lngGrid}`;
+  }
+
+  /**
+   * Round coordinate to 0.1° grid (~11km precision)
+   */
+  private roundToGrid(coord: number): string {
+    return (Math.round(coord * 10) / 10).toFixed(1);
+  }
+
+  /**
    * Clear all verification cache entries (for testing/maintenance)
    */
   async clearAllCache(): Promise<void> {
     try {
       const tier2Keys = await this.redis.keys(`${this.TIER2_PREFIX}*`);
       const tier3Keys = await this.redis.keys(`${this.TIER3_PREFIX}*`);
+      const discoveryKeys = await this.redis.keys(`${this.DISCOVERY_PREFIX}*`);
 
-      const allKeys = [...tier2Keys, ...tier3Keys];
+      const allKeys = [...tier2Keys, ...tier3Keys, ...discoveryKeys];
 
       if (allKeys.length > 0) {
         await this.redis.del(...allKeys);
         this.logger.log(
-          `Cleared ${allKeys.length} verification cache entries`
+          `Cleared ${allKeys.length} cache entries (tier2: ${tier2Keys.length}, tier3: ${tier3Keys.length}, discovery: ${discoveryKeys.length})`
         );
       }
     } catch (error) {
@@ -229,20 +306,23 @@ export class VerificationCacheService {
   async getCacheStats(): Promise<{
     tier2_count: number;
     tier3_count: number;
+    discovery_count: number;
     total: number;
   }> {
     try {
       const tier2Keys = await this.redis.keys(`${this.TIER2_PREFIX}*`);
       const tier3Keys = await this.redis.keys(`${this.TIER3_PREFIX}*`);
+      const discoveryKeys = await this.redis.keys(`${this.DISCOVERY_PREFIX}*`);
 
       return {
         tier2_count: tier2Keys.length,
         tier3_count: tier3Keys.length,
-        total: tier2Keys.length + tier3Keys.length,
+        discovery_count: discoveryKeys.length,
+        total: tier2Keys.length + tier3Keys.length + discoveryKeys.length,
       };
     } catch (error) {
       this.logger.error(`Failed to get cache stats: ${error}`);
-      return { tier2_count: 0, tier3_count: 0, total: 0 };
+      return { tier2_count: 0, tier3_count: 0, discovery_count: 0, total: 0 };
     }
   }
 

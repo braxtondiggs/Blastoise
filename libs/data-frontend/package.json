@@ -11,6 +11,7 @@
     "@angular/common": "*",
     "@capacitor/core": "*",
     "@capacitor/local-notifications": "*",
-    "rxjs": "*"
+    "rxjs": "*",
+    "jest-preset-angular": "*"
   }
 }

@@ -11,6 +11,7 @@ import { VenueMatchingService } from './services/venue-matching.service';
 import { BreweryDbVerifierService } from './services/brewery-db-verifier.service';
 import { GoogleSearchVerifierService } from './services/google-search-verifier.service';
 import { VerificationCacheService } from './services/verification-cache.service';
+import { OsmDiscoveryService } from './services/osm-discovery.service';
 import { Visit } from '../../entities/visit.entity';
 import { Venue } from '../../entities/venue.entity';
 import { ImportHistory } from '../../entities/import-history.entity';
@@ -42,7 +43,13 @@ import { ImportHistory } from '../../entities/import-history.entity';
     BreweryDbVerifierService,
     GoogleSearchVerifierService,
     VerificationCacheService,
+    OsmDiscoveryService,
   ],
-  exports: [ImportService],
+  exports: [
+    ImportService,
+    VerificationCacheService,
+    BreweryDbVerifierService,
+    OsmDiscoveryService,
+  ],
 })
 export class ImportModule {}

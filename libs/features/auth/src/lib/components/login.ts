@@ -28,6 +28,7 @@ export class Login implements OnInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly featureFlags = inject(FeatureFlagsService);
   private subscription: Subscription | null = null;
+  private magicLinkTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   // Reactive form for email/password login
   readonly loginForm = this.fb.group({
@@ -37,6 +38,9 @@ export class Login implements OnInit, OnDestroy {
 
   // Loading state signal
   readonly isLoading = signal(false);
+
+  // Auth initialization loading state
+  readonly isAuthLoading = signal(true);
 
   // Error message signal
   readonly error = signal<string | null>(null);
@@ -79,16 +83,27 @@ export class Login implements OnInit, OnDestroy {
    * If authenticated, redirect to main app
    * Also detect platform for feature flag combinations
    */
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     // Detect platform: native mobile (iOS/Android)
     if (isPlatformBrowser(this.platformId)) {
       const platform = Capacitor.getPlatform();
       this.isNativePlatform.set(platform === 'ios' || platform === 'android');
     }
 
+    // Wait for auth to initialize before checking authentication
+    const maxWaitMs = 5000;
+    const startTime = Date.now();
+    while (!this.authState.isInitialized() && Date.now() - startTime < maxWaitMs) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
     if (this.authState.isAuthenticated()) {
       this.router.navigate(['/visits']);
+      return;
     }
+
+    // Auth initialized and user is not authenticated - show login form
+    this.isAuthLoading.set(false);
   }
 
   /**
@@ -124,6 +139,10 @@ export class Login implements OnInit, OnDestroy {
     this.loginForm.disable(); // Disable form controls during loading
     this.error.set(null);
     this.showSuccessMessage.set(false); // Clear any previous success message
+    if (this.magicLinkTimeoutId) {
+      clearTimeout(this.magicLinkTimeoutId);
+      this.magicLinkTimeoutId = null;
+    }
 
     // Check mode and call appropriate auth method
     if (this.mode() === 'magic-link') {
@@ -131,6 +150,12 @@ export class Login implements OnInit, OnDestroy {
       this.authService.signInWithMagicLink(email as string).then((result) => {
         if (result.error) {
           this.error.set(mapAuthError(result.error));
+          this.showSuccessMessage.set(false);
+        } else {
+          this.showSuccessMessage.set(true);
+          this.magicLinkTimeoutId = setTimeout(() => {
+            this.showSuccessMessage.set(false);
+          }, 5000);
         }
         this.isLoading.set(false);
         this.loginForm.enable();
@@ -161,5 +186,8 @@ export class Login implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription?.unsubscribe();
+    if (this.magicLinkTimeoutId) {
+      clearTimeout(this.magicLinkTimeoutId);
+    }
   }
 }

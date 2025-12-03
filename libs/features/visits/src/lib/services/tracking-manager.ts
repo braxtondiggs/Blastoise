@@ -46,8 +46,6 @@ export class TrackingManagerService implements OnDestroy {
       return;
     }
 
-    console.log('[TrackingManager] Initializing...');
-
     // Subscribe to preference changes
     this.preferencesSubscription = this.preferencesService
       .getPreferences()
@@ -63,7 +61,6 @@ export class TrackingManagerService implements OnDestroy {
         )
       )
       .subscribe(async (settings) => {
-        console.log('[TrackingManager] Preferences changed:', settings);
         await this.handlePreferencesChange(settings);
       });
 
@@ -73,7 +70,6 @@ export class TrackingManagerService implements OnDestroy {
     }
 
     this.isInitialized = true;
-    console.log('[TrackingManager] Initialized');
   }
 
   /**
@@ -95,18 +91,14 @@ export class TrackingManagerService implements OnDestroy {
    */
   async startTracking(enableBackground = false): Promise<void> {
     if (this.isTrackingActive) {
-      console.log('[TrackingManager] Tracking already active');
       return;
     }
 
     try {
-      console.log('[TrackingManager] Starting tracking...', { enableBackground });
-
       // Load nearby venues to track
       const venues = await this.loadNearbyVenues();
 
       if (venues.length === 0) {
-        console.log('[TrackingManager] No venues to track');
         return;
       }
 
@@ -119,7 +111,6 @@ export class TrackingManagerService implements OnDestroy {
       }
 
       this.isTrackingActive = true;
-      console.log('[TrackingManager] Tracking started with', venues.length, 'venues');
     } catch (error) {
       console.error('[TrackingManager] Failed to start tracking:', error);
     }
@@ -134,8 +125,6 @@ export class TrackingManagerService implements OnDestroy {
     }
 
     try {
-      console.log('[TrackingManager] Stopping tracking...');
-
       await this.visitTrackerService.stopTracking();
 
       if (Capacitor.isNativePlatform()) {
@@ -143,7 +132,6 @@ export class TrackingManagerService implements OnDestroy {
       }
 
       this.isTrackingActive = false;
-      console.log('[TrackingManager] Tracking stopped');
     } catch (error) {
       console.error('[TrackingManager] Failed to stop tracking:', error);
     }
@@ -209,9 +197,6 @@ export class TrackingManagerService implements OnDestroy {
         },
         (location: Location | undefined, error: CallbackError | undefined) => {
           if (error) {
-            if (error.code === 'NOT_AUTHORIZED') {
-              console.warn('[TrackingManager] Background location not authorized');
-            }
             return;
           }
 
@@ -224,8 +209,6 @@ export class TrackingManagerService implements OnDestroy {
           }
         }
       );
-
-      console.log('[TrackingManager] Background tracking enabled');
     } catch (error) {
       console.error('[TrackingManager] Failed to enable background tracking:', error);
     }
@@ -242,8 +225,6 @@ export class TrackingManagerService implements OnDestroy {
 
       await BackgroundGeolocation.removeWatcher({ id: this.backgroundWatcherId });
       this.backgroundWatcherId = null;
-
-      console.log('[TrackingManager] Background tracking disabled');
     } catch (error) {
       console.error('[TrackingManager] Failed to disable background tracking:', error);
     }
@@ -254,8 +235,6 @@ export class TrackingManagerService implements OnDestroy {
    */
   private setupAppStateListener(): void {
     App.addListener('appStateChange', async ({ isActive }) => {
-      console.log('[TrackingManager] App state changed:', { isActive });
-
       const prefs = this.preferencesService.getCurrentPreferences();
 
       if (isActive) {

@@ -1,12 +1,3 @@
-/**
- * Tests for notification permission handling and preferences persistence:
- * - Permission request handling
- * - Permission denial tracking
- * - Browser-specific instructions
- * - Preferences persistence to localStorage
- * - Notification sending
- */
-
 import { TestBed } from '@angular/core/testing';
 import { NotificationService, NotificationPreferences } from './notification.service';
 

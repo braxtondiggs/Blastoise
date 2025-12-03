@@ -1,5 +1,6 @@
 import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
 import { randomUUID } from 'crypto';
+import { jest } from '@jest/globals';
 
 // Polyfill crypto.randomUUID for jsdom
 if (typeof globalThis.crypto === 'undefined') {
@@ -28,3 +29,26 @@ setupZoneTestEnv({
   errorOnUnknownElements: true,
   errorOnUnknownProperties: true,
 });
+
+// Mock Capacitor native APIs for tests
+jest.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: jest.fn(() => false) },
+  registerPlugin: jest.fn(() => ({})),
+}));
+
+jest.mock('@capacitor/preferences', () => ({
+  Preferences: {
+    get: jest.fn(async () => ({ value: null })),
+    set: jest.fn(async () => undefined),
+    remove: jest.fn(async () => undefined),
+    clear: jest.fn(async () => undefined),
+  },
+}));
+
+jest.mock('@capacitor/local-notifications', () => ({
+  LocalNotifications: {
+    requestPermissions: jest.fn(async () => ({ display: 'granted' })),
+    checkPermissions: jest.fn(async () => ({ display: 'granted' })),
+    schedule: jest.fn(async () => ({})),
+  },
+}));

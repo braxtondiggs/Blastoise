@@ -1,8 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimelineComponent } from '@blastoise/features-visits';
-import type { Venue, Coordinates, ApiResponse, VenueWithDistance } from '@blastoise/shared';
-import { VenuesApiService, VisitsLocalRepository } from '@blastoise/data';
+import type { Venue, Coordinates } from '@blastoise/shared';
+import { VisitsLocalRepository } from '@blastoise/data';
 import { provideIcons } from '@ng-icons/core';
 import { heroChevronUp, heroChevronDown } from '@ng-icons/heroicons/outline';
 import type { LatLngBounds } from 'leaflet';
@@ -65,7 +65,7 @@ import type { LatLngBounds } from 'leaflet';
   standalone: true,
 })
 export class TimelinePage implements OnInit {
-  private readonly venuesApi = inject(VenuesApiService);
+  // private readonly venuesApi = inject(VenuesApiService);
   private readonly visitsRepo = inject(VisitsLocalRepository);
 
   // Map state
@@ -102,7 +102,7 @@ export class TimelinePage implements OnInit {
               latitude: 45.5231,
               longitude: -122.6765,
             });
-            this.loadNearbyVenues();
+            // this.loadNearbyVenues();
           }
         );
       }
@@ -121,7 +121,7 @@ export class TimelinePage implements OnInit {
     }
   }
 
-  private loadNearbyVenues(): void {
+  /*private loadNearbyVenues(): void {
     const location = this.userLocation();
     if (!location) {
       return;
@@ -157,7 +157,7 @@ export class TimelinePage implements OnInit {
           this.mapErrorMessage.set('Unable to load nearby venues');
         },
       });
-  }
+  }*/
 
   onVenueSelected(venue: Venue): void {
     console.log('Venue selected:', venue);

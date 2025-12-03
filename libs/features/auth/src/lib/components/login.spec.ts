@@ -4,6 +4,9 @@ import { fakeAsync, tick } from '@angular/core/testing';
 import { Login } from './login';
 import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
+import { FeatureFlagsService } from '@blastoise/data-frontend';
+import { signal } from '@angular/core';
+import { Subject } from 'rxjs';
 
 // Mock Capacitor
 jest.mock('@capacitor/core', () => ({
@@ -17,10 +20,20 @@ describe('Login', () => {
   let authService: SpyObject<AuthService>;
   let authState: AuthStateService;
   let router: SpyObject<Router>;
+  let signInSubject: Subject<{ error?: Error }>;
 
   const createComponent = createComponentFactory({
     component: Login,
-    providers: [AuthStateService],
+    providers: [
+      AuthStateService,
+      {
+        provide: FeatureFlagsService,
+        useValue: {
+          guestModeEnabled: signal(true),
+          magicLinkEnabled: signal(true),
+        },
+      },
+    ],
     mocks: [AuthService, Router],
     detectChanges: false,
   });
@@ -30,12 +43,14 @@ describe('Login', () => {
     authService = spectator.inject(AuthService);
     authState = spectator.inject(AuthStateService);
     router = spectator.inject(Router);
+    signInSubject = new Subject<{ error?: Error }>();
 
     // Default mock setup - use real AuthStateService with setter methods
     authState.setCurrentUser(null);
     authState.setAnonymousMode(false);
+    authState.setInitialized(true);
     authService.enableAnonymousMode.mockReturnValue(undefined);
-    authService.signInWithPassword.mockResolvedValue({});
+    authService.signInWithPassword.mockReturnValue(signInSubject.asObservable());
     authService.signInWithMagicLink.mockResolvedValue({ error: null });
     router.navigate.mockResolvedValue(true);
 
@@ -187,33 +202,36 @@ describe('Login', () => {
     });
 
     it('should call AuthService.signInWithPassword on form submit', async () => {
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      signInSubject.next({});
+      signInSubject.complete();
 
       expect(authService.signInWithPassword).toHaveBeenCalledWith('test@example.com', 'validpassword');
     });
 
     it('should navigate to /visits on successful sign in', async () => {
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      signInSubject.next({});
+      signInSubject.complete();
 
       expect(router.navigate).toHaveBeenCalledWith(['/visits']);
     });
 
     it('should show loading state during sign in', async () => {
-      const submitPromise = spectator.component.onSubmit();
+      spectator.component.onSubmit();
 
       expect(spectator.component.isLoading()).toBe(true);
 
-      await submitPromise;
+      signInSubject.complete();
 
       expect(spectator.component.isLoading()).toBe(false);
     });
 
     it('should display error message on failed sign in', async () => {
-      authService.signInWithPassword.mockResolvedValue({
-        error: { message: 'Invalid login credentials' },
-      });
+      spectator.component.onSubmit();
+      signInSubject.next({ error: new Error('Invalid login credentials') });
+      signInSubject.complete();
 
-      await spectator.component.onSubmit();
       spectator.detectChanges();
 
       expect(spectator.component.error()).toBeTruthy();
@@ -230,15 +248,17 @@ describe('Login', () => {
       spectator.detectChanges();
     });
 
-    it('should call AuthService.signInWithMagicLink in magic link mode', async () => {
-      await spectator.component.onSubmit();
+    it('should call AuthService.signInWithMagicLink in magic link mode', fakeAsync(() => {
+      spectator.component.onSubmit();
+      tick();
 
       expect(authService.signInWithMagicLink).toHaveBeenCalledWith('test@example.com');
       expect(authService.signInWithPassword).not.toHaveBeenCalled();
-    });
+    }));
 
-    it('should show success message after magic link sent', async () => {
-      await spectator.component.onSubmit();
+    it('should show success message after magic link sent', fakeAsync(() => {
+      spectator.component.onSubmit();
+      tick();
       spectator.detectChanges();
 
       expect(spectator.component.showSuccessMessage()).toBe(true);
@@ -246,7 +266,7 @@ describe('Login', () => {
       const successAlert = spectator.query('[data-testid="magic-link-success"]');
       expect(successAlert).toBeTruthy();
       expect(successAlert?.textContent).toContain('Check your email');
-    });
+    }));
 
     it('should auto-dismiss success message after 5 seconds', fakeAsync(() => {
       spectator.component.onSubmit();
@@ -260,16 +280,17 @@ describe('Login', () => {
       expect(spectator.component.showSuccessMessage()).toBe(false);
     }));
 
-    it('should not show success message on magic link error', async () => {
+    it('should not show success message on magic link error', fakeAsync(() => {
       authService.signInWithMagicLink.mockResolvedValue({
         error: { message: 'Failed to send email' },
       });
 
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      tick();
       spectator.detectChanges();
 
       expect(spectator.component.showSuccessMessage()).toBe(false);
       expect(spectator.component.error()).toBeTruthy();
-    });
+    }));
   });
 });

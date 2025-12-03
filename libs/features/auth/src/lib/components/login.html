@@ -1,9 +1,21 @@
+@if (isAuthLoading()) {
+<!-- Show loading while checking auth state -->
+<div class="flex items-center justify-center min-h-screen bg-base-100">
+  <div class="text-center">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+</div>
+} @else {
 <div class="flex items-center justify-center min-h-screen bg-base-100">
   <div class="shadow-xl card w-96 bg-base-200">
     <div class="card-body">
       <!-- App Logo and Title -->
       <div class="flex flex-col items-center mb-6">
-        <img src="/assets/icons/icon-128x128.png" alt="Blastoise Logo" class="w-20 h-20 mb-4 rounded-xl" />
+        <img
+          src="/assets/icons/icon-128x128.png"
+          alt="Blastoise Logo"
+          class="w-20 h-20 mb-4 rounded-xl"
+        />
         <h2 class="mb-2 text-2xl font-bold card-title">Welcome to Blastoise</h2>
         <p class="text-center text-base-content/70">
           Track your brewery and winery visits automatically with privacy-first geofencing.
@@ -92,7 +104,10 @@
           <label class="label" for="email-input">
             <span class="label-text">Email</span>
           </label>
-          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="loginForm.controls.email.invalid && loginForm.controls.email.touched">
+          <label
+            class="flex items-center w-full gap-2 input input-bordered"
+            [class.input-error]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
+          >
             <ng-icon name="heroEnvelope" size="16" class="opacity-70" />
             <input
               id="email-input"
@@ -112,7 +127,7 @@
           <label class="label">
             <span
               id="email-error"
-              class="label-text-alt text-error mt-1 ml-2"
+              class="mt-1 ml-2 label-text-alt text-error"
               role="alert"
               data-testid="email-error"
             >
@@ -129,7 +144,10 @@
           <label class="label" for="password-input">
             <span class="label-text">Password</span>
           </label>
-          <label class="w-full flex items-center gap-2 input input-bordered" [class.input-error]="loginForm.controls.password.invalid && loginForm.controls.password.touched">
+          <label
+            class="flex items-center w-full gap-2 input input-bordered"
+            [class.input-error]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+          >
             <ng-icon name="heroKey" size="16" class="opacity-70" />
             <input
               id="password-input"
@@ -149,11 +167,13 @@
           <label class="label">
             <span
               id="password-error"
-              class="label-text-alt text-error mt-1 ml-2"
+              class="mt-1 ml-2 label-text-alt text-error"
               role="alert"
               data-testid="password-error"
             >
-              @if (loginForm.controls.password.errors?.['required']) { Password is required } @else if (loginForm.controls.password.errors?.['minlength']) { Password must be at least 8 characters }
+              @if (loginForm.controls.password.errors?.['required']) { Password is required } @else if (loginForm.controls.password.errors?.['minlength']) {
+                Password must be at least 8 characters
+              }
             </span>
           </label>
           }
@@ -182,19 +202,9 @@
         >
           @if (isLoading()) {
           <span class="loading loading-spinner"></span>
-          @if (mode() === 'magic-link') {
-            Sending link...
-          } @else {
-            Signing in...
-          }
-          } @else {
+          @if (mode() === 'magic-link') { Sending link... } @else { Signing in... } } @else {
           <ng-icon name="heroArrowRightOnRectangle" size="24" />
-          @if (mode() === 'magic-link') {
-            Send Magic Link
-          } @else {
-            Sign In
-          }
-          }
+          @if (mode() === 'magic-link') { Send Magic Link } @else { Sign In } }
         </button>
       </form>
 
@@ -218,3 +228,4 @@
     </div>
   </div>
 </div>
+}

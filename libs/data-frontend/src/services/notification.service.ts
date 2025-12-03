@@ -123,7 +123,17 @@ export class NotificationService {
    * Check if notifications are available and permitted
    */
   isNotificationEnabled(): boolean {
-    return this.permissionStatus$.value === 'granted';
+    const current = this.permissionStatus$.value;
+    if (current === 'granted') {
+      return true;
+    }
+
+    // Fallback to browser Notification.permission when status has not been checked yet
+    if (current === 'default' && typeof Notification !== 'undefined' && 'permission' in Notification) {
+      return Notification.permission === 'granted';
+    }
+
+    return false;
   }
 
   /**

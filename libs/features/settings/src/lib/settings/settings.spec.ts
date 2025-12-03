@@ -42,36 +42,36 @@ describe('SettingsComponent', () => {
     });
 
     it('should switch to notifications tab', () => {
-      const notificationsTab = spectator.query('button.tab:nth-child(2)');
+      const notificationsTab = spectator.query('[data-testid="notifications-tab"]');
       spectator.click(notificationsTab!);
 
       expect(spectator.component.activeTab()).toBe('notifications');
     });
 
     it('should switch to data tab', () => {
-      const dataTab = spectator.query('button.tab:nth-child(3)');
+      const dataTab = spectator.query('[data-testid="data-tab"]');
       spectator.click(dataTab!);
 
       expect(spectator.component.activeTab()).toBe('data');
     });
 
     it('should switch to account tab', () => {
-      const accountTab = spectator.query('button.tab:nth-child(4)');
+      const accountTab = spectator.query('[data-testid="account-tab"]');
       spectator.click(accountTab!);
 
       expect(spectator.component.activeTab()).toBe('account');
     });
 
     it('should show active state on selected tab', () => {
-      const privacyTab = spectator.query('button.tab:nth-child(1)');
-      expect(privacyTab).toHaveClass('tab-active');
+      const privacyTab = spectator.query('[data-testid="privacy-tab"]');
+      expect(privacyTab?.className).toContain('bg-primary');
 
-      const notificationsTab = spectator.query('button.tab:nth-child(2)');
+      const notificationsTab = spectator.query('[data-testid="notifications-tab"]');
       spectator.click(notificationsTab!);
       spectator.detectChanges();
 
-      expect(notificationsTab).toHaveClass('tab-active');
-      expect(privacyTab).not.toHaveClass('tab-active');
+      expect(notificationsTab?.className).toContain('bg-primary');
+      expect(privacyTab?.className).not.toContain('bg-primary');
     });
   });
 
@@ -94,20 +94,20 @@ describe('SettingsComponent', () => {
     });
 
     it('should show coming soon section', () => {
-      const comingSoonBadge = spectator.query('.badge-ghost');
-      expect(comingSoonBadge?.textContent).toContain('Coming Soon');
+      const comingSoonBadge = spectator.query('[data-testid="coming-soon-badge"]');
+      expect(comingSoonBadge?.textContent).toContain('Soon');
     });
   });
 
   describe('Header', () => {
     it('should display settings title', () => {
-      const title = spectator.query('h1.card-title');
+      const title = spectator.query('[data-testid="settings-title"]');
       expect(title?.textContent).toContain('Settings');
     });
 
     it('should display description', () => {
-      const description = spectator.query('.text-base-content\\/70');
-      expect(description?.textContent).toContain('Manage your preferences and account');
+      const description = spectator.query('[data-testid="settings-description"]');
+      expect(description?.textContent).toContain('Customize your Blastoise experience');
     });
   });
 });

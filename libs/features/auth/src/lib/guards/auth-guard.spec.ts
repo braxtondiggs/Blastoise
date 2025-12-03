@@ -1,27 +1,29 @@
 import { Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { authGuard } from './auth-guard';
-import { AuthService } from '../services/auth';
 import { TestBed } from '@angular/core/testing';
 import { EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { AuthStateService } from '@blastoise/shared/auth-state';
 
 describe('authGuard', () => {
   let router: Router;
-  let mockAuthService: {
+  let mockAuthState: {
     isAuthenticated: jest.Mock;
     isAnonymous: jest.Mock;
+    isInitialized: jest.Mock;
   };
 
   beforeEach(async () => {
-    mockAuthService = {
+    mockAuthState = {
       isAuthenticated: jest.fn(),
       isAnonymous: jest.fn(),
+      isInitialized: jest.fn().mockReturnValue(true),
     };
 
     await TestBed.configureTestingModule({
       providers: [
         {
-          provide: AuthService,
-          useValue: mockAuthService,
+          provide: AuthStateService,
+          useValue: mockAuthState,
         },
         {
           provide: Router,
@@ -46,42 +48,42 @@ describe('authGuard', () => {
     expect(authGuard).toBeTruthy();
   });
 
-  it('should allow navigation when user is authenticated', () => {
-    mockAuthService.isAuthenticated.mockReturnValue(true);
-    mockAuthService.isAnonymous.mockReturnValue(false);
+  it('should allow navigation when user is authenticated', async () => {
+    mockAuthState.isAuthenticated.mockReturnValue(true);
+    mockAuthState.isAnonymous.mockReturnValue(false);
 
     const route = {} as ActivatedRouteSnapshot;
     const state = { url: '/visits' } as RouterStateSnapshot;
 
-    const result = runInInjectionContext(TestBed.inject(EnvironmentInjector), () =>
+    const result = await runInInjectionContext(TestBed.inject(EnvironmentInjector), () =>
       authGuard(route, state)
     );
 
     expect(result).toBe(true);
   });
 
-  it('should allow navigation when user is in anonymous mode', () => {
-    mockAuthService.isAuthenticated.mockReturnValue(false);
-    mockAuthService.isAnonymous.mockReturnValue(true);
+  it('should allow navigation when user is in anonymous mode', async () => {
+    mockAuthState.isAuthenticated.mockReturnValue(false);
+    mockAuthState.isAnonymous.mockReturnValue(true);
 
     const route = {} as ActivatedRouteSnapshot;
     const state = { url: '/visits' } as RouterStateSnapshot;
 
-    const result = runInInjectionContext(TestBed.inject(EnvironmentInjector), () =>
+    const result = await runInInjectionContext(TestBed.inject(EnvironmentInjector), () =>
       authGuard(route, state)
     );
 
     expect(result).toBe(true);
   });
 
-  it('should redirect to login when user is not authenticated', () => {
-    mockAuthService.isAuthenticated.mockReturnValue(false);
-    mockAuthService.isAnonymous.mockReturnValue(false);
+  it('should redirect to login when user is not authenticated', async () => {
+    mockAuthState.isAuthenticated.mockReturnValue(false);
+    mockAuthState.isAnonymous.mockReturnValue(false);
 
     const route = {} as ActivatedRouteSnapshot;
     const state = { url: '/visits' } as RouterStateSnapshot;
 
-    const result = runInInjectionContext(TestBed.inject(EnvironmentInjector), () =>
+    const result = await runInInjectionContext(TestBed.inject(EnvironmentInjector), () =>
       authGuard(route, state)
     );
 

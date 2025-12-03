@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { UpgradePrompt } from './upgrade-prompt';
 import { AuthService } from '../services/auth';
 import { AuthStateService } from '@blastoise/shared/auth-state';
+import { Subject } from 'rxjs';
 
 // Mock Capacitor
 jest.mock('@capacitor/core', () => ({
@@ -16,6 +17,7 @@ describe('UpgradePrompt', () => {
   let authService: SpyObject<AuthService>;
   let authState: AuthStateService;
   let router: SpyObject<Router>;
+  let upgradeSubject: Subject<{ error?: Error }>;
 
   const createComponent = createComponentFactory({
     component: UpgradePrompt,
@@ -24,16 +26,25 @@ describe('UpgradePrompt', () => {
     detectChanges: false,
   });
 
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     spectator = createComponent();
     authService = spectator.inject(AuthService);
     authState = spectator.inject(AuthStateService);
     router = spectator.inject(Router);
+    upgradeSubject = new Subject<{ error?: Error }>();
 
     // Default mock setup - anonymous user (use real AuthStateService with setter methods)
     authState.setCurrentUser(null);
     authState.setAnonymousMode(true);
-    authService.upgradeToAuthenticated.mockResolvedValue({});
+    authService.upgradeToAuthenticated.mockReturnValue(upgradeSubject.asObservable());
     router.navigate.mockResolvedValue(true);
 
     spectator.detectChanges();
@@ -147,7 +158,9 @@ describe('UpgradePrompt', () => {
       spectator.component.upgradeForm.controls['password'].setValue('password123');
       spectator.component.upgradeForm.controls['confirmPassword'].setValue('password123');
 
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      upgradeSubject.next({});
+      upgradeSubject.complete();
 
       expect(spectator.component.migrationStatus()).toBe('complete');
     });
@@ -156,11 +169,10 @@ describe('UpgradePrompt', () => {
       spectator.component.upgradeForm.controls['email'].setValue('test@example.com');
       spectator.component.upgradeForm.controls['password'].setValue('password123');
       spectator.component.upgradeForm.controls['confirmPassword'].setValue('password123');
-      authService.upgradeToAuthenticated.mockResolvedValue({
-        error: { message: 'Migration failed' },
-      });
 
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      upgradeSubject.next({ error: new Error('Migration failed') });
+      upgradeSubject.complete();
 
       expect(spectator.component.migrationStatus()).toBe('failed');
     });
@@ -175,33 +187,35 @@ describe('UpgradePrompt', () => {
     });
 
     it('should call AuthService.upgradeToAuthenticated on form submit', async () => {
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      upgradeSubject.complete();
 
       expect(authService.upgradeToAuthenticated).toHaveBeenCalledWith('test@example.com', 'password123');
     });
 
     it('should show loading state during upgrade', async () => {
-      const submitPromise = spectator.component.onSubmit();
+      spectator.component.onSubmit();
 
       expect(spectator.component.isLoading()).toBe(true);
 
-      await submitPromise;
+      upgradeSubject.complete();
 
       expect(spectator.component.isLoading()).toBe(false);
     });
 
     it('should redirect on successful upgrade', async () => {
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      upgradeSubject.next({});
+      upgradeSubject.complete();
+      jest.runAllTimers();
 
       expect(router.navigate).toHaveBeenCalledWith(['/']);
     });
 
     it('should display error message on failed upgrade', async () => {
-      authService.upgradeToAuthenticated.mockResolvedValue({
-        error: { message: 'Email already registered' },
-      });
-
-      await spectator.component.onSubmit();
+      spectator.component.onSubmit();
+      upgradeSubject.next({ error: new Error('Email already registered') });
+      upgradeSubject.complete();
       spectator.detectChanges();
 
       expect(spectator.component.error()).toBeTruthy();

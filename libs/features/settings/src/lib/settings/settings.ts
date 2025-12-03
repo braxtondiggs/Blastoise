@@ -47,8 +47,8 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
                 </div>
               </div>
               <div>
-                <h1 class="text-2xl sm:text-3xl font-bold text-base-content">Settings</h1>
-                <p class="text-base-content/60 mt-1">Customize your Blastoise experience</p>
+                <h1 class="text-2xl sm:text-3xl font-bold text-base-content" data-testid="settings-title">Settings</h1>
+                <p class="text-base-content/60 mt-1" data-testid="settings-description">Customize your Blastoise experience</p>
               </div>
             </div>
           </div>
@@ -60,6 +60,7 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
             <button
               type="button"
               class="relative flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 py-3 px-2 sm:px-4 rounded-xl font-medium text-sm transition-all duration-200"
+              data-testid="privacy-tab"
               [class]="activeTab() === 'privacy'
                 ? 'bg-primary text-primary-content shadow-md'
                 : 'text-base-content/70 hover:bg-base-300/50 hover:text-base-content'"
@@ -71,6 +72,7 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
             <button
               type="button"
               class="relative flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 py-3 px-2 sm:px-4 rounded-xl font-medium text-sm transition-all duration-200"
+              data-testid="notifications-tab"
               [class]="activeTab() === 'notifications'
                 ? 'bg-primary text-primary-content shadow-md'
                 : 'text-base-content/70 hover:bg-base-300/50 hover:text-base-content'"
@@ -82,6 +84,7 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
             <button
               type="button"
               class="relative flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 py-3 px-2 sm:px-4 rounded-xl font-medium text-sm transition-all duration-200"
+              data-testid="data-tab"
               [class]="activeTab() === 'data'
                 ? 'bg-primary text-primary-content shadow-md'
                 : 'text-base-content/70 hover:bg-base-300/50 hover:text-base-content'"
@@ -93,6 +96,7 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
             <button
               type="button"
               class="relative flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 py-3 px-2 sm:px-4 rounded-xl font-medium text-sm transition-all duration-200"
+              data-testid="account-tab"
               [class]="activeTab() === 'account'
                 ? 'bg-primary text-primary-content shadow-md'
                 : 'text-base-content/70 hover:bg-base-300/50 hover:text-base-content'"
@@ -189,7 +193,7 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
                       <p class="text-xs text-base-content/50">Import from Apple Maps history</p>
                     </div>
                     <div class="ml-auto">
-                      <span class="badge badge-sm badge-outline">Soon</span>
+                      <span class="badge badge-sm badge-outline" data-testid="coming-soon-badge">Soon</span>
                     </div>
                   </div>
                 </div>

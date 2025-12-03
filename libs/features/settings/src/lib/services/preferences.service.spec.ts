@@ -142,16 +142,27 @@ describe('PreferencesService', () => {
 
   describe('Load from Backend', () => {
     it('should load preferences from backend successfully', (done) => {
-      const backendPreferences: UserPreferences = {
-        ...DEFAULT_PREFERENCES,
-        locationTrackingEnabled: false,
-        dataRetentionMonths: 24,
+      const backendPreferences: any = {
+        user_id: 'user-1',
+        location_tracking_enabled: false,
+        background_tracking_enabled: false,
+        sharing_preference: 'ask',
+        data_retention_months: 24,
+        notifications_enabled: true,
+        notification_preferences: {
+          visit_detected: true,
+          visit_ended: true,
+          new_nearby_venues: false,
+          weekly_summary: false,
+          sharing_activity: false,
+        },
       };
 
-      httpClient.get.mockReturnValue(of(backendPreferences));
+      httpClient.get.mockReturnValue(of({ success: true, data: backendPreferences }));
 
       spectator.service.loadFromBackend().subscribe((result) => {
-        expect(result).toEqual(backendPreferences);
+        expect(result.locationTrackingEnabled).toBe(false);
+        expect(result.dataRetentionMonths).toBe(24);
         done();
       });
     });

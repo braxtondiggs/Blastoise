@@ -15,7 +15,7 @@ import { authGuard, onboardingGuard } from '@blastoise/features-auth';
 export const appRoutes: Route[] = [
   {
     path: '',
-    redirectTo: '/auth/login',
+    redirectTo: '/visits',
     pathMatch: 'full',
   },
   {
