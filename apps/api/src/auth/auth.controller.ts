@@ -220,9 +220,10 @@ export class AuthController {
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
-      // Use 'lax' for same-site requests (works across ports in dev)
-      // In production with different domains, may need 'none' with secure: true
-      sameSite: isProduction ? 'strict' : 'lax',
+      // In production with cross-origin (API on different domain than web),
+      // we need 'none' to allow the cookie to be sent with cross-origin requests.
+      // 'none' requires secure: true (HTTPS)
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
     });

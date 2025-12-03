@@ -7,6 +7,7 @@ import {
   heroCog6Tooth,
 } from '@ng-icons/heroicons/outline';
 import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 
 /**
  * Location Permission Notice Component
@@ -122,6 +123,38 @@ export class LocationPermissionNotice implements OnInit, OnDestroy {
       return;
     }
 
+    // Use Capacitor Geolocation plugin for native platforms
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permission = await Geolocation.checkPermissions();
+        const locationStatus = permission.location;
+        const coarseStatus = permission.coarseLocation;
+
+        // Check if either fine or coarse location is granted
+        // Note: coarseLocation may be undefined on iOS
+        const isGranted = locationStatus === 'granted' || coarseStatus === 'granted';
+        const isDenied = locationStatus === 'denied' && (coarseStatus === 'denied' || coarseStatus === undefined);
+        const isPrompt = !isGranted && !isDenied;
+
+        if (isDenied) {
+          this.showNotice.set(true);
+          this.permissionDenied.set(true);
+        } else if (isPrompt) {
+          this.showNotice.set(true);
+          this.permissionDenied.set(false);
+        } else {
+          // Permission granted
+          this.showNotice.set(false);
+          this.permissionDenied.set(false);
+        }
+      } catch {
+        // Error checking permissions - assume needs permission
+        this.showNotice.set(true);
+      }
+      return;
+    }
+
+    // Web: use browser Permissions API
     if (!('geolocation' in navigator)) {
       this.showNotice.set(false);
       return;
@@ -160,16 +193,32 @@ export class LocationPermissionNotice implements OnInit, OnDestroy {
 
   async requestPermission(): Promise<void> {
     try {
-      await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
+      if (Capacitor.isNativePlatform()) {
+        // Use Capacitor Geolocation plugin for native platforms
+        const permission = await Geolocation.requestPermissions();
+        const isGranted = permission.location === 'granted' || permission.coarseLocation === 'granted';
+        if (isGranted) {
+          this.showNotice.set(false);
+          this.permissionDenied.set(false);
+        } else {
+          this.permissionDenied.set(true);
+        }
+      } else {
+        // Web: use browser geolocation
+        await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          });
         });
-      });
-      this.showNotice.set(false);
-      this.permissionDenied.set(false);
+        this.showNotice.set(false);
+        this.permissionDenied.set(false);
+      }
     } catch (error) {
       if (error instanceof GeolocationPositionError && error.code === error.PERMISSION_DENIED) {
+        this.permissionDenied.set(true);
+      } else {
+        // For Capacitor errors or other errors
         this.permissionDenied.set(true);
       }
     }

@@ -9,6 +9,8 @@
     "@blastoise/shared": "*",
     "@angular/core": "*",
     "@angular/common": "*",
+    "@capacitor/core": "*",
+    "@capacitor/local-notifications": "*",
     "rxjs": "*"
   }
 }

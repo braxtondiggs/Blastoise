@@ -15,7 +15,9 @@ import { FormsModule } from '@angular/forms';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroBell, heroMapPin, heroGlobeAlt, heroChartBar, heroShare } from '@ng-icons/heroicons/outline';
 import { PreferencesService } from '../services/preferences.service';
+import { NotificationService } from '@blastoise/data-frontend';
 import { Subscription } from 'rxjs';
+import { Capacitor } from '@capacitor/core';
 
 export interface NotificationPreferences {
   visitDetected: boolean; // Arrival notification
@@ -70,8 +72,8 @@ export interface NotificationPreferences {
                 </div>
                 <input
                   type="checkbox"
-                  [(ngModel)]="preferences.visitDetected"
-                  (change)="onPreferenceChange()"
+                  [checked]="preferences.visitDetected"
+                  (change)="onVisitNotificationToggle('visitDetected', $event)"
                   class="toggle toggle-primary toggle-sm"
                   aria-label="Enable visit detected notifications"
                 />
@@ -85,8 +87,8 @@ export interface NotificationPreferences {
                 </div>
                 <input
                   type="checkbox"
-                  [(ngModel)]="preferences.visitEnded"
-                  (change)="onPreferenceChange()"
+                  [checked]="preferences.visitEnded"
+                  (change)="onVisitNotificationToggle('visitEnded', $event)"
                   class="toggle toggle-primary toggle-sm"
                   aria-label="Enable visit ended notifications"
                 />
@@ -169,15 +171,50 @@ export interface NotificationPreferences {
             </div>
           </div>
 
-          <!-- Permission Request Notice -->
-          @if (canRequestPermission()) {
+          <!-- Permission Prompt Modal -->
+          @if (showPermissionPrompt()) {
+            <div class="rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 p-4">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-start gap-3">
+                  <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/15 shrink-0">
+                    <ng-icon name="heroBell" size="20" class="text-primary" />
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-sm">Enable Notifications</h4>
+                    <p class="text-xs text-base-content/60 mt-1">
+                      To receive visit alerts, you need to allow notifications for Blastoise.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    class="py-2 px-4 rounded-xl bg-base-200 text-base-content font-medium text-sm hover:bg-base-300 transition-colors"
+                    (click)="cancelPermissionPrompt()"
+                  >
+                    Not Now
+                  </button>
+                  <button
+                    type="button"
+                    class="py-2 px-4 rounded-xl bg-primary text-primary-content font-medium text-sm hover:bg-primary/90 transition-colors"
+                    (click)="confirmEnableNotifications()"
+                  >
+                    Enable Notifications
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Permission Request Notice (shown when permission is default and no modal) -->
+          @if (canRequestPermission() && !showPermissionPrompt()) {
             <div class="rounded-xl bg-gradient-to-r from-info/10 to-info/5 border border-info/20 p-4">
               <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-info/15 shrink-0">
                   <ng-icon name="heroBell" size="20" class="text-info" />
                 </div>
                 <div class="flex-1">
-                  <h4 class="font-semibold text-sm">Enable Browser Notifications</h4>
+                  <h4 class="font-semibold text-sm">Enable Notifications</h4>
                   <p class="text-xs text-base-content/60 mt-1">Allow notifications to receive visit alerts and updates.</p>
                 </div>
                 <button
@@ -233,6 +270,7 @@ export interface NotificationPreferences {
 })
 export class NotificationSettingsComponent implements OnInit, OnDestroy {
   private readonly preferencesService = inject(PreferencesService);
+  private readonly notificationService = inject(NotificationService);
   private subscription?: Subscription;
 
   // State
@@ -240,8 +278,10 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
   readonly isSaving = signal(false);
   readonly saveSuccess = signal(false);
   readonly error = signal<string | null>(null);
+  readonly showPermissionPrompt = signal(false);
+  private pendingToggle: { key: 'visitDetected' | 'visitEnded'; value: boolean } | null = null;
 
-  // Default preferences (visit start/end enabled, others disabled)
+  // Default preferences (visit notifications enabled by default)
   readonly defaultPreferences: NotificationPreferences = {
     visitDetected: true,
     visitEnded: true,
@@ -325,19 +365,81 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Check if system-level notification permission is granted
+   * Handle visit notification toggle with permission check
    */
-  hasSystemPermission(): boolean {
-    if (typeof Notification === 'undefined') {
-      return true; // Assume supported if API doesn't exist (e.g., server-side rendering)
+  async onVisitNotificationToggle(
+    key: 'visitDetected' | 'visitEnded',
+    event: Event
+  ): Promise<void> {
+    const checkbox = event.target as HTMLInputElement;
+    const newValue = checkbox.checked;
+
+    // If turning OFF, just save immediately
+    if (!newValue) {
+      this.preferences[key] = false;
+      this.savePreferences();
+      return;
     }
-    return Notification.permission === 'granted';
+
+    // If turning ON, check permission first
+    const permission = await this.notificationService.checkPermission();
+
+    if (permission === 'granted') {
+      // Permission already granted, enable the setting
+      this.preferences[key] = true;
+      this.savePreferences();
+    } else if (permission === 'denied') {
+      // Permission denied, show error and revert toggle
+      checkbox.checked = false;
+      this.error.set('Notifications are blocked. Please enable them in your device settings.');
+      setTimeout(() => this.error.set(null), 5000);
+    } else {
+      // Permission not yet requested, show prompt
+      checkbox.checked = false; // Revert toggle until permission granted
+      this.pendingToggle = { key, value: true };
+      this.showPermissionPrompt.set(true);
+    }
+  }
+
+  /**
+   * Cancel permission prompt
+   */
+  cancelPermissionPrompt(): void {
+    this.showPermissionPrompt.set(false);
+    this.pendingToggle = null;
+  }
+
+  /**
+   * Confirm and request notification permission
+   */
+  async confirmEnableNotifications(): Promise<void> {
+    this.showPermissionPrompt.set(false);
+
+    const permission = await this.notificationService.requestPermission();
+
+    if (permission === 'granted') {
+      // Permission granted, enable the pending toggle
+      if (this.pendingToggle) {
+        this.preferences[this.pendingToggle.key] = this.pendingToggle.value;
+        this.savePreferences();
+      }
+      this.saveSuccess.set(true);
+      setTimeout(() => this.saveSuccess.set(false), 3000);
+    } else {
+      this.error.set('Notification permission was denied. Please enable notifications in your device settings.');
+      setTimeout(() => this.error.set(null), 5000);
+    }
+
+    this.pendingToggle = null;
   }
 
   /**
    * Check if notification permission was explicitly denied
    */
   isPermissionDenied(): boolean {
+    if (Capacitor.isNativePlatform()) {
+      return this.notificationService.getCurrentPermission() === 'denied';
+    }
     if (typeof Notification === 'undefined') {
       return false;
     }
@@ -348,6 +450,9 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
    * Check if we can request notification permission
    */
   canRequestPermission(): boolean {
+    if (Capacitor.isNativePlatform()) {
+      return this.notificationService.getCurrentPermission() === 'default';
+    }
     if (typeof Notification === 'undefined') {
       return false;
     }
@@ -355,27 +460,17 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Request notification permission from the browser
+   * Request notification permission
    */
   async requestPermission(): Promise<void> {
-    if (typeof Notification === 'undefined') {
-      this.error.set('Notifications are not supported in this browser.');
-      return;
-    }
+    const permission = await this.notificationService.requestPermission();
 
-    if (Notification.permission === 'default') {
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          this.saveSuccess.set(true);
-          setTimeout(() => this.saveSuccess.set(false), 3000);
-        } else if (permission === 'denied') {
-          this.error.set('Notification permission was denied. Please enable notifications in your browser settings.');
-        }
-      } catch (err) {
-        console.error('Failed to request notification permission:', err);
-        this.error.set('Failed to request notification permission.');
-      }
+    if (permission === 'granted') {
+      this.saveSuccess.set(true);
+      setTimeout(() => this.saveSuccess.set(false), 3000);
+    } else if (permission === 'denied') {
+      this.error.set('Notification permission was denied. Please enable notifications in your device settings.');
+      setTimeout(() => this.error.set(null), 5000);
     }
   }
 }

@@ -7,11 +7,13 @@
  * - Sharing activity notifications
  * - Device-level permission denial handling
  *
- * Phase 7: Notifications & Observability
+ * Uses Capacitor Local Notifications on mobile, Web Notifications on web.
  */
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 export type NotificationPermission = 'default' | 'granted' | 'denied';
 
@@ -47,19 +49,39 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 export class NotificationService {
   private readonly permissionStatus$ = new BehaviorSubject<NotificationPermission>('default');
   private preferences$ = new BehaviorSubject<NotificationPreferences>(DEFAULT_PREFERENCES);
+  private notificationIdCounter = 1;
 
   /**
-
    * Handles permission request gracefully across platforms
    */
   async requestPermission(): Promise<NotificationPermission> {
-    // Check if notifications are supported
+    // Use Capacitor Local Notifications on native platforms
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await LocalNotifications.requestPermissions();
+        const permission = result.display === 'granted' ? 'granted' : 'denied';
+        this.permissionStatus$.next(permission);
+
+        if (permission === 'denied') {
+          this.handlePermissionDenial();
+        } else {
+          this.clearDenialTracking();
+        }
+
+        return permission;
+      } catch (error) {
+        console.error('Failed to request notification permission:', error);
+        this.handlePermissionDenial();
+        return 'denied';
+      }
+    }
+
+    // Web: use browser Notification API
     if (!('Notification' in window)) {
       console.warn('Notifications not supported in this browser');
       return 'denied';
     }
 
-    // Check if already denied
     if (Notification.permission === 'denied') {
       this.handlePermissionDenial();
       return 'denied';
@@ -69,11 +91,9 @@ export class NotificationService {
       const permission = await Notification.requestPermission();
       this.permissionStatus$.next(permission as NotificationPermission);
 
-
       if (permission === 'denied') {
         this.handlePermissionDenial();
       } else if (permission === 'granted') {
-        // Clear any previous denial tracking
         this.clearDenialTracking();
       }
 
@@ -96,20 +116,39 @@ export class NotificationService {
    * Get current permission synchronously
    */
   getCurrentPermission(): NotificationPermission {
-    if (!('Notification' in window)) {
-      return 'denied';
-    }
-    return Notification.permission as NotificationPermission;
+    return this.permissionStatus$.value;
   }
 
   /**
    * Check if notifications are available and permitted
    */
   isNotificationEnabled(): boolean {
-    return (
-      'Notification' in window &&
-      Notification.permission === 'granted'
-    );
+    return this.permissionStatus$.value === 'granted';
+  }
+
+  /**
+   * Check permissions asynchronously (needed for native)
+   */
+  async checkPermission(): Promise<NotificationPermission> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await LocalNotifications.checkPermissions();
+        const permission = result.display === 'granted' ? 'granted' :
+                          result.display === 'denied' ? 'denied' : 'default';
+        this.permissionStatus$.next(permission);
+        return permission;
+      } catch {
+        return 'denied';
+      }
+    }
+
+    // Web
+    if (!('Notification' in window)) {
+      return 'denied';
+    }
+    const permission = Notification.permission as NotificationPermission;
+    this.permissionStatus$.next(permission);
+    return permission;
   }
 
   /**
@@ -216,6 +255,30 @@ export class NotificationService {
       return;
     }
 
+    // Use Capacitor Local Notifications on native platforms
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const notificationId = this.notificationIdCounter++;
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: notificationId,
+              title: config.title,
+              body: config.body,
+              extra: config.data,
+              smallIcon: 'ic_stat_icon_config_sample',
+              iconColor: '#F59E0B',
+            },
+          ],
+        });
+      } catch (error) {
+        console.error('Failed to send native notification:', error);
+      }
+      return;
+    }
+
+    // Web: use browser Notification API
     try {
       const notification = new Notification(config.title, {
         body: config.body,
@@ -396,12 +459,23 @@ export class NotificationService {
    * Initialize notification service
    * - Load preferences from storage
    * - Check current permission status
+   * - Set up notification action listeners (native)
    */
-  initialize(): void {
+  async initialize(): Promise<void> {
     this.loadPreferences();
 
-    if ('Notification' in window) {
-      this.permissionStatus$.next(Notification.permission as NotificationPermission);
+    // Check current permission status
+    await this.checkPermission();
+
+    // Set up notification action listeners for native
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+        // Handle notification tap - navigate to relevant page
+        const url = notification.notification.extra?.url;
+        if (url && typeof window !== 'undefined') {
+          window.location.href = url;
+        }
+      });
     }
   }
 }

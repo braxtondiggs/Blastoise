@@ -6,10 +6,33 @@
  * - Syncs with backend when authenticated
  */
 
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Inject, Optional } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
+import { API_BASE_URL } from '@blastoise/shared';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
+// Backend returns snake_case format
+interface BackendPreferences {
+  user_id: string;
+  location_tracking_enabled: boolean;
+  background_tracking_enabled: boolean;
+  sharing_preference: 'never' | 'ask' | 'always';
+  data_retention_months: number | null;
+  notifications_enabled: boolean;
+  notification_preferences?: {
+    visit_detected?: boolean;
+    visit_ended?: boolean;
+    new_nearby_venues?: boolean;
+    weekly_summary?: boolean;
+    sharing_activity?: boolean;
+  };
+}
 
 export interface NotificationSettings {
   visit_detected?: boolean;
@@ -51,8 +74,11 @@ const STORAGE_KEY = 'blastoise_preferences';
 export class PreferencesService {
   private readonly http = inject(HttpClient);
   private readonly preferences$ = new BehaviorSubject<UserPreferences>(DEFAULT_PREFERENCES);
+  private readonly apiUrl: string;
 
-  constructor() {
+  constructor(@Optional() @Inject(API_BASE_URL) apiUrl?: string) {
+    // Default to localhost if not provided
+    this.apiUrl = apiUrl || 'http://localhost:3000/api/v1';
     // Load from local storage on init
     this.loadFromLocalStorage();
   }
@@ -118,10 +144,8 @@ export class PreferencesService {
    * Load preferences from backend (for authenticated users)
    */
   loadFromBackend(): Observable<UserPreferences> {
-    // TODO: Replace with actual API endpoint when backend is ready
-    const apiUrl = '/api/v1/user/preferences';
-
-    return this.http.get<UserPreferences>(apiUrl).pipe(
+    return this.http.get<ApiResponse<BackendPreferences>>(`${this.apiUrl}/user/preferences`).pipe(
+      map((response) => this.mapBackendToFrontend(response.data)),
       tap((preferences) => {
         this.preferences$.next(preferences);
         this.saveToLocalStorage(preferences);
@@ -134,11 +158,46 @@ export class PreferencesService {
     );
   }
 
-  private syncToBackend(preferences: UserPreferences): Observable<UserPreferences> {
-    // TODO: Replace with actual API endpoint when backend is ready
-    const apiUrl = '/api/v1/user/preferences';
+  /**
+   * Map backend snake_case format to frontend camelCase format
+   */
+  private mapBackendToFrontend(backend: BackendPreferences): UserPreferences {
+    return {
+      locationTrackingEnabled: backend.location_tracking_enabled ?? true,
+      backgroundTrackingEnabled: backend.background_tracking_enabled ?? false,
+      sharingPreference: backend.sharing_preference ?? 'ask',
+      dataRetentionMonths: backend.data_retention_months ?? null,
+      notificationsEnabled: backend.notifications_enabled ?? true,
+      notification_settings: backend.notification_preferences ? {
+        visit_detected: backend.notification_preferences.visit_detected,
+        visit_ended: backend.notification_preferences.visit_ended,
+        new_venues_nearby: backend.notification_preferences.new_nearby_venues,
+        weekly_summary: backend.notification_preferences.weekly_summary,
+        sharing_activity: backend.notification_preferences.sharing_activity,
+      } : this.preferences$.value.notification_settings,
+    };
+  }
 
-    return this.http.patch<UserPreferences>(apiUrl, preferences);
+  private syncToBackend(preferences: UserPreferences): Observable<UserPreferences> {
+    // Transform frontend format to backend DTO format (camelCase for DTO validation)
+    const dto = {
+      locationTrackingEnabled: preferences.locationTrackingEnabled,
+      backgroundTrackingEnabled: preferences.backgroundTrackingEnabled,
+      sharingPreference: preferences.sharingPreference,
+      dataRetentionMonths: preferences.dataRetentionMonths,
+      notificationsEnabled: preferences.notificationsEnabled,
+      notificationPreferences: preferences.notification_settings ? {
+        visitDetected: preferences.notification_settings.visit_detected,
+        visitEnded: preferences.notification_settings.visit_ended,
+        newNearbyVenues: preferences.notification_settings.new_venues_nearby,
+        weeklySummary: preferences.notification_settings.weekly_summary,
+        sharingActivity: preferences.notification_settings.sharing_activity,
+      } : undefined,
+    };
+
+    return this.http.patch<ApiResponse<BackendPreferences>>(`${this.apiUrl}/user/preferences`, dto).pipe(
+      map((response) => this.mapBackendToFrontend(response.data))
+    );
   }
 
   private loadFromLocalStorage(): void {

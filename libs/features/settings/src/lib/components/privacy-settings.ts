@@ -7,14 +7,13 @@
 
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroMapPin, heroGlobeAlt, heroShare, heroCalendar, heroShieldCheck } from '@ng-icons/heroicons/outline';
 import { PreferencesService, type UserPreferences } from '../services/preferences.service';
 
 @Component({
   selector: 'app-privacy-settings',
-  imports: [CommonModule, FormsModule, NgIconComponent],
+  imports: [CommonModule, NgIconComponent],
   viewProviders: [provideIcons({ heroMapPin, heroGlobeAlt, heroShare, heroCalendar, heroShieldCheck })],
   template: `
     <div class="space-y-6">
@@ -47,8 +46,8 @@ import { PreferencesService, type UserPreferences } from '../services/preference
             <input
               type="checkbox"
               class="toggle toggle-primary toggle-sm"
-              [(ngModel)]="preferences().locationTrackingEnabled"
-              (change)="savePreferences()"
+              [checked]="preferences().locationTrackingEnabled"
+              (change)="updatePreference('locationTrackingEnabled', $any($event.target).checked)"
             />
           </label>
 
@@ -62,8 +61,8 @@ import { PreferencesService, type UserPreferences } from '../services/preference
             <input
               type="checkbox"
               class="toggle toggle-primary toggle-sm"
-              [(ngModel)]="preferences().backgroundTrackingEnabled"
-              (change)="savePreferences()"
+              [checked]="preferences().backgroundTrackingEnabled"
+              (change)="updatePreference('backgroundTrackingEnabled', $any($event.target).checked)"
               [disabled]="!preferences().locationTrackingEnabled"
             />
           </label>
@@ -89,8 +88,8 @@ import { PreferencesService, type UserPreferences } from '../services/preference
               name="sharing"
               value="never"
               class="radio radio-primary radio-sm"
-              [(ngModel)]="preferences().sharingPreference"
-              (change)="savePreferences()"
+              [checked]="preferences().sharingPreference === 'never'"
+              (change)="updatePreference('sharingPreference', 'never')"
             />
             <div class="flex-1">
               <div class="font-medium text-sm">Never share automatically</div>
@@ -107,8 +106,8 @@ import { PreferencesService, type UserPreferences } from '../services/preference
               name="sharing"
               value="ask"
               class="radio radio-primary radio-sm"
-              [(ngModel)]="preferences().sharingPreference"
-              (change)="savePreferences()"
+              [checked]="preferences().sharingPreference === 'ask'"
+              (change)="updatePreference('sharingPreference', 'ask')"
             />
             <div class="flex-1">
               <div class="font-medium text-sm">Ask me each time</div>
@@ -125,8 +124,8 @@ import { PreferencesService, type UserPreferences } from '../services/preference
               name="sharing"
               value="always"
               class="radio radio-primary radio-sm"
-              [(ngModel)]="preferences().sharingPreference"
-              (change)="savePreferences()"
+              [checked]="preferences().sharingPreference === 'always'"
+              (change)="updatePreference('sharingPreference', 'always')"
             />
             <div class="flex-1">
               <div class="font-medium text-sm">Always allow sharing</div>
@@ -148,15 +147,15 @@ import { PreferencesService, type UserPreferences } from '../services/preference
         <div class="p-4">
           <select
             class="select select-bordered w-full bg-base-100"
-            [(ngModel)]="preferences().dataRetentionMonths"
-            (change)="savePreferences()"
+            [value]="preferences().dataRetentionMonths ?? 'null'"
+            (change)="updateDataRetention($any($event.target).value)"
           >
-            <option [ngValue]="1">1 month</option>
-            <option [ngValue]="3">3 months</option>
-            <option [ngValue]="6">6 months</option>
-            <option [ngValue]="12">1 year</option>
-            <option [ngValue]="24">2 years</option>
-            <option [ngValue]="null">Forever - Keep all history</option>
+            <option value="1">1 month</option>
+            <option value="3">3 months</option>
+            <option value="6">6 months</option>
+            <option value="12">1 year</option>
+            <option value="24">2 years</option>
+            <option value="null">Forever - Keep all history</option>
           </select>
 
           @if (preferences().dataRetentionMonths !== null) {
@@ -238,6 +237,22 @@ export class PrivacySettings implements OnInit {
         console.error('Failed to load preferences:', error);
       },
     });
+  }
+
+  updatePreference<K extends keyof UserPreferences>(key: K, value: UserPreferences[K]): void {
+    // Update the signal with merged preferences
+    this.preferences.update((current) => ({
+      ...current,
+      [key]: value,
+    }));
+
+    // Save to backend
+    this.savePreferences();
+  }
+
+  updateDataRetention(value: string): void {
+    const months = value === 'null' ? null : parseInt(value, 10);
+    this.updatePreference('dataRetentionMonths', months);
   }
 
   savePreferences(): void {

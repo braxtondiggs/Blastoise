@@ -1,4 +1,4 @@
-import { Injectable, inject, InjectionToken, Inject, Optional } from '@angular/core';
+import { Injectable, inject, Inject, Optional } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
@@ -6,18 +6,16 @@ import { catchError, tap, map, switchMap, take } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
-import { User, DEFAULT_USER_PREFERENCES, UserPreferences } from '@blastoise/shared';
+import { User, DEFAULT_USER_PREFERENCES, UserPreferences, API_BASE_URL } from '@blastoise/shared';
 import { AuthStateService, AuthSession } from '@blastoise/shared/auth-state';
+
+// Re-export for backward compatibility
+export { API_BASE_URL } from '@blastoise/shared';
 
 const ANONYMOUS_USER_KEY = 'anonymous_user_id';
 const ANONYMOUS_MODE_KEY = 'anonymous_mode';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const ACCESS_TOKEN_KEY = 'access_token';
-
-/**
- * Injection token for API base URL
- */
-export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL');
 
 /**
  * JWT payload structure from self-hosted auth
@@ -130,11 +128,6 @@ export class AuthService {
       const { value: storedRefreshToken } = await Preferences.get({ key: REFRESH_TOKEN_KEY });
       const { value: storedAccessToken } = await Preferences.get({ key: ACCESS_TOKEN_KEY });
 
-      console.log('[AuthService] loadPersistedTokens', {
-        hasRefreshToken: !!storedRefreshToken,
-        hasAccessToken: !!storedAccessToken,
-      });
-
       if (storedRefreshToken) {
         this.storedRefreshToken = storedRefreshToken;
       }
@@ -157,12 +150,10 @@ export class AuthService {
    */
   private async persistTokens(accessToken: string, refreshToken?: string): Promise<void> {
     if (!this.isNative) {
-      console.log('[AuthService] persistTokens skipped - not native');
       return;
     }
 
     try {
-      console.log('[AuthService] persistTokens', { hasRefreshToken: !!refreshToken });
       await Preferences.set({ key: ACCESS_TOKEN_KEY, value: accessToken });
       if (refreshToken) {
         await Preferences.set({ key: REFRESH_TOKEN_KEY, value: refreshToken });
@@ -313,12 +304,6 @@ export class AuthService {
       ? { refresh_token: this.storedRefreshToken }
       : {};
 
-    console.log('[AuthService] refreshAccessToken called', {
-      isNative: this.isNative,
-      hasStoredToken: !!this.storedRefreshToken,
-      bodyHasToken: !!body.refresh_token,
-    });
-
     return this.http
       .post<RefreshResponse>(`${this.apiUrl}/auth/refresh`, body, { withCredentials: true })
       .pipe(
@@ -420,11 +405,6 @@ export class AuthService {
    * Handle successful auth response
    */
   private async handleAuthResponse(response: AuthResponse): Promise<void> {
-    console.log('[AuthService] handleAuthResponse', {
-      isNative: this.isNative,
-      hasRefreshToken: !!response.refresh_token,
-    });
-
     this.accessToken = response.access_token;
     this.authState.setAccessToken(response.access_token);
 

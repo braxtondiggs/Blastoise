@@ -365,4 +365,18 @@ export class GeofenceService {
       longitude: venue.longitude,
     });
   }
+
+  /**
+   * Update position from external source (e.g., background tracking)
+   * This allows background location updates to trigger geofence checks
+   */
+  updatePosition(coords: { latitude: number; longitude: number }): void {
+    const position: Coordinates = {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    };
+
+    this.currentPositionSignal.set(position);
+    this.checkGeofences(position, Date.now());
+  }
 }

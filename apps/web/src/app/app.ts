@@ -4,6 +4,9 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 import { AuthService, WebLimitationNotice, LocationPermissionNotice } from '@blastoise/features-auth';
+import { TrackingManagerService } from '@blastoise/features-visits';
+import { NotificationService } from '@blastoise/data-frontend';
+import { PreferencesService } from '@blastoise/features-settings';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroHome, heroCog6Tooth, heroArrowRightOnRectangle, heroBars3, heroXMark } from '@ng-icons/heroicons/outline';
 import { Capacitor } from '@capacitor/core';
@@ -50,8 +53,13 @@ export class App implements OnInit {
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
   private readonly authService = inject(AuthService);
+  private readonly trackingManager = inject(TrackingManagerService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly preferencesService = inject(PreferencesService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly elementRef = inject(ElementRef);
+
+  private notificationPermissionRequested = false;
 
   ngOnInit(): void {
     // Detect platform: show web limitation notice only on web (not iOS/Android)
@@ -64,6 +72,78 @@ export class App implements OnInit {
       this.router.events
         .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
         .subscribe((event) => this.currentRoute.set(event.urlAfterRedirects));
+
+      // Initialize tracking manager (starts tracking based on user preferences)
+      this.initializeTracking();
+    }
+  }
+
+  /**
+   * Initialize location tracking based on user preferences
+   */
+  private async initializeTracking(): Promise<void> {
+    // Wait for auth to initialize before starting tracking
+    if (this.authState.isAuthenticated()) {
+      await this.trackingManager.initialize();
+      await this.requestNotificationPermission();
+    } else {
+      // Wait for auth state changes
+      const checkAuth = setInterval(async () => {
+        if (this.authState.isInitialized()) {
+          clearInterval(checkAuth);
+          if (this.authState.isAuthenticated()) {
+            await this.trackingManager.initialize();
+            await this.requestNotificationPermission();
+          }
+        }
+      }, 500);
+
+      // Cleanup after 10 seconds if auth never initializes
+      setTimeout(() => clearInterval(checkAuth), 10000);
+    }
+  }
+
+  /**
+   * Request notification permission on first login
+   * If denied, disable visit notification preferences
+   */
+  private async requestNotificationPermission(): Promise<void> {
+    // Only request once per session
+    if (this.notificationPermissionRequested) {
+      return;
+    }
+    this.notificationPermissionRequested = true;
+
+    // Initialize notification service (checks current permission)
+    await this.notificationService.initialize();
+
+    // Check if permission needs to be requested
+    const currentPermission = this.notificationService.getCurrentPermission();
+
+    // If already granted or denied, don't prompt again
+    if (currentPermission !== 'default') {
+      // If denied, ensure visit notifications are off
+      if (currentPermission === 'denied') {
+        this.preferencesService.updateNotificationSettings({
+          visit_detected: false,
+          visit_ended: false,
+        }).subscribe();
+      }
+      return;
+    }
+
+    // On web, Notification.requestPermission() requires user gesture
+    // So we just initialize - the notification settings UI will handle prompting
+    // On native, we can request directly
+    if (Capacitor.isNativePlatform()) {
+      const permission = await this.notificationService.requestPermission();
+
+      if (permission === 'denied') {
+        this.preferencesService.updateNotificationSettings({
+          visit_detected: false,
+          visit_ended: false,
+        }).subscribe();
+      }
     }
   }
 

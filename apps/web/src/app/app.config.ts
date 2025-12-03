@@ -11,12 +11,11 @@ import {
 } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { appRoutes } from './app.routes';
-import { GeolocationProvider } from '@blastoise/shared';
+import { GeolocationProvider, API_BASE_URL } from '@blastoise/shared';
 import { FEATURE_FLAGS_API_URL } from '@blastoise/data-frontend';
 import { CapacitorGeolocationProvider } from './providers/capacitor-geolocation.provider';
 import { tokenInterceptor } from './auth/interceptors/token.interceptor';
 import { refreshInterceptor } from './auth/interceptors/refresh.interceptor';
-import { API_BASE_URL } from '@blastoise/features-auth';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
