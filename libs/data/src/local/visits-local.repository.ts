@@ -26,8 +26,13 @@ export class VisitsLocalRepository {
   }
 
   async findUnsynced(): Promise<Visit[]> {
-    const unsynced = await this.db.getByIndex<Visit>(this.storeName, 'synced', false);
-    return unsynced;
+    // Use getAll and filter in JS to handle both old (boolean false) and new (number 0) data
+    // IndexedDB stores may have boolean or number depending on when data was written
+    const allVisits = await this.db.getAll<Visit>(this.storeName);
+    return allVisits.filter((v) => {
+      const syncedValue = v.synced as unknown;
+      return syncedValue === false || syncedValue === 0;
+    });
   }
 
   async delete(id: string): Promise<void> {

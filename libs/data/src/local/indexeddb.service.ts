@@ -63,14 +63,33 @@ export class IndexedDBService {
     if (!this.db) throw new Error('Failed to initialize IndexedDB');
     const db = this.db;
 
+    // Convert boolean 'synced' field to number for IndexedDB compatibility
+    const valueToStore = this.convertBooleansToNumbers(value);
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([storeName], 'readwrite');
       const store = transaction.objectStore(storeName);
-      const request = store.put(value);
+      const request = store.put(valueToStore);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
+  }
+
+  /**
+   * Convert boolean fields to numbers for IndexedDB index compatibility
+   */
+  private convertBooleansToNumbers(value: unknown): unknown {
+    if (typeof value !== 'object' || value === null) {
+      return value;
+    }
+    const obj = value as Record<string, unknown>;
+    const result: Record<string, unknown> = { ...obj };
+    // Convert 'synced' field specifically (used for index queries)
+    if ('synced' in result && typeof result['synced'] === 'boolean') {
+      result['synced'] = result['synced'] ? 1 : 0;
+    }
+    return result;
   }
 
   async get<T>(storeName: string, key: string): Promise<T | null> {
@@ -131,7 +150,7 @@ export class IndexedDBService {
       const transaction = db.transaction([storeName], 'readonly');
       const store = transaction.objectStore(storeName);
       const index = store.index(indexName);
-      // Convert boolean to number for IndexedDB compatibility
+      // Convert boolean to number for IndexedDB compatibility (matches storage conversion)
       const indexValue = typeof value === 'boolean' ? (value ? 1 : 0) : value;
       const request = index.getAll(indexValue as IDBValidKey);
 

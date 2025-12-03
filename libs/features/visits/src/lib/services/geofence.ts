@@ -227,9 +227,22 @@ export class GeofenceService {
   private checkGeofences(position: Coordinates, timestamp: number): void {
     const activeGeofences = this.activeGeofencesSignal();
 
+    // Log position check periodically (every 10 checks to avoid spam)
+    if (Math.random() < 0.1) {
+      console.log(`[GeofenceService] Checking position (${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}) against ${activeGeofences.size} geofences`);
+    }
+
+    let nearestVenue: { name: string; distance: number } | null = null;
+
     activeGeofences.forEach((geofence, venueId) => {
       const isInside = GeolocationHelper.isWithinGeofence(position, geofence);
       const wasInside = geofence.enteredAt !== undefined;
+
+      // Track nearest venue for debugging
+      const distance = GeolocationHelper.calculateDistance(position, geofence.center);
+      if (!nearestVenue || distance < nearestVenue.distance) {
+        nearestVenue = { name: venueId, distance };
+      }
 
       if (isInside && !wasInside) {
         // ENTER event
@@ -242,6 +255,11 @@ export class GeofenceService {
         geofence.lastCheck = timestamp;
       }
     });
+
+    // Log nearest venue periodically
+    if (nearestVenue && Math.random() < 0.1) {
+      console.log(`[GeofenceService] Nearest venue: ${(nearestVenue as any).name} at ${(nearestVenue as any).distance.toFixed(0)}m (geofence radius: ${DEFAULT_GEOFENCE_RADIUS_METERS}m)`);
+    }
   }
 
   /**
@@ -285,15 +303,16 @@ export class GeofenceService {
     const dwellTime = timestamp - geofence.enteredAt;
 
     // Filter out brief visits (< 10 minutes)
+    // Keep state so user remains "inside" for pending indicator
+    // Only truly exit when dwell threshold is met
     if (dwellTime < DWELL_TIME_THRESHOLD_MS) {
       console.log(
         `Geofence exit for venue ${venueId} ignored (dwell time ${Math.round(
           dwellTime / 1000 / 60
-        )}m < 10m threshold)`
+        )}m < 10m threshold) - keeping pending state`
       );
-      // Reset state without emitting event
-      delete geofence.enteredAt;
-      delete geofence.lastCheck;
+      // DON'T reset state - keep enteredAt so pending indicator stays visible
+      // The user is likely still in the area, just GPS fluctuation
       return;
     }
 
@@ -349,6 +368,33 @@ export class GeofenceService {
     });
 
     return activeVenueIds;
+  }
+
+  /**
+   * Get pending geofences with entry timestamps
+   * Returns venues where user is currently inside, with time they entered
+   */
+  getPendingGeofences(): Array<{ venueId: string; enteredAt: number }> {
+    const activeGeofences = this.activeGeofencesSignal();
+    const pending: Array<{ venueId: string; enteredAt: number }> = [];
+
+    activeGeofences.forEach((geofence, venueId) => {
+      if (geofence.enteredAt !== undefined) {
+        pending.push({
+          venueId,
+          enteredAt: geofence.enteredAt,
+        });
+      }
+    });
+
+    return pending;
+  }
+
+  /**
+   * Get the dwell time threshold in milliseconds
+   */
+  getDwellThresholdMs(): number {
+    return DWELL_TIME_THRESHOLD_MS;
   }
 
   /**

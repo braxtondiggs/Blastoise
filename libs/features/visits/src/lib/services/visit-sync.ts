@@ -145,19 +145,14 @@ export class VisitSyncService {
    * Perform sync operation
    */
   private async performSync(): Promise<void> {
-    if (this.isSyncInProgress) {
-      console.log('Sync already in progress, skipping');
-      return;
-    }
-
-    if (!navigator.onLine) {
-      console.log('Offline, skipping sync');
+    if (this.isSyncInProgress || !navigator.onLine) {
       return;
     }
 
     const user = this.authService.currentUser();
-    if (!user || this.authService.isAnonymous()) {
-      // Anonymous users don't sync to server
+    const isAnon = this.authService.isAnonymous();
+
+    if (!user || isAnon) {
       return;
     }
 
@@ -172,7 +167,6 @@ export class VisitSyncService {
       const unsyncedVisits = await this.localRepository.findUnsynced();
 
       if (unsyncedVisits.length === 0) {
-        console.log('No visits to sync');
         this.syncStatusSignal.update((status) => ({
           ...status,
           isSyncing: false,
@@ -181,8 +175,6 @@ export class VisitSyncService {
         this.isSyncInProgress = false;
         return;
       }
-
-      console.log(`Syncing ${unsyncedVisits.length} visits...`);
 
       // Batch sync to API
       await this.syncBatch(unsyncedVisits);
@@ -211,9 +203,16 @@ export class VisitSyncService {
    * Sync a batch of visits with exponential backoff retry
    */
   private async syncBatch(visits: Visit[]): Promise<void> {
+    // Dedupe visits by (user_id, venue_id, arrival_time) - keep the latest one
+    const deduped = this.dedupeVisits(visits);
+
+    if (deduped.length === 0) {
+      return;
+    }
+
     const batch: BatchVisitSyncDto = {
-      visits: visits.map((v) => ({
-        user_id: v.user_id,
+      // Note: user_id is NOT sent - server gets it from authenticated user token
+      visits: deduped.map((v) => ({
         venue_id: v.venue_id,
         arrival_time: v.arrival_time,
         departure_time: v.departure_time,
@@ -244,11 +243,9 @@ export class VisitSyncService {
           this.retryStates.delete(localVisit.id);
           this.syncQueue.delete(localVisit.id);
         }
-
-        console.log(`Successfully synced ${visits.length} visits`);
       }
-    } catch (error) {
-      console.error('Batch sync failed:', error);
+    } catch (error: any) {
+      console.error('[VisitSync] Batch sync failed:', error?.message || 'Unknown error');
 
       // Implement exponential backoff retry for each visit
       for (const visit of visits) {
@@ -297,10 +294,6 @@ export class VisitSyncService {
     );
 
     this.retryStates.set(visit.id, retryState);
-
-    console.log(
-      `Scheduling retry ${retryState.attempt}/${MAX_RETRIES} for visit ${visit.id} in ${delay}ms`
-    );
 
     // Schedule retry
     setTimeout(() => {
@@ -354,5 +347,32 @@ export class VisitSyncService {
   async needsSync(): Promise<boolean> {
     const unsyncedVisits = await this.localRepository.findUnsynced();
     return unsyncedVisits.length > 0;
+  }
+
+  /**
+   * Dedupe visits by (user_id, venue_id, arrival_time)
+   * Keep the visit with the most recent updated_at timestamp
+   */
+  private dedupeVisits(visits: Visit[]): Visit[] {
+    const visitMap = new Map<string, Visit>();
+
+    for (const visit of visits) {
+      const key = `${visit.user_id}:${visit.venue_id}:${visit.arrival_time}`;
+      const existing = visitMap.get(key);
+
+      if (!existing) {
+        visitMap.set(key, visit);
+      } else {
+        // Keep the one with the later updated_at or the one with departure_time
+        const existingUpdated = new Date(existing.updated_at || 0).getTime();
+        const visitUpdated = new Date(visit.updated_at || 0).getTime();
+
+        if (visitUpdated > existingUpdated || (visit.departure_time && !existing.departure_time)) {
+          visitMap.set(key, visit);
+        }
+      }
+    }
+
+    return Array.from(visitMap.values());
   }
 }

@@ -1,13 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse } from '@blastoise/shared';
+import { ApiResponse, API_BASE_URL } from '@blastoise/shared';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiClient {
-  private readonly baseUrl = '/api/v1'; // Will be configured via environment
+  private readonly baseUrl = inject(API_BASE_URL);
 
   constructor(private http: HttpClient) {}
 

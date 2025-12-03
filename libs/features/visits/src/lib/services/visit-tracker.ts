@@ -232,6 +232,13 @@ export class VisitTrackerService {
   }
 
   /**
+   * Get venue by ID from the tracked venues
+   */
+  getVenue(venueId: string): Venue | undefined {
+    return this.venuesMap.get(venueId);
+  }
+
+  /**
    * Get all current active visits
    */
   getAllActiveVisits(): Visit[] {

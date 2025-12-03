@@ -11,8 +11,9 @@ import { Router } from '@angular/router';
 import type { Visit, Venue } from '@blastoise/shared';
 import { VisitsLocalRepository } from '@blastoise/data';
 import { VenuesApiService } from '@blastoise/data';
-import { Subject, takeUntil, debounceTime} from 'rxjs';
+import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { VisitCard } from './visit-card';
+import { VisitTrackerService } from '../services/visit-tracker';
 
 /**
  * Displays visits in chronological order with:
@@ -40,6 +41,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly localRepository = inject(VisitsLocalRepository);
   private readonly venuesApi = inject(VenuesApiService);
+  private readonly visitTracker = inject(VisitTrackerService);
   private readonly destroy$ = new Subject<void>();
 
   // Pagination state
@@ -110,13 +112,22 @@ export class TimelineComponent implements OnInit, OnDestroy {
       }
 
       // Fetch venue details for each visit
+      // First try local cache (from VisitTrackerService), then fall back to API
       const visitsWithVenues = await Promise.all(
         visits.map(async (visit: Visit) => {
+          // Try local cache first (venues loaded during tracking)
+          const cachedVenue = this.visitTracker.getVenue(visit.venue_id);
+          if (cachedVenue) {
+            return { ...visit, venue: cachedVenue };
+          }
+
+          // Fall back to API if not in cache
           try {
             const venue = await this.venuesApi.getVenue(visit.venue_id).toPromise();
             return { ...visit, venue };
-          } catch (error) {
-            console.error(`Failed to fetch venue ${visit.venue_id}:`, error);
+          } catch (error: any) {
+            const errorMsg = error?.message || error?.error?.message || 'Unknown error';
+            console.warn(`Could not fetch venue ${visit.venue_id}: ${errorMsg}`);
             return visit; // Return visit without venue if fetch fails
           }
         })

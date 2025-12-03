@@ -146,36 +146,59 @@ export class TrackingManagerService implements OnDestroy {
       // Get current position to find nearby venues
       const position = await this.geofenceService.getCurrentPosition();
 
-      if (position) {
-        // Load venues near current location (within 50km radius)
-        const result = await this.venueService
-          .nearby({
-            latitude: position.latitude,
-            longitude: position.longitude,
-            radius_km: 50,
-            limit: 100,
-          })
-          .toPromise();
+      if (!position) {
+        console.warn('[TrackingManager] No position available');
+        return [];
+      }
 
-        // Map VenueWithDistance to Venue format for geofencing
-        const now = new Date().toISOString();
-        return (result?.data || []).map((v) => ({
-          id: v.venue_id,
+      console.log(`[TrackingManager] Fetching venues near (${position.latitude}, ${position.longitude})`);
+
+      // Load venues near current location (within 50km radius)
+      const result = await this.venueService
+        .nearby({
+          latitude: position.latitude,
+          longitude: position.longitude,
+          radius_km: 50,
+          limit: 100,
+        })
+        .toPromise();
+
+      console.log(`[TrackingManager] API response received, data count: ${result?.data?.length ?? 'undefined'}`);
+
+      // Map API response to Venue format for geofencing
+      // API returns flat format: { id, latitude, longitude, distance, ... }
+      const now = new Date().toISOString();
+      const rawData = result?.data || [];
+
+      const venues = rawData
+        .filter((v: any) => {
+          // Filter out invalid venues
+          if (!v || !v.id || v.latitude == null || v.longitude == null) {
+            console.warn('[TrackingManager] Skipping invalid venue:', v?.name || 'unknown');
+            return false;
+          }
+          return true;
+        })
+        .map((v: any) => ({
+          id: v.id,
           name: v.name,
           venue_type: v.venue_type,
-          latitude: v.coordinates.latitude,
-          longitude: v.coordinates.longitude,
+          latitude: Number(v.latitude),
+          longitude: Number(v.longitude),
           city: v.city,
           state: v.state,
-          source: 'osm' as const,
+          source: v.source || ('osm' as const),
           created_at: now,
           updated_at: now,
         }));
+
+      console.log(`[TrackingManager] Loaded ${venues.length} venues for geofencing`);
+
+      if (venues.length > 0) {
+        console.log(`[TrackingManager] First venue: ${venues[0].name} at (${venues[0].latitude}, ${venues[0].longitude})`);
       }
 
-      // Fallback: load recently visited venues
-      // TODO: Implement this fallback
-      return [];
+      return venues;
     } catch (error) {
       console.error('[TrackingManager] Failed to load venues:', error);
       return [];

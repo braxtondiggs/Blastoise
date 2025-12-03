@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TimelineComponent } from '@blastoise/features-visits';
+import { TimelineComponent, PendingVisitIndicatorComponent } from '@blastoise/features-visits';
 import type { Venue, Coordinates } from '@blastoise/shared';
 import { VisitsLocalRepository } from '@blastoise/data';
 import { provideIcons } from '@ng-icons/core';
@@ -17,12 +17,14 @@ import type { LatLngBounds } from 'leaflet';
 
 @Component({
   selector: 'app-timeline-page',
-  imports: [CommonModule, TimelineComponent],
+  imports: [CommonModule, TimelineComponent, PendingVisitIndicatorComponent],
   viewProviders: [provideIcons({ heroChevronUp, heroChevronDown })],
   template: `
     <div class="min-h-screen bg-base-100">
       <!-- Timeline Section -->
-      <div class="w-full max-w-4xl px-4 mx-auto">
+      <div class="w-full max-w-4xl px-4 mx-auto pt-4">
+        <!-- Pending Visit Indicator -->
+        <app-pending-visit-indicator />
         <app-timeline />
       </div>
       <!-- Collapsible Map Section -->

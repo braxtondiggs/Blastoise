@@ -12,6 +12,8 @@ export * from './lib/components/timeline-empty';
 
 export * from './lib/components/timeline-filters';
 
+export * from './lib/components/pending-visit-indicator';
+
 // Services
 export * from './lib/services/geofence';
 export * from './lib/services/visit-tracker';

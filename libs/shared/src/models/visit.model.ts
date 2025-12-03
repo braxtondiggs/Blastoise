@@ -25,10 +25,11 @@ export interface Visit {
 /**
  * Create Visit DTO
  * Used when creating a new visit (omits generated fields)
+ * Note: user_id is omitted as the server gets it from the authenticated token
  */
 export type CreateVisitDto = Omit<
   Visit,
-  'id' | 'duration_minutes' | 'created_at' | 'updated_at' | 'synced'
+  'id' | 'user_id' | 'duration_minutes' | 'created_at' | 'updated_at' | 'synced'
 >;
 
 /**
