@@ -13,6 +13,19 @@ import { VisitsLocalRepository } from '@blastoise/data';
 import { VenuesApiService } from '@blastoise/data';
 import { DurationPipe } from '@blastoise/ui';
 import { ShareModalComponent } from '@blastoise/features-sharing';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import {
+  heroArrowLeft,
+  heroShare,
+  heroTrash,
+  heroMapPin,
+  heroMap,
+  heroArrowRightOnRectangle,
+  heroArrowLeftOnRectangle,
+  heroClock,
+  heroInformationCircle,
+  heroExclamationCircle,
+} from '@ng-icons/heroicons/outline';
 
 /**
  * Visit Detail Component (T122)
@@ -30,9 +43,23 @@ import { ShareModalComponent } from '@blastoise/features-sharing';
 
 @Component({
   selector: 'app-visit-detail',
-  imports: [CommonModule, DurationPipe, ShareModalComponent],
+  imports: [CommonModule, DurationPipe, ShareModalComponent, NgIconComponent],
   templateUrl: './visit-detail.html',
   standalone: true,
+  viewProviders: [
+    provideIcons({
+      heroArrowLeft,
+      heroShare,
+      heroTrash,
+      heroMapPin,
+      heroMap,
+      heroArrowRightOnRectangle,
+      heroArrowLeftOnRectangle,
+      heroClock,
+      heroInformationCircle,
+      heroExclamationCircle,
+    }),
+  ],
 })
 export class VisitDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

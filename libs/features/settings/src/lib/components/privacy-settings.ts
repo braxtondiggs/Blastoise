@@ -41,7 +41,7 @@ import { PreferencesService, type UserPreferences } from '../services/preference
           <label class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-base-200/50 transition-colors">
             <div class="flex-1 pr-4">
               <div class="font-medium text-sm">Automatic visit detection</div>
-              <div class="text-xs text-base-content/60 mt-0.5">Track brewery and winery visits automatically</div>
+              <div class="text-xs text-base-content/60 mt-0.5">Track brewery visits automatically</div>
             </div>
             <input
               type="checkbox"

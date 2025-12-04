@@ -86,7 +86,6 @@ export class VisitCreationService {
         arrival_time: new Date(roundedArrival),
         departure_time: new Date(roundedDeparture),
         is_active: false, // Imported visits are always complete
-        detection_method: 'manual', // Imported data treated as manual
         source: 'google_import',
         imported_at: new Date(),
       });

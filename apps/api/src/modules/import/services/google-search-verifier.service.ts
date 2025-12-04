@@ -4,6 +4,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { VerificationCacheService } from './verification-cache.service';
 
 export interface Tier3VerificationResult {
@@ -28,6 +29,9 @@ export class GoogleSearchVerifierService {
 
   private currentUserAgentIndex = 0;
   private lastRequestTime = 0;
+
+  // Simple error tracking for alerting
+  private consecutiveFailures = 0;
 
   constructor(
     private readonly cacheService: VerificationCacheService
@@ -119,13 +123,51 @@ export class GoogleSearchVerifierService {
       });
 
       if (!response.ok) {
-        this.logger.warn(`Google search returned ${response.status} for query: ${query}`);
+        this.consecutiveFailures++;
+
+        // Alert on 3+ consecutive failures (Google blocking requests)
+        if (this.consecutiveFailures >= 3) {
+          this.logger.error(
+            `🚨 GOOGLE SEARCH BLOCKED: ${this.consecutiveFailures} consecutive ${response.status} errors!`
+          );
+
+          Sentry.captureMessage('Google Search blocking detected', {
+            level: 'error',
+            tags: {
+              service: 'google_search',
+              tier: '3',
+              http_status: response.status.toString(),
+            },
+            extra: {
+              consecutiveFailures: this.consecutiveFailures,
+              query,
+            },
+          });
+        } else {
+          this.logger.warn(`Google search returned ${response.status} for query: ${query}`);
+        }
+
         return null;
       }
 
+      // Reset on success
+      this.consecutiveFailures = 0;
       return await response.text();
     } catch (error) {
-      this.logger.error(`Failed to fetch Google search results: ${error}`);
+      this.consecutiveFailures++;
+
+      if (this.consecutiveFailures >= 3) {
+        this.logger.error(`🚨 GOOGLE SEARCH ERROR: ${this.consecutiveFailures} consecutive failures!`);
+        Sentry.captureException(error, {
+          tags: {
+            service: 'google_search',
+            tier: '3',
+          },
+        });
+      } else {
+        this.logger.warn(`Failed to fetch Google search results: ${error}`);
+      }
+
       return null;
     }
   }
@@ -220,5 +262,54 @@ export class GoogleSearchVerifierService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Tier 2.5: Search by address only (no keywords added)
+   * Used when we have coordinates but no name from Tier 1/2
+   * Lets Google surface what's at that address naturally
+   */
+  async searchByAddress(
+    formattedAddress: string
+  ): Promise<Tier3VerificationResult> {
+    try {
+      // Check cache first (7-day TTL for address searches)
+      const cacheKey = `address-search:${formattedAddress}`;
+      const cached = await this.cacheService.get<Tier3VerificationResult>(cacheKey);
+      if (cached) {
+        this.logger.debug(`Cache hit for address search: ${formattedAddress}`);
+        return cached;
+      }
+
+      this.logger.debug(`Tier 2.5 Google search for address: "${formattedAddress}"`);
+
+      // Wait 500ms between requests to avoid rate limiting
+      await this.enforceRateLimit();
+
+      // Search ONLY the address (no "brewery" or "winery" keywords)
+      // This avoids false positives from nearby breweries
+      const html = await this.searchGoogle(formattedAddress);
+
+      if (!html) {
+        return { verified: false, confidence: 0 };
+      }
+
+      // Detect keywords in search results
+      const verification = this.detectKeywords(html);
+
+      // Cache result (7 days - shorter TTL for address searches)
+      await this.cacheService.set(cacheKey, verification, 7 * 24 * 60 * 60);
+
+      if (verification.verified) {
+        this.logger.log(
+          `Tier 2.5 found ${verification.venue_type} at address: ${formattedAddress} (confidence: ${verification.confidence.toFixed(2)})`
+        );
+      }
+
+      return verification;
+    } catch (error) {
+      this.logger.error(`Address search failed for "${formattedAddress}": ${error}`);
+      return { verified: false, confidence: 0 };
+    }
   }
 }

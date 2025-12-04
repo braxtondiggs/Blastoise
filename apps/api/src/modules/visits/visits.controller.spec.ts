@@ -16,7 +16,7 @@ const createVisit = (overrides: Partial<Visit> = {}): Visit => ({
   venue_id: 'venue-1',
   arrival_time: new Date('2024-01-01T10:00:00.000Z'),
   is_active: true,
-  detection_method: 'auto',
+  source: 'auto_detect',
   synced: true,
   created_at: new Date(),
   updated_at: new Date(),
@@ -48,7 +48,7 @@ describe('VisitsController', () => {
     const result = await controller.create(mockUser as any, {
       venue_id: 'venue-1',
       arrival_time: '2024-01-01T10:00:00.000Z',
-      detection_method: 'auto',
+      source: 'auto_detect',
       is_active: true,
     } as any);
 

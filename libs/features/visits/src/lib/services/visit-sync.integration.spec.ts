@@ -103,7 +103,7 @@ class MockVisitsApiService {
       departure_time: v.departure_time,
       duration_minutes: v.duration_minutes,
       is_active: v.is_active,
-      detection_method: v.detection_method,
+      source: v.source,
       synced: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -414,7 +414,7 @@ describe('T118: Offline Sync Flow Integration Test', () => {
       const syncedVisit = mockLocalRepo.getAll()[0];
       expect(syncedVisit.venue_id).toBe(originalVisit.venue_id);
       expect(syncedVisit.arrival_time).toBe(originalVisit.arrival_time);
-      expect(syncedVisit.detection_method).toBe(originalVisit.detection_method);
+      expect(syncedVisit.source).toBe(originalVisit.source);
       expect(syncedVisit.synced).toBe(true);
       expect(syncedVisit.id).toContain('server-id'); // Server ID assigned
 

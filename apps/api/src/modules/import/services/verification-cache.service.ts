@@ -327,6 +327,36 @@ export class VerificationCacheService {
   }
 
   /**
+   * Generic cache get method for any key
+   * Used by Overpass API, Google Places API, and Nominatim services
+   */
+  async get<T>(key: string): Promise<T | null> {
+    try {
+      const cached = await this.redis.get(key);
+      if (!cached) {
+        return null;
+      }
+      return JSON.parse(cached) as T;
+    } catch (error) {
+      this.logger.error(`Failed to get cache for ${key}: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Generic cache set method for any key with custom TTL
+   * Used by Overpass API, Google Places API, and Nominatim services
+   */
+  async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+    try {
+      await this.redis.setex(key, ttlSeconds, JSON.stringify(value));
+    } catch (error) {
+      this.logger.error(`Failed to set cache for ${key}: ${error}`);
+      // Don't throw - caching failure shouldn't fail the import
+    }
+  }
+
+  /**
    * Cleanup - close Redis connection
    */
   async onModuleDestroy() {

@@ -118,4 +118,19 @@ export class IndexedDBService {
       request.onsuccess = () => resolve(request.result as T[]);
     });
   }
+
+  async clear(storeName: string): Promise<void> {
+    if (!this.db) await this.init();
+    if (!this.db) throw new Error('Failed to initialize IndexedDB');
+    const db = this.db;
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      const request = store.clear();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
 }

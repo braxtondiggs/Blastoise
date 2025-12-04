@@ -183,42 +183,56 @@ interface FileValidationResult {
               <!-- Instructions List -->
               <div class="rounded-xl bg-base-100/80 border border-base-300/50 p-5">
                 @if (selectedPlatform() === 'android') {
-                  <ol class="space-y-3 text-sm">
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>Open Google Maps app on your Android device</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap your profile picture in the top right</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Select "Your Timeline"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Tap the three dots (⋮) menu</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Select "Settings and privacy"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Scroll to "Location History" section</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Tap "Download your Timeline data"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>Choose JSON format and download</span></li>
-                  </ol>
+                  <div>
+                    <h4 class="font-bold text-sm mb-3">Export from Settings App</h4>
+                    <ol class="space-y-3 text-sm">
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>On your Android phone or tablet, open the Settings app</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap "Location"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Tap "Location services"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Tap "Timeline"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Under "Timeline," tap "Export Timeline data"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Tap "Continue"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Select your preferred storage location</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>Tap "Save"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">9</span><span>Wait for the "Export complete" notification</span></li>
+                    </ol>
+                  </div>
                 }
 
                 @if (selectedPlatform() === 'ios') {
-                  <ol class="space-y-3 text-sm">
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>Open Google Maps app on your iPhone</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap your profile picture in the top right</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Select "Your Timeline"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Tap the settings gear icon</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Select "Export Timeline data"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Choose JSON format and share to Files app</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Save the file and note its location</span></li>
-                  </ol>
+                  <div>
+                    <h4 class="font-bold text-sm mb-3">Export from Google Maps App</h4>
+                    <ol class="space-y-3 text-sm">
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>On your iPhone or iPad, open the Google Maps app</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap your profile picture or initial</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Tap "Settings"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Under "Account Settings," tap "Personal content"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Under "Location settings," tap "Export Timeline data"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>On the iOS share sheet, tap "Save to Files"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Select your preferred storage location</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>At the top right, tap "Save"</span></li>
+                      <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">9</span><span>Your exported Timeline data is saved as "location-history.json"</span></li>
+                    </ol>
+                  </div>
                 }
 
                 @if (selectedPlatform() === 'takeout') {
-                  <ol class="space-y-3 text-sm">
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>Visit <a href="https://takeout.google.com" target="_blank" class="text-primary hover:underline">takeout.google.com</a></span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Deselect all, then select only "Location History"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Click "Next step"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Choose delivery method (email or Drive)</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Select file type: ZIP and size: 2GB</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Click "Create export"</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Wait for email (can take hours/days)</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>Download and extract the ZIP file</span></li>
-                    <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">9</span><span>Find JSON in "Location History" folder</span></li>
-                  </ol>
+                  <div class="rounded-xl bg-warning/10 border border-warning/20 p-4 mb-4">
+                    <div class="flex gap-3">
+                      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/15 shrink-0">
+                        <ng-icon name="heroExclamationTriangle" size="20" class="text-warning" />
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-sm">Timeline Not Available on Web</h4>
+                        <p class="text-xs text-base-content/70 mt-1">
+                          Since the data shown on your Google Maps Timeline comes directly from your device, Timeline is not available for Maps on your computer. To use Google Maps Timeline, download the Google Maps app on your Android or iOS device.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-sm text-base-content/70">
+                    Please use the Android or iOS tabs above to learn how to export your Timeline data from your mobile device.
+                  </p>
                 }
               </div>
             }
@@ -237,8 +251,8 @@ interface FileValidationResult {
                     <ng-icon name="heroCheckCircle" size="20" class="text-success" />
                   </div>
                   <div>
-                    <h4 class="font-semibold text-sm">Duplicate Detection Active</h4>
-                    <p class="text-xs text-base-content/60 mt-1">We'll match venues by Place ID and proximity. You can safely re-upload the same file.</p>
+                    <h4 class="font-semibold text-sm">Smart Venue Matching</h4>
+                    <p class="text-xs text-base-content/60 mt-1">We use a multi-tier verification system (OpenStreetMap → Brewery DB → Google Places) to accurately identify breweries and wineries. Duplicate visits are automatically detected within a 15-minute window.</p>
                   </div>
                 </div>
               </div>
@@ -585,24 +599,24 @@ export class ImportWizardComponent {
         const content = e.target?.result as string;
         const json = JSON.parse(content);
 
-        // Check for valid Timeline format
-        const isLegacy = json.timelineObjects && Array.isArray(json.timelineObjects);
-        const isNew = json.placeVisits && Array.isArray(json.placeVisits);
+        // Check for valid Timeline format (mobile export or semantic segments)
+        const isNewFormat = json.placeVisits && Array.isArray(json.placeVisits);
+        const isSemanticSegments = json.semanticSegments && Array.isArray(json.semanticSegments);
 
-        if (!isLegacy && !isNew) {
+        if (!isNewFormat && !isSemanticSegments) {
           this.fileValidation.set({
             valid: false,
-            error: 'Invalid Timeline format. Expected timelineObjects or placeVisits array.',
+            error: 'Invalid Timeline format. Expected placeVisits or semanticSegments array.',
           });
           return;
         }
 
         // Count places
         let placeCount = 0;
-        if (isLegacy) {
-          placeCount = json.timelineObjects.filter((obj: { placeVisit?: unknown }) => obj.placeVisit).length;
-        } else {
+        if (isNewFormat) {
           placeCount = json.placeVisits.length;
+        } else if (isSemanticSegments) {
+          placeCount = json.semanticSegments.filter((seg: { visit?: unknown }) => seg.visit).length;
         }
 
         this.fileValidation.set({

@@ -141,7 +141,7 @@ describe('VisitTrackerService', () => {
       expect(visitEvent.visit.venue_id).toBe(mockVenue.id);
       expect(visitEvent.visit.user_id).toBe('test-user-123');
       expect(visitEvent.visit.is_active).toBe(true);
-      expect(visitEvent.visit.detection_method).toBe('auto');
+      expect(visitEvent.visit.source).toBe('auto_detect');
       expect(visitEvent.visit.departure_time).toBeUndefined();
     });
 
@@ -442,7 +442,7 @@ describe('VisitTrackerService', () => {
 
       expect(visit).toBeDefined();
       expect(visit?.venue_id).toBe(mockVenue.id);
-      expect(visit?.detection_method).toBe('manual');
+      expect(visit?.source).toBe('manual');
       expect(visit?.is_active).toBe(true);
     });
 

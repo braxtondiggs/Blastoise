@@ -6,7 +6,7 @@ import { SearchVenuesDto } from './dto/search-venues.dto';
 import { NearbyVenuesDto } from './dto/nearby-venues.dto';
 import { VerificationCacheService } from '../import/services/verification-cache.service';
 import { BreweryDbVerifierService, BreweryDbResult } from '../import/services/brewery-db-verifier.service';
-import { OsmDiscoveryService, OsmVenueResult } from '../import/services/osm-discovery.service';
+import { OverpassApiService, OsmVenueResult } from '../import/services/overpass-api.service';
 
 @Injectable()
 export class VenuesService {
@@ -17,7 +17,7 @@ export class VenuesService {
     private readonly venueRepository: Repository<Venue>,
     private readonly cacheService: VerificationCacheService,
     private readonly breweryDbService: BreweryDbVerifierService,
-    private readonly osmDiscoveryService: OsmDiscoveryService
+    private readonly overpassApiService: OverpassApiService
   ) {}
 
   async findById(id: string): Promise<Venue> {
@@ -179,7 +179,7 @@ export class VenuesService {
     // Step 2: If no results from Open Brewery DB, try OpenStreetMap as fallback
     if (breweryDbResults.length === 0) {
       this.logger.debug(`No results from Open Brewery DB, trying OpenStreetMap...`);
-      const osmResults = await this.osmDiscoveryService.discoverNearby(latitude, longitude, radiusMeters);
+      const osmResults = await this.overpassApiService.discoverNearby(latitude, longitude, radiusMeters);
 
       if (osmResults.length > 0) {
         this.logger.log(`Found ${osmResults.length} venues from OpenStreetMap`);
