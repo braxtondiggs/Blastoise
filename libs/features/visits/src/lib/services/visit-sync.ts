@@ -16,6 +16,10 @@ const BACKOFF_MULTIPLIER = 2;
 const SYNC_INTERVAL_MS = 60000; // 1 minute
 const SYNC_DEBOUNCE_MS = 5000; // 5 seconds after last change
 
+// Cleanup thresholds
+const ABANDONED_VISIT_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes - if active visit has no update, consider it abandoned
+const MIN_DWELL_TIME_MS = 10 * 60 * 1000; // 10 minutes - minimum time to count as a valid visit
+
 interface SyncStatus {
   isSyncing: boolean;
   lastSyncTime?: Date;
@@ -163,6 +167,9 @@ export class VisitSyncService {
     }));
 
     try {
+      // Clean up abandoned visits before syncing
+      await this.cleanupAbandonedVisits();
+
       // Get all unsynced visits from local storage
       const unsyncedVisits = await this.localRepository.findUnsynced();
 
@@ -379,5 +386,70 @@ export class VisitSyncService {
     }
 
     return Array.from(visitMap.values());
+  }
+
+  /**
+   * Clean up abandoned visits that never got completed
+   * These are visits that:
+   * 1. Are still marked as active (is_active: true)
+   * 2. Have no departure time
+   * 3. Were created more than 15 minutes ago (indicating user left without proper exit)
+   * 4. Would have had less than 10 minutes dwell time
+   */
+  private async cleanupAbandonedVisits(): Promise<void> {
+    try {
+      const allVisits = await this.localRepository.findAll();
+      const now = Date.now();
+      let cleanedCount = 0;
+
+      for (const visit of allVisits) {
+        // Only check active visits with no departure time
+        if (!visit.is_active || visit.departure_time) {
+          continue;
+        }
+
+        // Already synced visits should not be cleaned up locally
+        if (visit.synced) {
+          continue;
+        }
+
+        const arrivalTime = new Date(visit.arrival_time).getTime();
+        const timeSinceArrival = now - arrivalTime;
+
+        // If visit has been active for more than the abandoned threshold
+        // AND the dwell time would be less than minimum required
+        // This handles the case where user entered briefly and left without triggering EXIT
+        if (timeSinceArrival > ABANDONED_VISIT_THRESHOLD_MS) {
+          // Check if this visit would have met the dwell time threshold
+          // If not, it means the user left too quickly and we should delete it
+          const lastUpdate = visit.updated_at ? new Date(visit.updated_at).getTime() : arrivalTime;
+          const timeSinceLastUpdate = now - lastUpdate;
+
+          // If no updates for a while, assume user left without triggering EXIT
+          if (timeSinceLastUpdate > ABANDONED_VISIT_THRESHOLD_MS) {
+            // Calculate what the dwell time would have been
+            const potentialDwellTime = lastUpdate - arrivalTime;
+
+            if (potentialDwellTime < MIN_DWELL_TIME_MS) {
+              // This was a brief visit that didn't meet the threshold - delete it
+              console.log(
+                `[VisitSync] Cleaning up abandoned visit ${visit.id} - dwell time would have been ${Math.round(potentialDwellTime / 1000 / 60)}m (< 10m threshold)`
+              );
+              await this.localRepository.delete(visit.id);
+              this.syncQueue.delete(visit.id);
+              this.retryStates.delete(visit.id);
+              cleanedCount++;
+            }
+          }
+        }
+      }
+
+      if (cleanedCount > 0) {
+        console.log(`[VisitSync] Cleaned up ${cleanedCount} abandoned visits`);
+        await this.updatePendingCount();
+      }
+    } catch (error) {
+      console.error('[VisitSync] Error cleaning up abandoned visits:', error);
+    }
   }
 }

@@ -3,17 +3,44 @@
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
     <h1 class="text-3xl font-bold" id="timeline-heading">Your Visits</h1>
-    <button
-      class="btn btn-sm btn-ghost"
-      (click)="refresh()"
-      [disabled]="isLoading()"
-      aria-label="Refresh visit timeline"
-      [attr.aria-busy]="isLoading()"
-    >
-      <ng-icon name="heroArrowPath" size="20" aria-hidden="true" />
-      Refresh
-    </button>
+    <div class="flex gap-2">
+      <button
+        class="btn btn-sm btn-primary"
+        (click)="manualCheckIn()"
+        [disabled]="isCheckingIn()"
+        aria-label="Manual check-in at nearby venue"
+        [attr.aria-busy]="isCheckingIn()"
+      >
+        @if (isCheckingIn()) {
+          <span class="loading loading-spinner loading-xs"></span>
+        } @else {
+          <ng-icon name="heroPlus" size="18" aria-hidden="true" />
+        }
+        <span class="hidden sm:inline">Check In</span>
+      </button>
+      <button
+        class="btn btn-sm btn-ghost btn-circle"
+        (click)="refresh()"
+        [disabled]="isLoading()"
+        aria-label="Refresh visit timeline"
+        [attr.aria-busy]="isLoading()"
+      >
+        @if (isLoading()) {
+          <span class="loading loading-spinner loading-xs"></span>
+        } @else {
+          <ng-icon name="heroArrowPath" size="18" aria-hidden="true" />
+        }
+      </button>
+    </div>
   </div>
+
+  <!-- Check-in error message -->
+  @if (checkInError()) {
+    <div class="flex items-center justify-between gap-4 mb-4 alert alert-warning">
+      <span>{{ checkInError() }}</span>
+      <button class="btn btn-sm btn-ghost shrink-0" (click)="checkInError.set(null)">Dismiss</button>
+    </div>
+  }
 
   <!-- Empty state -->
   @if (isEmpty()) {
@@ -47,7 +74,7 @@
 
           <!-- Visits for this date -->
           <div
-            class="pl-4 space-y-6"
+            class="flex flex-col gap-6"
             role="list"
             [attr.aria-label]="'Visits on ' + group.displayDate"
           >
@@ -56,7 +83,7 @@
                 [visit]="visit"
                 [venue]="visit.venue"
                 (click)="onVisitClick(visit)"
-                class="cursor-pointer transition-transform hover:scale-[1.02]"
+                class="block cursor-pointer transition-transform hover:scale-[1.02]"
                 role="listitem"
                 [attr.aria-label]="'Visit to ' + (visit.venue?.name || 'venue') + ' at ' + (visit.arrival_time | date:'short')"
                 tabindex="0"
@@ -90,3 +117,39 @@
     </div>
   }
 </div>
+
+<!-- Venue Selector Modal -->
+@if (showVenueSelector()) {
+  <div class="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="venue-selector-title">
+    <div class="max-w-md modal-box">
+      <h3 id="venue-selector-title" class="text-lg font-bold">Select a Venue</h3>
+      <p class="py-2 text-sm text-base-content/70">Choose the brewery or winery you're visiting:</p>
+
+      <div class="py-4 space-y-2 overflow-y-auto max-h-80">
+        @for (venue of nearbyVenues(); track venue.venue_id) {
+          <button
+            class="w-full p-3 text-left transition-colors border rounded-lg hover:bg-base-200 border-base-300"
+            (click)="selectVenueForCheckIn(venue)"
+          >
+            <div class="font-medium">{{ venue.name }}</div>
+            @if (venue.city || venue.state) {
+              <div class="text-sm text-base-content/60">
+                {{ venue.city }}@if (venue.city && venue.state) {, }{{ venue.state }}
+              </div>
+            }
+            @if (venue.distance_km) {
+              <div class="text-xs text-base-content/50">
+                {{ venue.distance_km < 1 ? ((venue.distance_km * 1000) | number:'1.0-0') + 'm' : (venue.distance_km | number:'1.1-1') + 'km' }} away
+              </div>
+            }
+          </button>
+        }
+      </div>
+
+      <div class="modal-action">
+        <button class="btn btn-ghost" (click)="cancelVenueSelection()">Cancel</button>
+      </div>
+    </div>
+    <div class="modal-backdrop bg-black/50" (click)="cancelVenueSelection()"></div>
+  </div>
+}

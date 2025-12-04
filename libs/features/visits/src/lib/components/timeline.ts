@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import type { Visit, Venue } from '@blastoise/shared';
+import { LocationPermission, type Visit, type Venue, type VenueWithDistance } from '@blastoise/shared';
 import { VisitsLocalRepository, VisitsApiService } from '@blastoise/data';
 import { VenuesApiService } from '@blastoise/data';
 import { Subject, takeUntil, debounceTime, firstValueFrom } from 'rxjs';
@@ -16,7 +16,8 @@ import { VisitCard } from './visit-card';
 import { VisitTrackerService } from '../services/visit-tracker';
 import { AuthStateService } from '@blastoise/shared/auth-state';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroArrowPath, heroMapPin } from '@ng-icons/heroicons/outline';
+import { heroArrowPath, heroMapPin, heroPlus } from '@ng-icons/heroicons/outline';
+import { GeofenceService } from '../services/geofence';
 
 /**
  * Displays visits in chronological order with:
@@ -43,6 +44,7 @@ interface GroupedVisits {
     provideIcons({
       heroArrowPath,
       heroMapPin,
+      heroPlus,
     }),
   ],
 })
@@ -52,6 +54,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   private readonly visitsApi = inject(VisitsApiService);
   private readonly venuesApi = inject(VenuesApiService);
   private readonly visitTracker = inject(VisitTrackerService);
+  private readonly geofenceService = inject(GeofenceService);
   private readonly authState = inject(AuthStateService);
   private readonly destroy$ = new Subject<void>();
 
@@ -60,6 +63,10 @@ export class TimelineComponent implements OnInit, OnDestroy {
   private readonly currentPage = signal(0);
   readonly hasMore = signal(true);
   readonly isLoading = signal(false);
+  readonly isCheckingIn = signal(false);
+  readonly checkInError = signal<string | null>(null);
+  readonly nearbyVenues = signal<VenueWithDistance[]>([]);
+  readonly showVenueSelector = signal(false);
 
   // All loaded visits (accumulated as user scrolls)
   private readonly allVisits = signal<(Visit & { venue?: Venue })[]>([]);
@@ -369,5 +376,137 @@ export class TimelineComponent implements OnInit, OnDestroy {
     this.hasMore.set(true);
     this.allVisits.set([]);
     await this.loadMoreVisits();
+  }
+
+  /**
+   * Manual check-in - find nearby venues and let user select one
+   */
+  async manualCheckIn(): Promise<void> {
+    // Prevent multiple clicks
+    if (this.isCheckingIn()) {
+      return;
+    }
+
+    // Check if user already has an active visit
+    const activeVisits = this.visitTracker.getAllActiveVisits();
+    if (activeVisits.length > 0) {
+      const activeVenue = this.visitTracker.getVenue(activeVisits[0].venue_id);
+      this.checkInError.set(
+        `You're already checked in at ${activeVenue?.name || 'a venue'}. End that visit first.`
+      );
+      return;
+    }
+
+    this.isCheckingIn.set(true);
+    this.checkInError.set(null);
+    this.nearbyVenues.set([]);
+
+    try {
+      // Check location permission first
+      const permission = await this.geofenceService.requestPermissions();
+      // On web, PROMPT means we should proceed and let getCurrentPosition trigger the browser dialog
+      if (permission === LocationPermission.DENIED) {
+        this.checkInError.set('Location permission was denied. Please enable location services in your browser settings.');
+        return;
+      }
+
+      // Get current location
+      const position = await this.geofenceService.getCurrentPosition();
+
+      if (!position) {
+        this.checkInError.set('Could not get your location. Please make sure location services are enabled.');
+        return;
+      }
+
+      // Find nearby venues (within 500m for manual check-in)
+      const response = await firstValueFrom(
+        this.venuesApi.nearby({
+          latitude: position.latitude,
+          longitude: position.longitude,
+          radius_km: 0.5, // 500 meters
+          limit: 10,
+        })
+      );
+
+      const venues = response?.data || [];
+
+      if (venues.length === 0) {
+        this.checkInError.set('No breweries or wineries found nearby. Try moving closer to a venue.');
+        return;
+      }
+
+      // Filter out venues where user already has an active visit (shouldn't happen but safety check)
+      const activeVenueIds = new Set(activeVisits.map(v => v.venue_id));
+      const availableVenues = venues.filter((v: VenueWithDistance) => !activeVenueIds.has(v.venue_id));
+
+      if (availableVenues.length === 0) {
+        this.checkInError.set('You already have an active visit at the only nearby venue.');
+        return;
+      }
+
+      // Show venue selector
+      this.nearbyVenues.set(availableVenues);
+      this.showVenueSelector.set(true);
+    } catch (error) {
+      console.error('Manual check-in error:', error);
+      this.checkInError.set('Failed to find nearby venues. Please try again.');
+    } finally {
+      this.isCheckingIn.set(false);
+    }
+  }
+
+  /**
+   * Complete check-in at selected venue
+   */
+  async selectVenueForCheckIn(venueWithDist: VenueWithDistance): Promise<void> {
+    this.showVenueSelector.set(false);
+
+    // Double-check not already at this venue
+    const existingVisit = this.visitTracker.getActiveVisit(venueWithDist.venue_id);
+    if (existingVisit) {
+      this.checkInError.set(`You're already checked in at ${venueWithDist.name}.`);
+      return;
+    }
+
+    // Convert VenueWithDistance to Venue format
+    const venue: Venue = {
+      id: venueWithDist.venue_id,
+      name: venueWithDist.name,
+      venue_type: venueWithDist.venue_type,
+      latitude: venueWithDist.coordinates.latitude,
+      longitude: venueWithDist.coordinates.longitude,
+      city: venueWithDist.city,
+      state: venueWithDist.state,
+      source: 'manual',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Register the venue with the geofence service so the tracker can find it
+    this.geofenceService.addGeofence(venue);
+
+    // Create manual visit via the tracker service
+    const visit = this.visitTracker.createManualVisit(venue.id);
+
+    if (visit) {
+      // Add to the top of the timeline
+      this.allVisits.update((current) => [
+        { ...visit, venue },
+        ...current,
+      ]);
+
+      // Show success feedback (the visit card will show as active)
+      console.log(`Checked in at ${venue.name}`);
+    } else {
+      this.checkInError.set('Failed to create visit. Please try again.');
+    }
+  }
+
+  /**
+   * Cancel venue selection
+   */
+  cancelVenueSelection(): void {
+    this.showVenueSelector.set(false);
+    this.nearbyVenues.set([]);
   }
 }

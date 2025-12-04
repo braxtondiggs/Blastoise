@@ -87,14 +87,19 @@
       </div>
     </header>
 
-    <!-- Web Limitation Notice (Web Only, After Login) -->
-    @if (showWebNotice()) {
-      <lib-web-limitation-notice />
-    }
+    <!-- Notices container with conditional spacing -->
+    @if (showWebNotice() || showLocationNotice()) {
+      <div class="flex flex-col gap-2">
+        <!-- Web Limitation Notice (Web Only, After Login) -->
+        @if (showWebNotice()) {
+          <lib-web-limitation-notice />
+        }
 
-    <!-- Location Permission Notice (When geolocation is disabled) -->
-    @if (showLocationNotice()) {
-      <lib-location-permission-notice />
+        <!-- Location Permission Notice (When geolocation is disabled) -->
+        @if (showLocationNotice()) {
+          <lib-location-permission-notice />
+        }
+      </div>
     }
 
     <!-- Page content -->

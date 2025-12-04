@@ -23,7 +23,7 @@ import { UserModule } from '../modules/user/user.module';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET') || 'fallback-secret-key',
         signOptions: {
-          expiresIn: configService.get('JWT_ACCESS_EXPIRATION') || '15m',
+          expiresIn: configService.get('JWT_ACCESS_EXPIRATION') || '90d',
         },
       }),
       inject: [ConfigService],

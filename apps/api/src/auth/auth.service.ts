@@ -52,7 +52,7 @@ export class AuthService {
 
     // Calculate expiration from config (supports: 7d, 24h, 60m, 3600s)
     const expiresAt = new Date();
-    const expiration = this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d');
+    const expiration = this.configService.get<string>('JWT_REFRESH_EXPIRATION', '180d');
     const ms = this.parseDuration(expiration);
     expiresAt.setTime(expiresAt.getTime() + ms);
 
@@ -114,11 +114,16 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user.id, user.email);
     const refreshToken = await this.generateRefreshToken(user.id);
 
+    // Calculate expires_in from config
+    const accessExpiration = this.configService.get<string>('JWT_ACCESS_EXPIRATION', '90d');
+    const expiresInMs = this.parseDuration(accessExpiration);
+    const expiresInSeconds = Math.floor(expiresInMs / 1000);
+
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
       token_type: 'Bearer',
-      expires_in: 900, // 15 minutes in seconds
+      expires_in: expiresInSeconds,
       user: {
         id: user.id,
         email: user.email,
@@ -160,11 +165,16 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user.id, user.email);
     const refreshToken = await this.generateRefreshToken(user.id);
 
+    // Calculate expires_in from config
+    const accessExpiration = this.configService.get<string>('JWT_ACCESS_EXPIRATION', '90d');
+    const expiresInMs = this.parseDuration(accessExpiration);
+    const expiresInSeconds = Math.floor(expiresInMs / 1000);
+
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
       token_type: 'Bearer',
-      expires_in: 900,
+      expires_in: expiresInSeconds,
       user: {
         id: user.id,
         email: user.email,
@@ -243,11 +253,16 @@ export class AuthService {
     // Revoke the old refresh token
     await this.revokeRefreshToken(token);
 
+    // Calculate expires_in from config
+    const accessExpiration = this.configService.get<string>('JWT_ACCESS_EXPIRATION', '90d');
+    const expiresInMs = this.parseDuration(accessExpiration);
+    const expiresInSeconds = Math.floor(expiresInMs / 1000);
+
     return {
       access_token: accessToken,
       refresh_token: newRefreshToken,
       token_type: 'Bearer' as const,
-      expires_in: 900,
+      expires_in: expiresInSeconds,
     };
   }
 

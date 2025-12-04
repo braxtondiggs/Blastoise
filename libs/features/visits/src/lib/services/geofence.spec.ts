@@ -131,7 +131,7 @@ describe('GeofenceService', () => {
       mockProvider.setMockPermission(LocationPermission.GRANTED);
     });
 
-    it('should detect ENTER event when user moves inside geofence (within 150m)', async () => {
+    it('should detect ENTER event when user moves inside geofence (within 50m)', async () => {
       const outsideCoords: Coordinates = {
         latitude: 37.776,
         longitude: -122.4194,
@@ -144,6 +144,7 @@ describe('GeofenceService', () => {
         spectator.service.getGeofenceTransitions().pipe(take(1))
       );
 
+      // ~22m from venue center (37.7749, -122.4194)
       const insideCoords: Coordinates = {
         latitude: 37.7751,
         longitude: -122.4194,
@@ -157,7 +158,8 @@ describe('GeofenceService', () => {
       expect(spectator.service.isInsideAnyGeofence()).toBe(true);
     });
 
-    it('should NOT detect ENTER event when user is outside geofence (beyond 150m)', async () => {
+    it('should NOT detect ENTER event when user is outside geofence (beyond 50m)', async () => {
+      // ~557m from venue center - well outside 50m radius
       const farOutsideCoords: Coordinates = {
         latitude: 37.78,
         longitude: -122.4194,

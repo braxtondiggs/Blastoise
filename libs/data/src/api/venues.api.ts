@@ -38,8 +38,8 @@ export class VenuesApiService {
 
   nearby(params: ProximitySearchParams): Observable<ApiResponse<VenueWithDistance[]>> {
     const queryParams = new URLSearchParams({
-      lat: params.latitude.toString(),
-      lng: params.longitude.toString(),
+      latitude: params.latitude.toString(),
+      longitude: params.longitude.toString(),
       radius: params.radius_km.toString(),
       ...(params.venue_type && { type: params.venue_type }),
       ...(params.limit && { limit: params.limit.toString() }),

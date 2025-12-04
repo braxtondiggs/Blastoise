@@ -142,6 +142,16 @@ export class AuthService {
         // Decode token to restore user state
         const decoded = jwtDecode<JwtPayload>(storedAccessToken);
         this.loadUserFromToken(decoded);
+
+        // Proactively refresh if token is expiring soon (within 7 days)
+        // This keeps the session alive when user uses the app regularly
+        if (this.shouldRefreshToken(storedAccessToken) && storedRefreshToken) {
+          console.log('[AuthService] Token expiring soon, proactively refreshing...');
+          this.refreshAccessToken().pipe(take(1)).subscribe({
+            next: () => console.log('[AuthService] Token proactively refreshed'),
+            error: (err) => console.warn('[AuthService] Proactive refresh failed:', err),
+          });
+        }
       }
     } catch (error) {
       console.error('[AuthService] Failed to load persisted tokens:', error);
@@ -230,6 +240,22 @@ export class AuthService {
       const decoded = jwtDecode<JwtPayload>(token);
       // Add 30-second buffer to account for network latency
       return decoded.exp * 1000 < Date.now() - 30000;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Check if token should be proactively refreshed
+   * Refresh when token is within 7 days of expiry to keep session alive
+   */
+  private shouldRefreshToken(token: string): boolean {
+    try {
+      const decoded = jwtDecode<JwtPayload>(token);
+      const expiresAt = decoded.exp * 1000;
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      // Refresh if expiring within 7 days
+      return expiresAt - Date.now() < sevenDaysMs;
     } catch {
       return true;
     }
