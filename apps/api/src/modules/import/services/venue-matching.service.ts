@@ -1,7 +1,8 @@
 /**
- * T058: VenueMatchingService
+ * VenueMatchingService
  * Implements intelligent venue matching to prevent duplicates
- * Strategy: Place ID → Proximity + Fuzzy Name → Create New
+ * Strategy: Place ID → Proximity (coordinates only) → Create New
+ * Note: Names are enriched by external APIs (OSM, Brewery DB, Google) before matching
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -9,7 +10,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlaceVisit } from '@blastoise/shared';
 import { Venue } from '../../../entities/venue.entity';
-import * as fuzzball from 'fuzzball';
 
 interface MatchResult {
   matched: boolean;
@@ -24,7 +24,6 @@ export class VenueMatchingService {
 
   // Matching thresholds
   private readonly PROXIMITY_RADIUS_METERS = 100;
-  private readonly FUZZY_NAME_THRESHOLD = 80; // 80% similarity required
 
   constructor(
     @InjectRepository(Venue)
@@ -58,14 +57,15 @@ export class VenueMatchingService {
   }
 
   /**
-   * Match by proximity (100m) + fuzzy name (≥80%)
-   * Returns existing venue if within 100m AND name similarity ≥80%
+   * Match by proximity (100m) - coordinates only
+   * Returns closest venue within 100m radius
+   * Note: Names are enriched by Tier 1/2 before calling this
    */
   async matchByProximity(
     placeVisit: PlaceVisit
   ): Promise<{ venue: Venue | null; confidence: number }> {
     try {
-      // Find venues within 100m radius using Haversine formula
+      // Find venues within 100m radius
       // Convert meters to degrees (approximate at equator: 1 degree ≈ 111km)
       const radiusDegrees = this.PROXIMITY_RADIUS_METERS / 111000;
 
@@ -85,31 +85,14 @@ export class VenueMatchingService {
         return { venue: null, confidence: 0 };
       }
 
-      // Check each nearby venue for fuzzy name match
-      let bestMatch: Venue | null = null;
-      let bestScore = 0;
+      // Return closest venue (first result)
+      const closestVenue = nearbyVenues[0];
+      this.logger.debug(
+        `Matched venue by proximity: ${closestVenue.name} at ${placeVisit.latitude}, ${placeVisit.longitude}`
+      );
 
-      for (const venue of nearbyVenues) {
-        // Use token set ratio for fuzzy matching (handles word order differences)
-        const similarity = fuzzball.token_set_ratio(
-          placeVisit.name.toLowerCase(),
-          venue.name.toLowerCase()
-        );
-
-        if (similarity >= this.FUZZY_NAME_THRESHOLD && similarity > bestScore) {
-          bestMatch = venue;
-          bestScore = similarity;
-        }
-      }
-
-      if (bestMatch) {
-        this.logger.debug(
-          `Matched venue by proximity + fuzzy name: ${bestMatch.name} (${bestScore}% similarity)`
-        );
-        return { venue: bestMatch, confidence: bestScore / 100 };
-      }
-
-      return { venue: null, confidence: 0 };
+      // Medium confidence - matched by location only
+      return { venue: closestVenue, confidence: 0.75 };
     } catch (error) {
       this.logger.error(`Error matching by proximity: ${error}`);
       return { venue: null, confidence: 0 };
@@ -123,25 +106,43 @@ export class VenueMatchingService {
   async createNewVenue(
     placeVisit: PlaceVisit,
     venueType: 'brewery' | 'winery',
-    verificationTier: 1 | 2 | 3
+    verificationTier: 1 | 2 | 3,
+    googlePlacesMetadata?: Record<string, unknown> | null
   ): Promise<Venue> {
     try {
+      // Generate a placeholder name if missing
+      const venueName =
+        placeVisit.name ||
+        `Unknown ${venueType} (${placeVisit.latitude.toFixed(4)}, ${placeVisit.longitude.toFixed(4)})`;
+
+      // Extract city, state, country from Google Places metadata if available
+      const city = googlePlacesMetadata?.city as string | undefined;
+      const state = googlePlacesMetadata?.state as string | undefined;
+      const country = googlePlacesMetadata?.country as string | undefined;
+      const postalCode = googlePlacesMetadata?.postal_code as string | undefined;
+
       const venue = this.venueRepository.create({
-        name: placeVisit.name,
+        name: venueName,
         address: placeVisit.address,
+        city,
+        state,
+        country,
+        postal_code: postalCode,
         latitude: placeVisit.latitude,
         longitude: placeVisit.longitude,
         venue_type: venueType,
         source: 'google_import',
         google_place_id: placeVisit.place_id,
         verification_tier: verificationTier,
+        // Store full Google Places metadata in JSONB field
+        metadata: googlePlacesMetadata || undefined,
       });
 
       const savedVenue = await this.venueRepository.save(venue);
       this.logger.debug(`Created new venue: ${savedVenue.name} (${savedVenue.id})`);
       return savedVenue;
     } catch (error) {
-      this.logger.error(`Failed to create venue "${placeVisit.name}": ${error}`);
+      this.logger.error(`Failed to create venue "${placeVisit.name ?? 'coordinate-only entry'}": ${error}`);
       throw error;
     }
   }
@@ -153,7 +154,8 @@ export class VenueMatchingService {
   async findOrCreateVenue(
     placeVisit: PlaceVisit,
     venueType: 'brewery' | 'winery',
-    verificationTier: 1 | 2 | 3 = 1
+    verificationTier: 1 | 2 | 3 = 1,
+    googlePlacesMetadata?: Record<string, unknown> | null
   ): Promise<MatchResult> {
     // Strategy 1: Try exact Place ID match
     if (placeVisit.place_id) {
@@ -168,7 +170,7 @@ export class VenueMatchingService {
       }
     }
 
-    // Strategy 2: Try proximity + fuzzy name match
+    // Strategy 2: Try proximity match (coordinates only)
     const { venue: proximityMatch, confidence } = await this.matchByProximity(placeVisit);
     if (proximityMatch) {
       return {
@@ -180,7 +182,7 @@ export class VenueMatchingService {
     }
 
     // Strategy 3: No match - create new venue
-    const newVenue = await this.createNewVenue(placeVisit, venueType, verificationTier);
+    const newVenue = await this.createNewVenue(placeVisit, venueType, verificationTier, googlePlacesMetadata);
     return {
       matched: false,
       venue: newVenue,

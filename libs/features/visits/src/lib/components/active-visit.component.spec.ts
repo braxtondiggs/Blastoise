@@ -33,7 +33,7 @@ describe('ActiveVisit Component', () => {
     departure_time: undefined,
     duration_minutes: undefined,
     is_active: true,
-    detection_method: 'auto',
+    source: 'auto_detect',
     created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
   };

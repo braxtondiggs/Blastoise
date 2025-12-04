@@ -5,7 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import Bottleneck from 'bottleneck';
-import * as fuzzball from 'fuzzball';
+import * as Sentry from '@sentry/nestjs';
 import { VerificationCacheService } from './verification-cache.service';
 
 export interface BreweryDbResult {
@@ -38,6 +38,9 @@ export class BreweryDbVerifierService {
   private readonly limiter: Bottleneck;
   private readonly baseUrl = 'https://api.openbrewerydb.org/v1/breweries';
 
+  // Simple error tracking
+  private consecutiveFailures = 0;
+
   constructor(
     private readonly cacheService: VerificationCacheService
   ) {
@@ -58,19 +61,19 @@ export class BreweryDbVerifierService {
    * Returns nearby breweries within ~25km radius
    */
   async searchNearby(
-    placeName: string,
+    placeName: string | null,
     latitude: number,
     longitude: number
   ): Promise<Tier2VerificationResult> {
     try {
       // Check cache first (30-day TTL)
-      const cached = await this.cacheService.getTier2Result(placeName, latitude, longitude);
+      const cached = await this.cacheService.getTier2Result(placeName ?? '', latitude, longitude);
       if (cached) {
-        this.logger.debug(`Tier 2 cache hit for "${placeName}"`);
+        this.logger.debug(`Tier 2 cache hit for "${placeName ?? 'coordinate-only entry'}"`);
         return cached as Tier2VerificationResult;
       }
 
-      this.logger.debug(`Tier 2 API call for "${placeName}" at ${latitude},${longitude}`);
+      this.logger.debug(`Tier 2 API call for "${placeName ?? 'coordinate-only entry'}" at ${latitude},${longitude}`);
 
       // Rate-limited API call
       const breweries = await this.limiter.schedule(() =>
@@ -82,8 +85,8 @@ export class BreweryDbVerifierService {
         return { verified: false, confidence: 0 };
       }
 
-      // Find best match using fuzzy name matching
-      const bestMatch = this.findBestMatch(placeName, latitude, longitude, breweries);
+      // Find best match using distance-based confidence (names not available in Timeline exports)
+      const bestMatch = this.findBestMatch(latitude, longitude, breweries);
 
       if (bestMatch) {
         const result: Tier2VerificationResult = {
@@ -100,14 +103,14 @@ export class BreweryDbVerifierService {
 
         // Cache successful verification (30 days)
         // TypeScript type guard: we know venue_type exists when verified=true
-        await this.cacheService.cacheTier2Result(placeName, latitude, longitude, {
+        await this.cacheService.cacheTier2Result(placeName ?? '', latitude, longitude, {
           verified: result.verified,
           confidence: result.confidence,
           venue_type: result.venue_type as 'brewery' | 'winery',
         });
 
         this.logger.log(
-          `Tier 2 verified "${placeName}" → "${bestMatch.brewery.name}" (${bestMatch.confidence.toFixed(2)} confidence, ${bestMatch.distance.toFixed(2)}km away)`
+          `Tier 2 verified "${placeName ?? 'coordinate-only entry'}" → "${bestMatch.brewery.name}" (${bestMatch.confidence.toFixed(2)} confidence, ${bestMatch.distance.toFixed(2)}km away)`
         );
 
         return result;
@@ -116,7 +119,7 @@ export class BreweryDbVerifierService {
       // No match found - don't cache failed verifications
       return { verified: false, confidence: 0 };
     } catch (error) {
-      this.logger.error(`Tier 2 verification failed for "${placeName}": ${error}`);
+      this.logger.error(`Tier 2 verification failed for "${placeName ?? 'coordinate-only entry'}": ${error}`);
       return { verified: false, confidence: 0 };
     }
   }
@@ -172,20 +175,47 @@ export class BreweryDbVerifierService {
 
       const breweries: BreweryDbResult[] = await response.json();
 
+      // Reset on success
+      this.consecutiveFailures = 0;
+
       // Only return breweries with valid coordinates
       return breweries.filter((b) => b.latitude && b.longitude);
     } catch (error) {
-      this.logger.error(`Failed to fetch from Open Brewery DB: ${error}`);
+      this.consecutiveFailures++;
+
+      // 🚨 FLAG: 5+ consecutive failures = service is down
+      if (this.consecutiveFailures >= 5) {
+        this.logger.error(
+          `🚨 BREWERY DB DOWN: ${this.consecutiveFailures} consecutive failures!`
+        );
+
+        // Send to Sentry
+        Sentry.captureException(error, {
+          tags: {
+            service: 'brewery_db',
+            tier: '2',
+            failure_type: 'consecutive_failures',
+          },
+          extra: {
+            consecutiveFailures: this.consecutiveFailures,
+            latitude,
+            longitude,
+          },
+        });
+      } else {
+        this.logger.warn(`Failed to fetch from Open Brewery DB: ${error}`);
+      }
+
       return [];
     }
   }
 
   /**
-   * Find best matching brewery using fuzzy name matching and proximity
-   * Returns null if no match meets the 80% threshold
+   * Find best matching brewery using distance-based confidence
+   * Since Timeline exports don't have names, we use proximity as the primary signal
+   * Returns null if no match within 5km
    */
   private findBestMatch(
-    placeName: string,
     originLat: number,
     originLng: number,
     breweries: BreweryDbResult[]
@@ -198,10 +228,6 @@ export class BreweryDbVerifierService {
       null;
 
     for (const brewery of breweries) {
-      // Fuzzy name matching (0-100 score)
-      const nameSimilarity = fuzzball.ratio(placeName.toLowerCase(), brewery.name.toLowerCase());
-      const confidence = nameSimilarity / 100; // Convert to 0-1
-
       // Calculate distance
       const distance = this.calculateDistance(
         originLat,
@@ -210,9 +236,18 @@ export class BreweryDbVerifierService {
         parseFloat(brewery.longitude)
       );
 
-      // Require 80% name similarity and within 5km
-      if (confidence >= 0.8 && distance <= 5.0) {
-        if (!bestMatch || confidence > bestMatch.confidence) {
+      // Since we don't have names from Timeline exports, use distance-based confidence
+      // Closer = higher confidence (within 5km radius)
+      let confidence = 0;
+      if (distance <= 0.1) confidence = 0.95; // Within 100m - very high confidence
+      else if (distance <= 0.5) confidence = 0.85; // Within 500m - high confidence
+      else if (distance <= 1.0) confidence = 0.75; // Within 1km - medium confidence
+      else if (distance <= 5.0) confidence = 0.65; // Within 5km - lower confidence
+
+      // Only consider matches within 5km
+      if (distance <= 5.0) {
+        if (!bestMatch || distance < bestMatch.distance) {
+          // Prefer closest match
           bestMatch = { brewery, confidence, distance };
         }
       }

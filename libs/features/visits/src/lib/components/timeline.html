@@ -1,5 +1,5 @@
 <!-- Timeline with screen reader support -->
-<div class="max-w-4xl px-4 py-6 mx-auto" role="main" aria-label="Visit timeline">
+<div class="max-w-4xl px-4 pb-6 mx-auto" role="main" aria-label="Visit timeline">
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
     <h1 class="text-3xl font-bold" id="timeline-heading">Your Visits</h1>
@@ -10,9 +10,7 @@
       aria-label="Refresh visit timeline"
       [attr.aria-busy]="isLoading()"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
+      <ng-icon name="heroArrowPath" size="20" aria-hidden="true" />
       Refresh
     </button>
   </div>
@@ -20,10 +18,7 @@
   <!-- Empty state -->
   @if (isEmpty()) {
     <div class="flex flex-col items-center justify-center py-16 text-center">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
+      <ng-icon name="heroMapPin" size="96" class="text-base-content/30" />
       <h2 class="mt-4 text-2xl font-semibold">No visits yet</h2>
       <p class="mt-2 text-base-content/70">
         Your brewery and winery visits will appear here automatically.
@@ -52,7 +47,7 @@
 
           <!-- Visits for this date -->
           <div
-            class="pl-4 space-y-4"
+            class="pl-4 space-y-6"
             role="list"
             [attr.aria-label]="'Visits on ' + group.displayDate"
           >

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { ImportController } from './import.controller';
 import { ImportService } from './import.service';
 import { ImportProcessor } from './import.processor';
@@ -11,13 +12,16 @@ import { VenueMatchingService } from './services/venue-matching.service';
 import { BreweryDbVerifierService } from './services/brewery-db-verifier.service';
 import { GoogleSearchVerifierService } from './services/google-search-verifier.service';
 import { VerificationCacheService } from './services/verification-cache.service';
-import { OsmDiscoveryService } from './services/osm-discovery.service';
+import { OverpassApiService } from './services/overpass-api.service';
+import { GooglePlacesApiService } from './services/google-places-api.service';
+import { NominatimGeocodeService } from './services/nominatim-geocode.service';
 import { Visit } from '../../entities/visit.entity';
 import { Venue } from '../../entities/venue.entity';
 import { ImportHistory } from '../../entities/import-history.entity';
 
 @Module({
   imports: [
+    ConfigModule, // For GooglePlacesApiService (GOOGLE_PLACES_API_KEY)
     TypeOrmModule.forFeature([Visit, Venue, ImportHistory]),
     BullModule.registerQueue({
       name: 'import-queue',
@@ -43,13 +47,17 @@ import { ImportHistory } from '../../entities/import-history.entity';
     BreweryDbVerifierService,
     GoogleSearchVerifierService,
     VerificationCacheService,
-    OsmDiscoveryService,
+    OverpassApiService,
+    GooglePlacesApiService,
+    NominatimGeocodeService,
   ],
   exports: [
     ImportService,
     VerificationCacheService,
     BreweryDbVerifierService,
-    OsmDiscoveryService,
+    OverpassApiService,
+    GooglePlacesApiService,
+    NominatimGeocodeService,
   ],
 })
 export class ImportModule {}

@@ -22,7 +22,7 @@ import type { LatLngBounds } from 'leaflet';
   template: `
     <div class="min-h-screen bg-base-100">
       <!-- Timeline Section -->
-      <div class="w-full max-w-4xl px-4 mx-auto pt-4">
+      <div class="w-full max-w-4xl px-4 mx-auto pt-6">
         <!-- Pending Visit Indicator -->
         <app-pending-visit-indicator />
         <app-timeline />

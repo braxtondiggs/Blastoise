@@ -28,7 +28,7 @@ export interface SanitizedVisit {
   arrival_time: string; // Rounded
   departure_time?: string; // Rounded
   is_active: boolean;
-  detection_method: 'auto' | 'manual';
+  source: 'auto_detect' | 'google_import' | 'manual';
 }
 
 export function sanitizeVisitData(visit: {
@@ -36,7 +36,7 @@ export function sanitizeVisitData(visit: {
   arrival_time: Date | string;
   departure_time?: Date | string;
   is_active: boolean;
-  detection_method: 'auto' | 'manual';
+  source: 'auto_detect' | 'google_import' | 'manual';
   user_location?: Coordinates; // This will be removed
 }): SanitizedVisit {
   return {
@@ -46,7 +46,7 @@ export function sanitizeVisitData(visit: {
       ? roundTimestamp(visit.departure_time).toISOString()
       : undefined,
     is_active: visit.is_active,
-    detection_method: visit.detection_method,
+    source: visit.source,
     // user_location intentionally omitted
   };
 }

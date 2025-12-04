@@ -18,6 +18,8 @@ import {
   heroArrowRight,
   heroClock,
   heroSparkles,
+  heroQuestionMarkCircle,
+  heroExclamationTriangle,
 } from '@ng-icons/heroicons/outline';
 import { PrivacySettings } from '../components/privacy-settings';
 import { NotificationSettingsComponent } from '../components/notification-settings.component';
@@ -26,7 +28,7 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
 @Component({
   selector: 'app-settings',
   imports: [CommonModule, NgIconComponent, RouterLink, PrivacySettings, NotificationSettingsComponent, AccountSettingsComponent],
-  viewProviders: [provideIcons({ heroShieldCheck, heroBell, heroUser, heroCog6Tooth, heroCloudArrowUp, heroArrowRight, heroClock, heroSparkles })],
+  viewProviders: [provideIcons({ heroShieldCheck, heroBell, heroUser, heroCog6Tooth, heroCloudArrowUp, heroArrowRight, heroClock, heroSparkles, heroQuestionMarkCircle, heroExclamationTriangle })],
   template: `
     <div class="min-h-screen bg-base-100">
       <div class="container mx-auto px-4 max-w-4xl py-6">
@@ -198,6 +200,123 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
                   </div>
                 </div>
               </div>
+
+              <!-- Help Guide Section -->
+              <div class="mt-8">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-info/10">
+                    <ng-icon name="heroQuestionMarkCircle" size="20" class="text-info" />
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-lg">Export Help Guide</h3>
+                    <p class="text-sm text-base-content/60">How to export your Timeline data</p>
+                  </div>
+                </div>
+
+                <!-- Platform Tabs -->
+                <div class="bg-base-200/80 rounded-xl p-1 mb-4">
+                  <div class="grid grid-cols-3 gap-1">
+                    <button
+                      type="button"
+                      class="py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
+                      [class]="helpPlatform() === 'android'
+                        ? 'bg-primary text-primary-content shadow-sm'
+                        : 'text-base-content/70 hover:bg-base-300/50'"
+                      (click)="helpPlatform.set('android')"
+                    >
+                      Android
+                    </button>
+                    <button
+                      type="button"
+                      class="py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
+                      [class]="helpPlatform() === 'ios'
+                        ? 'bg-primary text-primary-content shadow-sm'
+                        : 'text-base-content/70 hover:bg-base-300/50'"
+                      (click)="helpPlatform.set('ios')"
+                    >
+                      iOS
+                    </button>
+                    <button
+                      type="button"
+                      class="py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
+                      [class]="helpPlatform() === 'web'
+                        ? 'bg-primary text-primary-content shadow-sm'
+                        : 'text-base-content/70 hover:bg-base-300/50'"
+                      (click)="helpPlatform.set('web')"
+                    >
+                      Takeout
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Platform Content -->
+                <div class="rounded-xl bg-base-100/80 border border-base-300/50 p-5">
+                  @if (helpPlatform() === 'android') {
+                    <div>
+                      <h4 class="font-bold text-sm mb-3">Export from Settings App</h4>
+                      <ol class="space-y-3 text-sm">
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>On your Android phone or tablet, open the Settings app</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap "Location"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Tap "Location services"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Tap "Timeline"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Under "Timeline," tap "Export Timeline data"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>Tap "Continue"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Select your preferred storage location</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>Tap "Save"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">9</span><span>Wait for the "Export complete" notification</span></li>
+                      </ol>
+                    </div>
+                  }
+
+                  @if (helpPlatform() === 'ios') {
+                    <div>
+                      <h4 class="font-bold text-sm mb-3">Export from Google Maps App</h4>
+                      <ol class="space-y-3 text-sm">
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">1</span><span>On your iPhone or iPad, open the Google Maps app</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">2</span><span>Tap your profile picture or initial</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">3</span><span>Tap "Settings"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">4</span><span>Under "Account Settings," tap "Personal content"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">5</span><span>Under "Location settings," tap "Export Timeline data"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">6</span><span>On the iOS share sheet, tap "Save to Files"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">7</span><span>Select your preferred storage location</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">8</span><span>At the top right, tap "Save"</span></li>
+                        <li class="flex gap-3"><span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">9</span><span>Your exported Timeline data is saved as "location-history.json"</span></li>
+                      </ol>
+                    </div>
+                  }
+
+                  @if (helpPlatform() === 'web') {
+                    <div class="rounded-xl bg-warning/10 border border-warning/20 p-4 mb-4">
+                      <div class="flex gap-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/15 shrink-0">
+                          <ng-icon name="heroExclamationTriangle" size="20" class="text-warning" />
+                        </div>
+                        <div>
+                          <h4 class="font-semibold text-sm">Timeline Not Available on Web</h4>
+                          <p class="text-xs text-base-content/70 mt-1">
+                            Since the data shown on your Google Maps Timeline comes directly from your device, Timeline is not available for Maps on your computer. To use Google Maps Timeline, download the Google Maps app on your Android or iOS device.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="text-sm text-base-content/70">
+                      Please use the Android or iOS tabs above to learn how to export your Timeline data from your mobile device.
+                    </p>
+                  }
+                </div>
+
+                <!-- Privacy Note -->
+                <div class="mt-4 rounded-xl bg-success/10 border border-success/20 p-4">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-success/15 shrink-0">
+                      <ng-icon name="heroShieldCheck" size="16" class="text-success" />
+                    </div>
+                    <p class="text-xs text-base-content/60">
+                      <strong class="text-success">Privacy:</strong> Your Timeline data is processed locally. Only verified brewery/winery visits are saved - no raw location data is stored.
+                    </p>
+                  </div>
+                </div>
+              </div>
             }
 
             @if (activeTab() === 'account') {
@@ -226,4 +345,5 @@ import { AccountSettingsComponent } from '../components/account-settings.compone
 })
 export class SettingsComponent {
   readonly activeTab = signal<'privacy' | 'notifications' | 'data' | 'account'>('privacy');
+  readonly helpPlatform = signal<'web' | 'android' | 'ios'>('android');
 }

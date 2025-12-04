@@ -12,7 +12,7 @@ describe('VisitCard', () => {
     arrival_time: '2025-01-15T14:30:00.000Z',
     departure_time: '2025-01-15T16:00:00.000Z',
     is_active: false,
-    detection_method: 'auto',
+    source: 'auto_detect',
     duration_minutes: 90,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

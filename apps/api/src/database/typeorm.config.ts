@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 // Import migrations directly so they're bundled by webpack
 import { InitialSchema1732600000000 } from '../migrations/1732600000000-InitialSchema';
 import { AddOnboardingCompleted1732900000000 } from '../migrations/1732900000000-AddOnboardingCompleted';
+import { RemoveDetectionMethod1733300000000 } from '../migrations/1733300000000-RemoveDetectionMethod';
 
 export const getTypeOrmConfig = (
   configService: ConfigService
@@ -27,7 +28,7 @@ export const getTypeOrmConfig = (
   // Run migrations automatically on app start
   migrationsRun: true,
   // Migrations are imported directly to work with webpack bundling
-  migrations: [InitialSchema1732600000000, AddOnboardingCompleted1732900000000],
+  migrations: [InitialSchema1732600000000, AddOnboardingCompleted1732900000000, RemoveDetectionMethod1733300000000],
   migrationsTableName: 'migrations',
   // Logging
   logging: configService.get('NODE_ENV') === 'development',

@@ -58,7 +58,7 @@ describe('VisitsService', () => {
     const dto = {
       venue_id: 'venue-1',
       arrival_time: '2024-01-01T10:00:00.000Z',
-      detection_method: undefined,
+      source: undefined,
       is_active: undefined,
     } as any;
 
@@ -73,7 +73,7 @@ describe('VisitsService', () => {
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: 'user-1',
-        detection_method: 'manual',
+        source: 'manual',
         is_active: true,
         arrival_time: expect.any(Date),
       })
@@ -175,7 +175,7 @@ describe('VisitsService', () => {
     expect(result[0]).toMatchObject({
       id: 'visit-1',
       user_id: 'user-1',
-      detection_method: 'auto',
+      source: 'auto_detect',
       is_active: false,
       duration_minutes: expect.any(Number),
     });

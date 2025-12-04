@@ -9,11 +9,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import type { Visit, Venue } from '@blastoise/shared';
-import { VisitsLocalRepository } from '@blastoise/data';
+import { VisitsLocalRepository, VisitsApiService } from '@blastoise/data';
 import { VenuesApiService } from '@blastoise/data';
-import { Subject, takeUntil, debounceTime } from 'rxjs';
+import { Subject, takeUntil, debounceTime, firstValueFrom } from 'rxjs';
 import { VisitCard } from './visit-card';
 import { VisitTrackerService } from '../services/visit-tracker';
+import { AuthStateService } from '@blastoise/shared/auth-state';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroArrowPath, heroMapPin } from '@ng-icons/heroicons/outline';
 
 /**
  * Displays visits in chronological order with:
@@ -33,15 +36,23 @@ interface GroupedVisits {
 
 @Component({
   selector: 'app-timeline',
-  imports: [CommonModule, VisitCard],
+  imports: [CommonModule, VisitCard, NgIconComponent],
   templateUrl: './timeline.html',
   standalone: true,
+  viewProviders: [
+    provideIcons({
+      heroArrowPath,
+      heroMapPin,
+    }),
+  ],
 })
 export class TimelineComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly localRepository = inject(VisitsLocalRepository);
+  private readonly visitsApi = inject(VisitsApiService);
   private readonly venuesApi = inject(VenuesApiService);
   private readonly visitTracker = inject(VisitTrackerService);
+  private readonly authState = inject(AuthStateService);
   private readonly destroy$ = new Subject<void>();
 
   // Pagination state
@@ -81,6 +92,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
 
   /**
    * Load visits sorted chronologically by arrival time (descending)
+   * Hybrid approach: Try API first (for synced data), fallback to local (offline)
    */
   async loadMoreVisits(): Promise<void> {
     if (this.isLoading() || !this.hasMore()) {
@@ -90,15 +102,41 @@ export class TimelineComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
 
     try {
-      const offset = this.currentPage() * this.pageSize;
+      const page = this.currentPage() + 1; // API uses 1-based pages
+      let visits: Visit[] = [];
+      let apiSuccess = false;
 
-      // Load visits from local repository with pagination
-      const visits = await this.localRepository.getVisits({
-        limit: this.pageSize,
-        offset,
-        orderBy: 'arrival_time',
-        order: 'desc', // Most recent first
-      });
+      // Try API first if we have an access token (authenticated or has session)
+      const hasToken = !!this.authState.accessToken();
+      if (hasToken) {
+        try {
+          const response = await firstValueFrom(
+            this.visitsApi.getAll(page, this.pageSize)
+          );
+          if (response.success) {
+            visits = response.data || [];
+            apiSuccess = true;
+
+            // Cache to local for offline access
+            if (visits.length > 0) {
+              await this.cacheVisitsLocally(visits);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load from API, falling back to local:', error);
+        }
+      }
+
+      // Fallback to local only if API failed or no token
+      if (!apiSuccess) {
+        const offset = this.currentPage() * this.pageSize;
+        visits = await this.localRepository.getVisits({
+          limit: this.pageSize,
+          offset,
+          orderBy: 'arrival_time',
+          order: 'desc',
+        });
+      }
 
       if (visits.length === 0) {
         this.hasMore.set(false);
@@ -115,6 +153,11 @@ export class TimelineComponent implements OnInit, OnDestroy {
       // First try local cache (from VisitTrackerService), then fall back to API
       const visitsWithVenues = await Promise.all(
         visits.map(async (visit: Visit) => {
+          // If visit already has venue data from API join, use it
+          if ((visit as any).venue) {
+            return visit as Visit & { venue?: Venue };
+          }
+
           // Try local cache first (venues loaded during tracking)
           const cachedVenue = this.visitTracker.getVenue(visit.venue_id);
           if (cachedVenue) {
@@ -123,8 +166,8 @@ export class TimelineComponent implements OnInit, OnDestroy {
 
           // Fall back to API if not in cache
           try {
-            const venue = await this.venuesApi.getVenue(visit.venue_id).toPromise();
-            return { ...visit, venue };
+            const response = await firstValueFrom(this.venuesApi.getVenue(visit.venue_id));
+            return { ...visit, venue: response };
           } catch (error: any) {
             const errorMsg = error?.message || error?.error?.message || 'Unknown error';
             console.warn(`Could not fetch venue ${visit.venue_id}: ${errorMsg}`);
@@ -142,6 +185,18 @@ export class TimelineComponent implements OnInit, OnDestroy {
       this.hasMore.set(false);
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Cache visits to local IndexedDB for offline access
+   */
+  private async cacheVisitsLocally(visits: Visit[]): Promise<void> {
+    try {
+      await this.localRepository.batchSave(visits);
+    } catch (error) {
+      // Silent fail - caching is not critical
+      console.debug('Failed to cache visits locally:', error);
     }
   }
 

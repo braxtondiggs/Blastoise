@@ -9,16 +9,16 @@
 } @else if (isAuthenticated) {
   <div class="flex flex-col min-h-screen bg-base-100">
     <header class="sticky top-0 z-50 border-b border-base-300/50 bg-base-100/80 backdrop-blur-md">
-      <div class="w-full max-w-4xl px-4 mx-auto h-16 flex items-center justify-between">
+      <div class="flex items-center justify-between w-full h-16 max-w-4xl px-4 mx-auto">
         <a
           (click)="navigateTo('/visits')"
           class="flex items-center gap-3 cursor-pointer group"
         >
           <div class="relative">
-            <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="w-9 h-9 rounded-lg" />
+            <img src="/assets/icons/icon-72x72.png" alt="Blastoise Logo" class="rounded-lg w-9 h-9" />
           </div>
           <div class="flex flex-col">
-            <span class="text-lg font-bold leading-tight group-hover:text-primary transition-colors">{{ title }}</span>
+            <span class="text-lg font-bold leading-tight transition-colors group-hover:text-primary">{{ title }}</span>
             <span class="text-[11px] text-base-content/50 hidden sm:block">Drink responsibly, track obsessively.</span>
           </div>
         </a>
@@ -26,7 +26,7 @@
         <div class="relative">
           <button
             type="button"
-            class="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-base-200 transition-colors"
+            class="flex items-center justify-center w-10 h-10 transition-colors rounded-xl hover:bg-base-200"
             (click)="toggleDropdown(); $event.stopPropagation()"
             [attr.aria-expanded]="isDropdownOpen()"
             aria-haspopup="true"
@@ -89,16 +89,12 @@
 
     <!-- Web Limitation Notice (Web Only, After Login) -->
     @if (showWebNotice()) {
-      <div class="p-4 pb-0">
-        <lib-web-limitation-notice />
-      </div>
+      <lib-web-limitation-notice />
     }
 
     <!-- Location Permission Notice (When geolocation is disabled) -->
     @if (showLocationNotice()) {
-      <div class="p-4 pb-0">
-        <lib-location-permission-notice />
-      </div>
+      <lib-location-permission-notice />
     }
 
     <!-- Page content -->

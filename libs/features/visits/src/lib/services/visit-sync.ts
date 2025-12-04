@@ -217,7 +217,7 @@ export class VisitSyncService {
         arrival_time: v.arrival_time,
         departure_time: v.departure_time,
         is_active: v.is_active,
-        detection_method: v.detection_method,
+        source: v.source,
       })),
     };
 

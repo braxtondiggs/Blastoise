@@ -40,7 +40,7 @@ export class VisitsService {
         user_id: userId,
         arrival_time: new Date(dto.arrival_time),
         departure_time: dto.departure_time ? new Date(dto.departure_time) : undefined,
-        detection_method: dto.detection_method || 'manual',
+        source: dto.source || 'auto_detect',
         is_active: dto.is_active ?? !dto.departure_time,
       });
 
@@ -267,7 +267,7 @@ export class VisitsService {
             user_id: userId,
             arrival_time: arrivalDate,
             departure_time: visit.departure_time ? new Date(visit.departure_time) : undefined,
-            detection_method: visit.detection_method || 'auto',
+            source: visit.source || 'auto_detect',
             is_active: visit.is_active ?? !visit.departure_time,
             duration_minutes: duration,
           });

@@ -15,7 +15,7 @@ export class CreateVisitDto {
   @IsBoolean()
   is_active?: boolean;
 
-  @IsEnum(['auto', 'manual'])
+  @IsEnum(['auto_detect', 'google_import', 'manual'])
   @IsOptional()
-  detection_method?: 'auto' | 'manual';
+  source?: 'auto_detect' | 'google_import' | 'manual';
 }

@@ -11,7 +11,6 @@ import {
 import type { Relation } from 'typeorm';
 import { User } from './user.entity';
 
-export type DetectionMethod = 'auto' | 'manual';
 export type VisitSource = 'auto_detect' | 'google_import' | 'manual';
 
 @Entity('visits')
@@ -40,11 +39,8 @@ export class Visit {
   @Column({ type: 'boolean', default: true })
   is_active!: boolean;
 
-  @Column({ type: 'varchar', length: 20, default: 'manual' })
-  detection_method!: DetectionMethod;
-
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  source?: VisitSource;
+  @Column({ type: 'varchar', length: 20, default: 'auto_detect' })
+  source!: VisitSource;
 
   @Column({ type: 'timestamptz', nullable: true })
   imported_at?: Date;
