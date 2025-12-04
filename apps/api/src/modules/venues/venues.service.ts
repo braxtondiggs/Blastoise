@@ -57,54 +57,54 @@ export class VenuesService {
 
   /**
    * Find nearby venues with distance calculation
-   * Uses tiered discovery: Local DB → Cache Check → Open Brewery DB → OpenStreetMap
+   * Always checks both local DB and external sources to ensure completeness
    */
   async findNearby(dto: NearbyVenuesDto): Promise<VenueWithDistance[]> {
     const radiusKm = dto.radius || 5;
     const limit = dto.limit || 50;
 
     // Step 1: Check local database first
-    const localVenues = await this.findNearbyFromDb(dto.latitude, dto.longitude, radiusKm, limit, dto.type);
+    const localVenues = await this.findNearbyFromDb(dto.latitude, dto.longitude, radiusKm, limit * 2, dto.type);
+    this.logger.debug(`Found ${localVenues.length} venues in local DB near (${dto.latitude}, ${dto.longitude})`);
 
-    if (localVenues.length > 0) {
-      this.logger.debug(`Found ${localVenues.length} venues in local DB near (${dto.latitude}, ${dto.longitude})`);
-      return localVenues;
-    }
-
-    // Step 2: Check if we've already searched this area recently (geo-grid cache)
+    // Step 2: Check if we should run discovery (cache prevents hammering external APIs)
+    // Discovery cache expires after 24 hours, allowing periodic re-discovery
     const cachedSearch = await this.cacheService.getDiscoverySearch(dto.latitude, dto.longitude);
-    if (cachedSearch) {
+
+    if (!cachedSearch) {
+      // Step 3: Discover venues from ALL external sources (not just fallback)
+      this.logger.log(`Running discovery for area near (${dto.latitude}, ${dto.longitude})...`);
+      const discoveredVenues = await this.discoverAndSaveVenues(dto.latitude, dto.longitude, radiusKm * 1000);
+
+      // Step 4: Cache that we searched this area (24h TTL in cache service)
+      await this.cacheService.cacheDiscoverySearch(dto.latitude, dto.longitude, discoveredVenues.length);
+
+      // Add any newly discovered venues to our results
+      if (discoveredVenues.length > 0) {
+        const newVenuesWithDistance = discoveredVenues
+          .filter(v => !localVenues.some(lv => lv.id === v.id)) // Avoid duplicates
+          .map((venue) => {
+            const distance = this.calculateHaversineDistance(
+              dto.latitude,
+              dto.longitude,
+              Number(venue.latitude),
+              Number(venue.longitude)
+            );
+            return { ...venue, distance };
+          });
+
+        localVenues.push(...newVenuesWithDistance);
+        this.logger.log(`Added ${newVenuesWithDistance.length} newly discovered venues`);
+      }
+    } else {
       this.logger.debug(`Discovery cache hit for grid near (${dto.latitude}, ${dto.longitude}) - searched ${cachedSearch.searched_at}`);
-      // Area was searched recently but no venues found, don't search again
-      return [];
     }
 
-    // Step 3: Discover venues from external sources
-    this.logger.log(`No local venues near (${dto.latitude}, ${dto.longitude}), initiating discovery...`);
-    const discoveredVenues = await this.discoverAndSaveVenues(dto.latitude, dto.longitude, radiusKm * 1000);
-
-    // Step 4: Cache that we searched this area
-    await this.cacheService.cacheDiscoverySearch(dto.latitude, dto.longitude, discoveredVenues.length);
-
-    // Step 5: Return discovered venues with distance
-    if (discoveredVenues.length > 0) {
-      const venuesWithDistance = discoveredVenues.map((venue) => {
-        const distance = this.calculateHaversineDistance(
-          dto.latitude,
-          dto.longitude,
-          Number(venue.latitude),
-          Number(venue.longitude)
-        );
-        return { ...venue, distance };
-      });
-
-      return venuesWithDistance
-        .filter((v) => v.distance <= radiusKm)
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, limit);
-    }
-
-    return [];
+    // Step 5: Return combined results sorted by distance
+    return localVenues
+      .filter((v) => v.distance <= radiusKm)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, limit);
   }
 
   /**
@@ -157,7 +157,8 @@ export class VenuesService {
 
   /**
    * Discover venues from external APIs and save to database
-   * Uses Open Brewery DB as primary, OpenStreetMap as fallback
+   * Queries BOTH Open Brewery DB AND OpenStreetMap in parallel to ensure comprehensive coverage
+   * Some venues exist only in one source (e.g., Evil Twin Brewing is in OSM but not Open Brewery DB)
    */
   private async discoverAndSaveVenues(
     latitude: number,
@@ -166,29 +167,36 @@ export class VenuesService {
   ): Promise<Venue[]> {
     const savedVenues: Venue[] = [];
 
-    // Step 1: Try Open Brewery DB first (primary source)
-    this.logger.debug(`Discovering from Open Brewery DB near (${latitude}, ${longitude})`);
-    const breweryDbResults = await this.breweryDbService.discoverNearby(latitude, longitude, 20);
+    // Query BOTH sources in parallel for comprehensive venue discovery
+    // This adds ~1 extra API call per location per 24h (cached), but ensures we don't miss venues
+    this.logger.debug(`Discovering from ALL sources near (${latitude}, ${longitude})`);
 
+    const [breweryDbResults, osmResults] = await Promise.all([
+      this.breweryDbService.discoverNearby(latitude, longitude, 20).catch((error) => {
+        this.logger.warn(`Open Brewery DB discovery failed: ${error.message}`);
+        return [] as BreweryDbResult[];
+      }),
+      this.overpassApiService.discoverNearby(latitude, longitude, radiusMeters).catch((error) => {
+        this.logger.warn(`OpenStreetMap discovery failed: ${error.message}`);
+        return [] as OsmVenueResult[];
+      }),
+    ]);
+
+    // Process Open Brewery DB results
     if (breweryDbResults.length > 0) {
       this.logger.log(`Found ${breweryDbResults.length} venues from Open Brewery DB`);
       const venues = await this.saveBreweryDbResults(breweryDbResults);
       savedVenues.push(...venues);
     }
 
-    // Step 2: If no results from Open Brewery DB, try OpenStreetMap as fallback
-    if (breweryDbResults.length === 0) {
-      this.logger.debug(`No results from Open Brewery DB, trying OpenStreetMap...`);
-      const osmResults = await this.overpassApiService.discoverNearby(latitude, longitude, radiusMeters);
-
-      if (osmResults.length > 0) {
-        this.logger.log(`Found ${osmResults.length} venues from OpenStreetMap`);
-        const venues = await this.saveOsmResults(osmResults);
-        savedVenues.push(...venues);
-      }
+    // Process OpenStreetMap results (may include venues not in Open Brewery DB)
+    if (osmResults.length > 0) {
+      this.logger.log(`Found ${osmResults.length} venues from OpenStreetMap`);
+      const venues = await this.saveOsmResults(osmResults);
+      savedVenues.push(...venues);
     }
 
-    this.logger.log(`Total discovered and saved: ${savedVenues.length} venues`);
+    this.logger.log(`Total discovered and saved: ${savedVenues.length} venues (from ${breweryDbResults.length} BreweryDB + ${osmResults.length} OSM)`);
     return savedVenues;
   }
 
