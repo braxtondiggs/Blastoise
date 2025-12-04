@@ -1,4 +1,4 @@
-<div class="venue-map-container">
+<div class="venue-map-container" [style.min-height]="minHeight">
   <!-- Loading State -->
   @if (isLoading()) {
     <div class="loading-overlay">
@@ -20,43 +20,46 @@
   <!-- Leaflet Map Container -->
   <!-- Map with keyboard navigation support -->
   <div
-    id="venue-map"
+    [id]="mapId"
     class="map-view"
+    [style.min-height]="minHeight"
     role="application"
     aria-label="Interactive map of breweries and wineries. Use arrow keys to pan, plus/minus keys to zoom."
     tabindex="0"
   ></div>
 
   <!-- Map Controls Overlay -->
-  <div class="map-controls">
-    <!-- Recenter Button -->
-    <button
-      class="btn btn-circle btn-sm"
-      (click)="centerOn(userLocation!)"
-      [disabled]="!userLocation"
-      title="Center on your location"
-      aria-label="Center map on your location">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    </button>
+  @if (showControls) {
+    <div class="map-controls">
+      <!-- Recenter Button -->
+      <button
+        class="btn btn-circle btn-sm"
+        (click)="centerOn(userLocation!)"
+        [disabled]="!userLocation"
+        title="Center on your location"
+        aria-label="Center map on your location">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
 
-    <!-- Fit to Venues Button -->
-    <button
-      class="mt-2 btn btn-circle btn-sm"
-      (click)="fitToVenues()"
-      [disabled]="venues.length === 0"
-      title="Show all venues"
-      aria-label="Fit map to show all venues">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-      </svg>
-    </button>
-  </div>
+      <!-- Fit to Venues Button -->
+      <button
+        class="mt-2 btn btn-circle btn-sm"
+        (click)="fitToVenues()"
+        [disabled]="venues.length === 0"
+        title="Show all venues"
+        aria-label="Fit map to show all venues">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+        </svg>
+      </button>
+    </div>
+  }
 
   <!-- Venue Count Badge -->
-  @if (venues.length > 0) {
+  @if (showControls && venues.length > 0) {
     <div class="venue-count-badge">
       <span class="badge badge-primary">
         {{ venues.length }} venue{{ venues.length !== 1 ? 's' : '' }}

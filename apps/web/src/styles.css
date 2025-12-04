@@ -189,7 +189,7 @@ body {
 }
 
 .marker-pin {
-  width: 36px;
+  width: 45px;
   height: 48px;
   border-radius: 50% 50% 50% 0;
   position: relative;
@@ -202,7 +202,11 @@ body {
   justify-content: center;
   border: 2px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
-  animation: markerFloat 3s ease-in-out infinite;
+}
+
+.marker-cluster div {
+  margin-left: 3px;
+  margin-top: 2px;
 }
 
 .venue-marker .marker-pin {
@@ -217,21 +221,34 @@ body {
               inset 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
+/* Highlighted venue marker (current venue in detail view) */
+.venue-marker-highlighted {
+  background: none;
+  border: none;
+  filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.6));
+}
+
+.venue-marker-highlighted .marker-pin {
+  width: 50px;
+  height: 52px;
+  box-shadow: 0 6px 25px rgba(245, 158, 11, 0.7),
+              inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.venue-marker-highlighted .marker-pin::after {
+  width: 20px;
+  height: 20px;
+  margin: 10px 0 0 10px;
+}
+
+.venue-marker-highlighted .marker-icon {
+  font-size: 22px;
+}
+
 .marker-pin:hover {
   transform: rotate(-45deg) scale(1.15);
   box-shadow: 0 8px 30px rgba(59, 130, 246, 0.8),
               inset 0 0 25px rgba(255, 255, 255, 0.3);
-}
-
-.marker-pin::after {
-  content: '';
-  width: 18px;
-  height: 18px;
-  margin: 9px 0 0 9px;
-  background: rgba(255, 255, 255, 0.9);
-  position: absolute;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
 }
 
 .marker-icon {
@@ -369,13 +386,20 @@ body {
 
 .leaflet-popup-close-button {
   color: rgba(255, 255, 255, 0.6) !important;
-  font-size: 24px !important;
-  padding: 8px 12px !important;
+  font-size: 18px !important;
+  width: 24px !important;
+  height: 24px !important;
+  top: 8px !important;
+  right: 8px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
   transition: all 0.2s ease;
 }
 
 .leaflet-popup-close-button:hover {
   color: #3b82f6 !important;
   background: rgba(59, 130, 246, 0.1) !important;
-  border-radius: 8px;
 }

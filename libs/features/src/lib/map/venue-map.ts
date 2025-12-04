@@ -41,6 +41,10 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   @Input() visitedVenueIds: string[] = [];
   @Input() userLocation: Coordinates | null = null;
   @Input() initialZoom = 12;
+  @Input() mapId = 'venue-map';
+  @Input() highlightVenueId: string | null = null;
+  @Input() minHeight = '400px';
+  @Input() showControls = true;
 
   // Outputs
   @Output() venueSelected = new EventEmitter<Venue>();
@@ -82,7 +86,7 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
       });
 
       // Create map instance with keyboard navigation
-      this.map = L.map('venue-map', {
+      this.map = L.map(this.mapId, {
         center: this.getInitialCenter(),
         zoom: this.initialZoom,
         zoomControl: true,
@@ -137,9 +141,21 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * Get initial map center from user location or default
+   * Get initial map center from highlighted venue, user location, or default
    */
   private getInitialCenter(): [number, number] {
+    // If there's a highlighted venue, center on it
+    if (this.highlightVenueId && this.venues.length > 0) {
+      const highlightedVenue = this.venues.find(v => v.id === this.highlightVenueId);
+      if (highlightedVenue) {
+        return [highlightedVenue.latitude, highlightedVenue.longitude];
+      }
+    }
+    // If we have any venues, center on the first one
+    if (this.venues.length > 0) {
+      return [this.venues[0].latitude, this.venues[0].longitude];
+    }
+    // Otherwise center on user location
     if (this.userLocation) {
       return [this.userLocation.latitude, this.userLocation.longitude];
     }
@@ -204,21 +220,45 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
    * Create venue marker with custom icon
    */
   private createVenueMarker(venue: Venue, isVisited: boolean): L.Marker {
-    // Custom icon for visited vs unvisited
-    const iconClass = isVisited ? 'venue-marker-visited' : 'venue-marker';
-    const iconColor = isVisited ? '#10b981' : '#3b82f6';
+    const isHighlighted = this.highlightVenueId === venue.id;
+
+    // Custom icon - highlighted venues get special treatment
+    let iconColor: string;
+    let iconClass: string;
+    let iconSize: [number, number];
+    let iconAnchor: [number, number];
+
+    if (isHighlighted) {
+      // Highlighted venue (current venue in detail view)
+      iconColor = venue.venue_type === 'brewery' ? '#f59e0b' : '#a855f7';
+      iconClass = 'venue-marker-highlighted';
+      iconSize = [40, 52];
+      iconAnchor = [20, 52];
+    } else if (isVisited) {
+      iconColor = '#10b981';
+      iconClass = 'venue-marker-visited';
+      iconSize = [30, 42];
+      iconAnchor = [15, 42];
+    } else {
+      iconColor = '#3b82f6';
+      iconClass = 'venue-marker';
+      iconSize = [30, 42];
+      iconAnchor = [15, 42];
+    }
+
     const icon = L.divIcon({
       className: iconClass,
-      html: `<div class="marker-pin" style="background-color: ${iconColor};">
+      html: `<div class="marker-pin" style="background: linear-gradient(135deg, ${iconColor}, ${iconColor}dd);">
                <span class="marker-icon">${venue.venue_type === 'brewery' ? '🍺' : '🍷'}</span>
              </div>`,
-      iconSize: [30, 42],
-      iconAnchor: [15, 42],
-      popupAnchor: [0, -42],
+      iconSize,
+      iconAnchor,
+      popupAnchor: [0, -iconAnchor[1]],
     });
 
     const marker = L.marker([venue.latitude, venue.longitude], {
       icon,
+      zIndexOffset: isHighlighted ? 1000 : 0,
     });
 
     // Add venue popup with basic info
@@ -247,7 +287,6 @@ export class VenueMap implements OnInit, OnDestroy, AfterViewInit {
     return `
       <div class="venue-popup">
         <h3 class="text-lg font-bold">${venue.name}</h3>
-        <p class="text-sm text-gray-600">${venue.venue_type === 'brewery' ? 'Brewery' : 'Winery'}</p>
         ${visitedBadge}
         ${fullAddress ? `<p class="text-sm mt-2">${fullAddress}</p>` : ''}
         <button class="btn btn-primary btn-sm mt-2 view-details-btn">

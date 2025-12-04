@@ -83,17 +83,19 @@ export class VisitsController {
   @Get()
   @ApiOperation({
     summary: 'Get all visits for the authenticated user',
-    description: 'Returns a paginated list of visits ordered by arrival time (most recent first).',
+    description: 'Returns a paginated list of visits ordered by arrival time (most recent first). Optionally filter by venue_id.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Results per page (default: 50, max: 100)' })
+  @ApiQuery({ name: 'venue_id', required: false, type: String, description: 'Filter visits by venue ID' })
   @SwaggerApiResponse({ status: 200, description: 'Visits retrieved successfully' })
   @SwaggerApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT token' })
   @SwaggerApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async findAll(
     @CurrentUser() user: JwtUser,
     @Query('page') page = '1',
-    @Query('limit') limit = '50'
+    @Query('limit') limit = '50',
+    @Query('venue_id') venueId?: string
   ): Promise<ApiResponse<VisitResponse[]>> {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -101,7 +103,8 @@ export class VisitsController {
     const { visits, total } = await this.visitsService.findAll(
       user.user_id,
       pageNum,
-      limitNum
+      limitNum,
+      venueId
     );
 
     return {

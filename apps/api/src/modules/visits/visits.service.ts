@@ -55,11 +55,13 @@ export class VisitsService {
 
   /**
    * Get all visits for a user with pagination (T093: GET /visits endpoint)
+   * Optionally filter by venue_id
    */
   async findAll(
     userId: string,
     page = 1,
-    limit = 50
+    limit = 50,
+    venueId?: string
   ): Promise<{ visits: Visit[]; total: number }> {
     // Validate pagination parameters
     if (page < 1) page = 1;
@@ -67,15 +69,22 @@ export class VisitsService {
 
     try {
       const offset = (page - 1) * limit;
+
+      // Build where clause
+      const whereClause: { user_id: string; venue_id?: string } = { user_id: userId };
+      if (venueId) {
+        whereClause.venue_id = venueId;
+      }
+
       const [visits, total] = await this.visitRepository.findAndCount({
-        where: { user_id: userId },
+        where: whereClause,
         order: { arrival_time: 'DESC' },
         skip: offset,
         take: limit,
       });
 
       this.logger.debug(
-        `Retrieved ${visits.length} visits (page ${page}) for user ${userId}`
+        `Retrieved ${visits.length} visits (page ${page}) for user ${userId}${venueId ? ` at venue ${venueId}` : ''}`
       );
 
       return { visits, total };

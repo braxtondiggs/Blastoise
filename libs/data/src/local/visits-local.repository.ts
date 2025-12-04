@@ -25,6 +25,10 @@ export class VisitsLocalRepository {
     return this.db.getByIndex<Visit>(this.storeName, 'userId', userId);
   }
 
+  async findByVenueId(venueId: string): Promise<Visit[]> {
+    return this.db.getByIndex<Visit>(this.storeName, 'venueId', venueId);
+  }
+
   async findUnsynced(): Promise<Visit[]> {
     // Use getAll and filter in JS to handle both old (boolean false) and new (number 0) data
     // IndexedDB stores may have boolean or number depending on when data was written

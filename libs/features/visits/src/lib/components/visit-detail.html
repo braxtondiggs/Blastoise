@@ -1,156 +1,366 @@
-<!-- Visit Detail Page -->
+<!-- Venue Overview Page -->
 <div class="min-h-screen bg-base-100">
   <!-- Loading state -->
   @if (isLoading()) {
     <div class="flex flex-col items-center justify-center min-h-screen">
-      <span class="loading loading-spinner loading-lg"></span>
-      <p class="mt-4 text-sm text-base-content/70">Loading visit details...</p>
+      <div class="relative">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <div class="absolute inset-0 animate-ping opacity-20">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+      </div>
+      <p class="mt-4 text-sm text-base-content/70">Loading venue details...</p>
     </div>
   }
 
   <!-- Error state -->
   @if (error()) {
     <div class="flex flex-col items-center justify-center min-h-screen px-4">
-      <ng-icon name="heroExclamationCircle" size="80" class="text-error" />
-      <h2 class="mt-6 text-2xl font-semibold text-center">{{ error() }}</h2>
-      <button class="mt-6 btn btn-primary" (click)="goBack()">
-        <ng-icon name="heroArrowLeft" size="20" />
-        Go Back
+      <div class="flex items-center justify-center w-20 h-20 mb-4 rounded-2xl bg-error/10">
+        <ng-icon name="heroExclamationCircle" size="48" class="text-error" />
+      </div>
+      <h2 class="mb-2 text-2xl font-bold text-center">Something went wrong</h2>
+      <p class="mb-6 text-center text-base-content/60">{{ error() }}</p>
+      <button class="gap-2 btn btn-primary" (click)="goBack()">
+        <ng-icon name="heroArrowLeft" size="18" />
+        Back to Timeline
       </button>
     </div>
   }
 
-  <!-- Visit details -->
-  @if (!isLoading() && !error() && visit()) {
-    <!-- Header Bar -->
-    <div class="sticky top-0 z-10 border-b bg-base-200/80 backdrop-blur-lg border-base-300">
-      <div class="max-w-4xl px-4 py-3 mx-auto">
-        <div class="flex items-center justify-between">
-          <button class="gap-2 btn btn-ghost btn-sm" (click)="goBack()">
+  <!-- Venue Overview -->
+  @if (!isLoading() && !error() && venue()) {
+    <!-- Sticky Header -->
+    <div class="sticky top-0 z-20 border-b bg-base-100/80 backdrop-blur-lg border-base-300/50">
+      <div class="max-w-4xl px-4 mx-auto">
+        <div class="flex items-center justify-between h-14">
+          <button
+            class="flex items-center gap-2 px-3 py-2 -ml-2 transition-colors rounded-xl text-base-content/70 hover:text-base-content hover:bg-base-200/50"
+            (click)="goBack()"
+            aria-label="Back to timeline"
+          >
             <ng-icon name="heroArrowLeft" size="20" />
-            Back
+            <span class="text-sm font-medium">Timeline</span>
           </button>
 
-          <div class="flex gap-2">
-            <button class="btn btn-sm btn-ghost" (click)="shareVisit()" title="Share visit">
-              <ng-icon name="heroShare" size="20" />
-            </button>
-            <button class="btn btn-sm btn-ghost text-error" (click)="deleteVisit()" title="Delete visit">
-              <ng-icon name="heroTrash" size="20" />
-            </button>
-          </div>
+          <button
+            class="flex items-center justify-center w-10 h-10 transition-colors rounded-xl hover:bg-base-200/50"
+            (click)="shareVenue()"
+            title="Share venue"
+            aria-label="Share this venue"
+          >
+            <ng-icon name="heroShare" size="20" class="text-base-content/70" />
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-4xl px-4 py-8 mx-auto space-y-6">
+    <div class="max-w-4xl px-4 py-6 mx-auto space-y-5">
 
-      <!-- Venue Hero Card -->
-      <div class="overflow-hidden shadow-xl card bg-gradient-to-br from-primary/10 to-secondary/10">
-        <div class="card-body">
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-              @if (isActive()) {
-                <div class="inline-flex items-center gap-2 px-3 py-1 mb-3 text-sm font-medium rounded-full bg-success/20 text-success">
-                  <span class="w-2 h-2 rounded-full animate-pulse bg-success"></span>
-                  Active Visit
+      <!-- Hero Card -->
+      <div class="relative overflow-hidden border rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 border-primary/20">
+        <!-- Decorative background elements -->
+        <div class="absolute top-0 right-0 w-64 h-64 translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none bg-primary/10 blur-3xl" aria-hidden="true"></div>
+        <div class="absolute bottom-0 left-0 w-48 h-48 -translate-x-1/2 translate-y-1/2 rounded-full pointer-events-none bg-secondary/10 blur-2xl" aria-hidden="true"></div>
+
+        <!-- Active Visit Indicator -->
+        @if (hasActiveVisit()) {
+          <div class="absolute top-4 right-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success text-success-content text-sm font-semibold shadow-lg shadow-success/25">
+              <span class="relative flex w-2 h-2">
+                <span class="absolute inline-flex w-full h-full rounded-full animate-ping bg-success-content/75"></span>
+                <span class="relative inline-flex w-2 h-2 rounded-full bg-success-content"></span>
+              </span>
+              Currently Here
+            </div>
+          </div>
+        }
+
+        <div class="relative p-6 sm:p-8">
+          <!-- Venue Icon and Info -->
+          <div class="flex items-start gap-5">
+            <!-- Venue Type Icon -->
+            <div
+              class="flex items-center justify-center flex-shrink-0 w-16 h-16 shadow-lg sm:w-20 sm:h-20 rounded-2xl"
+              [ngClass]="{
+                'bg-warning shadow-warning/25': venue()?.venue_type === 'brewery',
+                'bg-secondary shadow-secondary/25': venue()?.venue_type === 'winery',
+                'bg-base-300 shadow-base-300/25': !venue()?.venue_type || (venue()?.venue_type !== 'brewery' && venue()?.venue_type !== 'winery')
+              }"
+            >
+              @if (venue()?.venue_type === 'brewery') {
+                <ng-icon name="heroBeaker" size="32" class="text-white drop-shadow-sm sm:scale-110" />
+              } @else if (venue()?.venue_type === 'winery') {
+                <ng-icon name="heroSparkles" size="32" class="text-white drop-shadow-sm sm:scale-110" />
+              } @else {
+                <ng-icon name="heroMapPin" size="32" class="text-white drop-shadow-sm sm:scale-110" />
+              }
+            </div>
+
+            <div class="flex-1 min-w-0 pt-1">
+              <!-- Venue Type Badge -->
+              @if (venue()?.venue_type) {
+                <div
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold mb-2"
+                  [ngClass]="{
+                    'bg-warning/15 text-warning': venue()?.venue_type === 'brewery',
+                    'bg-secondary/15 text-secondary': venue()?.venue_type === 'winery'
+                  }"
+                >
+                  {{ venue()?.venue_type === 'brewery' ? 'Brewery' : 'Winery' }}
                 </div>
               }
 
-              <h1 class="mb-2 text-4xl font-bold break-words">
+              <!-- Venue Name -->
+              <h1 class="text-2xl font-bold leading-tight break-words sm:text-3xl text-base-content">
                 {{ venue()?.name || 'Unknown Venue' }}
               </h1>
 
-              @if (venue()) {
-                <div class="flex flex-wrap items-center gap-2 mt-3">
-                  <div class="gap-2 badge badge-primary badge-lg">
-                    {{ venue()!.venue_type === 'brewery' ? '🍺 Brewery' : '🍷 Winery' }}
-                  </div>
+              <!-- Location -->
+              @if (venue()?.city || venue()?.state) {
+                <div class="flex items-center gap-2 mt-3 text-base-content/60">
+                  <ng-icon name="heroMapPin" size="18" class="flex-shrink-0" />
+                  <span class="text-sm sm:text-base">
+                    {{ venue()?.city }}@if (venue()?.city && venue()?.state) {, }{{ venue()?.state }}
+                  </span>
                 </div>
+              }
 
-                <div class="mt-4 space-y-2">
-                  <div class="flex items-start gap-2 text-base-content/70">
-                    <ng-icon name="heroMapPin" size="20" class="shrink-0 mt-0.5" />
-                    <div>
-                      <p class="font-medium">{{ venue()!.city }}, {{ venue()!.state }}</p>
-                      @if (venue()!.address) {
-                        <p class="text-sm text-base-content/60">{{ venue()!.address }}</p>
-                      }
-                    </div>
-                  </div>
-                </div>
+              @if (venue()?.address) {
+                <p class="mt-1 text-sm text-base-content/50 ml-7">{{ venue()?.address }}</p>
+              }
+            </div>
+          </div>
 
-                <button class="gap-2 mt-6 btn btn-primary" (click)="openInMaps()">
-                  <ng-icon name="heroMap" size="20" />
-                  Open in Maps
+          <!-- Quick Actions -->
+          @if (venue()) {
+            <div class="flex flex-wrap gap-3 pt-5 mt-6 border-t border-base-300/30">
+              <button
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-content font-medium text-sm hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
+                (click)="openInMaps()"
+              >
+                <ng-icon name="heroMap" size="18" />
+                Get Directions
+              </button>
+              @if (venueWebsite()) {
+                <button
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-base-200 text-base-content font-medium text-sm hover:bg-base-300 transition-colors"
+                  (click)="openWebsite()"
+                >
+                  <ng-icon name="heroGlobeAlt" size="18" />
+                  Website
                 </button>
               }
             </div>
-          </div>
+          }
         </div>
       </div>
 
-      <!-- Visit Timeline -->
-      <div class="shadow-xl card bg-base-200">
-        <div class="card-body">
-          <h2 class="mb-6 text-2xl font-bold card-title">Visit Timeline</h2>
-
-          <div class="space-y-6">
-            <!-- Arrival -->
-            <div class="flex items-start gap-4">
-              <div class="flex items-center justify-center w-12 h-12 rounded-full shrink-0 bg-success/20">
-                <ng-icon name="heroArrowRightOnRectangle" size="24" class="text-success" />
-              </div>
-              <div class="flex-1">
-                <div class="text-sm font-medium text-base-content/60">Arrived</div>
-                <div class="mt-1 text-xl font-semibold">{{ formattedArrival() }}</div>
-              </div>
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <!-- Total Visits -->
+        <div class="p-4 border rounded-2xl bg-base-200/50 border-base-300/50">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <ng-icon name="heroChartBar" size="16" class="text-primary" />
             </div>
+            <span class="text-xs font-medium tracking-wide uppercase text-base-content/50">Visits</span>
+          </div>
+          <p class="text-2xl font-bold text-base-content">{{ totalVisits() }}</p>
+        </div>
 
-            <!-- Departure or In Progress -->
-            @if (!isActive()) {
-              <div class="flex items-start gap-4">
-                <div class="flex items-center justify-center w-12 h-12 rounded-full shrink-0 bg-error/20">
-                  <ng-icon name="heroArrowLeftOnRectangle" size="24" class="text-error" />
+        <!-- Total Time -->
+        <div class="p-4 border rounded-2xl bg-base-200/50 border-base-300/50">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-info/10">
+              <ng-icon name="heroClock" size="16" class="text-info" />
+            </div>
+            <span class="text-xs font-medium tracking-wide uppercase text-base-content/50">Total Time</span>
+          </div>
+          <p class="text-2xl font-bold text-base-content">{{ totalDuration() | duration }}</p>
+        </div>
+
+        <!-- Average Duration -->
+        <div class="p-4 border rounded-2xl bg-base-200/50 border-base-300/50">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
+              <ng-icon name="heroArrowTrendingUp" size="16" class="text-secondary" />
+            </div>
+            <span class="text-xs font-medium tracking-wide uppercase text-base-content/50">Avg Visit</span>
+          </div>
+          <p class="text-2xl font-bold text-base-content">{{ averageDuration() | duration }}</p>
+        </div>
+
+        <!-- First Visit -->
+        <div class="p-4 border rounded-2xl bg-base-200/50 border-base-300/50">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-success/10">
+              <ng-icon name="heroCalendarDays" size="16" class="text-success" />
+            </div>
+            <span class="text-xs font-medium tracking-wide uppercase text-base-content/50">First Visit</span>
+          </div>
+          <p class="text-lg font-bold text-base-content">
+            @if (firstVisit()) {
+              {{ formatVisitDate(firstVisit()!.arrival_time) }}
+            } @else {
+              --
+            }
+          </p>
+        </div>
+      </div>
+
+      <!-- Visit History -->
+      <div class="overflow-hidden border rounded-2xl bg-base-200/50 border-base-300/50">
+        <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold">Visit History</h2>
+            <span class="badge badge-ghost">{{ totalVisits() }} visit{{ totalVisits() === 1 ? '' : 's' }}</span>
+          </div>
+        </div>
+
+        <div class="p-4 space-y-3">
+          @for (visit of visits(); track visit.id) {
+            <div
+              class="flex items-center gap-4 p-4 transition-all border rounded-xl group"
+              [ngClass]="{
+                'bg-success/5 border-success/30': visit.is_active,
+                'bg-base-100 border-base-300/50 hover:border-base-300 hover:shadow-sm': !visit.is_active
+              }"
+            >
+              <!-- Status icon -->
+              <div class="flex-shrink-0">
+                @if (visit.is_active) {
+                  <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-success/15">
+                    <span class="relative flex w-3 h-3">
+                      <span class="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-success"></span>
+                      <span class="relative inline-flex w-3 h-3 rounded-full bg-success"></span>
+                    </span>
+                  </div>
+                } @else {
+                  <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+                    <ng-icon name="heroCalendarDays" size="20" class="text-primary" />
+                  </div>
+                }
+              </div>
+
+              <!-- Visit details -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-semibold text-base-content">{{ formatVisitDate(visit.arrival_time) }}</span>
+                  @if (visit.is_active) {
+                    <span class="px-2 py-0.5 rounded-full bg-success text-success-content text-xs font-semibold">Active</span>
+                  }
+                </div>
+
+                <div class="flex flex-wrap items-center text-sm gap-x-3 gap-y-1">
+                  <!-- Time range -->
+                  <div class="flex items-center gap-1.5 text-base-content/70">
+                    <ng-icon name="heroClock" size="14" class="opacity-50" />
+                    <span class="font-medium">{{ formatVisitTime(visit.arrival_time) }}</span>
+                    @if (visit.departure_time) {
+                      <span class="text-base-content/40">—</span>
+                      <span class="font-medium">{{ formatVisitTime(visit.departure_time) }}</span>
+                    } @else {
+                      <span class="italic text-success">ongoing</span>
+                    }
+                  </div>
+
+                  <!-- Duration pill -->
+                  @if (visit.duration_minutes) {
+                    <div class="px-2 py-0.5 rounded-full bg-info/10 text-info text-xs font-semibold">
+                      {{ visit.duration_minutes | duration }}
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Delete button -->
+              <button
+                class="flex items-center justify-center flex-shrink-0 w-8 h-8 transition-all rounded-lg opacity-0 group-hover:opacity-100 hover:bg-error/10"
+                (click)="deleteVisit(visit); $event.stopPropagation()"
+                title="Delete visit"
+                aria-label="Delete this visit"
+              >
+                <ng-icon name="heroTrash" size="16" class="text-error" />
+              </button>
+            </div>
+          }
+
+          @if (visits().length === 0) {
+            <div class="p-8 text-center">
+              <ng-icon name="heroCalendarDays" size="32" class="mx-auto mb-3 text-base-content/30" />
+              <p class="text-base-content/50">No visits recorded yet</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Contact Information -->
+      @if (venuePhone() || venueWebsite()) {
+        <div class="overflow-hidden border rounded-2xl bg-base-200/50 border-base-300/50">
+          <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+            <h3 class="font-bold">Contact Information</h3>
+          </div>
+          <div class="divide-y divide-base-300/50">
+            @if (venuePhone()) {
+              <a
+                [href]="'tel:' + venuePhone()"
+                class="flex items-center gap-4 p-4 transition-colors hover:bg-base-200/50"
+              >
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                  <ng-icon name="heroPhone" size="20" class="text-primary" />
                 </div>
                 <div class="flex-1">
-                  <div class="text-sm font-medium text-base-content/60">Departed</div>
-                  <div class="mt-1 text-xl font-semibold">{{ formattedDeparture() }}</div>
+                  <p class="text-xs tracking-wide uppercase text-base-content/50">Phone</p>
+                  <p class="font-medium">{{ venuePhone() }}</p>
                 </div>
-              </div>
-
-              <!-- Duration -->
-              @if (visit()!.duration_minutes) {
-                <div class="flex items-start gap-4">
-                  <div class="flex items-center justify-center w-12 h-12 rounded-full shrink-0 bg-info/20">
-                    <ng-icon name="heroClock" size="24" class="text-info" />
-                  </div>
-                  <div class="flex-1">
-                    <div class="text-sm font-medium text-base-content/60">Duration</div>
-                    <div class="mt-1 text-xl font-semibold">{{ visit()!.duration_minutes | duration }}</div>
-                  </div>
+                <ng-icon name="heroChevronRight" size="18" class="text-base-content/30" />
+              </a>
+            }
+            @if (venueWebsite()) {
+              <button
+                class="flex items-center w-full gap-4 p-4 text-left transition-colors hover:bg-base-200/50"
+                (click)="openWebsite()"
+              >
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/10">
+                  <ng-icon name="heroGlobeAlt" size="20" class="text-secondary" />
                 </div>
-              }
-            } @else {
-              <div class="p-4 rounded-lg alert alert-info">
-                <ng-icon name="heroInformationCircle" size="24" />
-                <span class="font-medium">This visit is still in progress</span>
-              </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs tracking-wide uppercase text-base-content/50">Website</p>
+                  <p class="font-medium truncate">{{ venueWebsite() }}</p>
+                </div>
+                <ng-icon name="heroArrowTopRightOnSquare" size="18" class="flex-shrink-0 text-base-content/30" />
+              </button>
             }
           </div>
+        </div>
+      }
 
-          <div class="mt-6 divider"></div>
-
-          <div class="flex items-center gap-2 text-sm text-base-content/60">
-            <ng-icon name="heroInformationCircle" size="16" />
-            <span>Source: {{ visit()!.source === 'auto_detect' ? 'Auto-detected' : visit()!.source === 'google_import' ? 'Google Timeline' : 'Manually added' }}</span>
+      <!-- Nearby Map -->
+      @if (venue()) {
+        <div class="overflow-hidden border rounded-2xl bg-base-200/50 border-base-300/50">
+          <div class="p-4 border-b border-base-300/50 bg-base-200/30">
+            <h3 class="font-bold">Nearby Venues</h3>
+          </div>
+          <div class="overflow-hidden rounded-b-2xl">
+            <app-venue-map
+              mapId="venue-detail-map"
+              [venues]="nearbyVenues()"
+              [visitedVenueIds]="visitedVenueIds()"
+              [userLocation]="userLocation()"
+              [highlightVenueId]="venue()?.id || null"
+              [initialZoom]="15"
+              [showControls]="false"
+              minHeight="250px"
+            />
           </div>
         </div>
-      </div>
+      }
+
     </div>
   }
 
-  <!-- Share Modal (T201: User Story 4) -->
+  <!-- Share Modal -->
   <app-share-modal></app-share-modal>
 </div>

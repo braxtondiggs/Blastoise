@@ -21,6 +21,10 @@ export class VisitsApiService {
     return this.apiClient.get<Visit>(`/visits/${visitId}`);
   }
 
+  getByVenueId(venueId: string): Observable<ApiResponse<Visit[]>> {
+    return this.apiClient.get<Visit[]>(`/visits?venue_id=${venueId}`);
+  }
+
   update(visitId: string, updates: Partial<UpdateVisitDto>): Observable<ApiResponse<Visit>> {
     return this.apiClient.patch<Visit>(`/visits/${visitId}`, updates);
   }
