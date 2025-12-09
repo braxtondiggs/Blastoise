@@ -4,7 +4,6 @@
  */
 
 import { Coordinates } from '../types/geolocation.types';
-import { roundTimestamp } from './date.utils';
 
 /**
  * Remove precise GPS coordinates from object (privacy protection)
@@ -20,13 +19,12 @@ export function removeGPSCoordinates<T extends Record<string, unknown>>(
 
 /**
  * Sanitize visit data for storage/transmission
- * - Rounds timestamp to nearest 15 minutes
  * - Removes GPS coordinates (only venue ID is kept)
  */
 export interface SanitizedVisit {
   venue_id: string;
-  arrival_time: string; // Rounded
-  departure_time?: string; // Rounded
+  arrival_time: string;
+  departure_time?: string;
   is_active: boolean;
   source: 'auto_detect' | 'google_import' | 'manual';
 }
@@ -39,12 +37,17 @@ export function sanitizeVisitData(visit: {
   source: 'auto_detect' | 'google_import' | 'manual';
   user_location?: Coordinates; // This will be removed
 }): SanitizedVisit {
+  const arrivalDate = typeof visit.arrival_time === 'string'
+    ? new Date(visit.arrival_time)
+    : visit.arrival_time;
+  const departureDate = visit.departure_time
+    ? (typeof visit.departure_time === 'string' ? new Date(visit.departure_time) : visit.departure_time)
+    : undefined;
+
   return {
     venue_id: visit.venue_id,
-    arrival_time: roundTimestamp(visit.arrival_time).toISOString(),
-    departure_time: visit.departure_time
-      ? roundTimestamp(visit.departure_time).toISOString()
-      : undefined,
+    arrival_time: arrivalDate.toISOString(),
+    departure_time: departureDate?.toISOString(),
     is_active: visit.is_active,
     source: visit.source,
     // user_location intentionally omitted

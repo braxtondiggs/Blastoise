@@ -208,8 +208,7 @@ import { Geolocation } from '@capacitor/geolocation'; // NEVER DO THIS
 
 ### Privacy & Data Minimization
 
-- Store only venue IDs and rounded timestamps (no GPS coordinates)
-- Round timestamps to nearest 15 minutes to prevent timing attacks
+- Store only venue IDs and timestamps (no GPS coordinates)
 - Process geofence logic on-device
 - Encrypt local storage using Capacitor SecureStorage (PWA-specific)
 - Implement Row-Level Security (RLS) in Postgres
@@ -357,7 +356,6 @@ ENVIRONMENT=development
 
 ### Security Features
 - Privacy-first: No GPS coordinates stored, only venue IDs
-- Timestamps rounded to 15 minutes (prevents timing attacks)
 - End-to-end encryption for local storage
 - Content Security Policy with strict directives
 - CORS with whitelist-only origins

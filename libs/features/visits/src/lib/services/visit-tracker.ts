@@ -2,14 +2,13 @@ import { Injectable, signal, inject } from '@angular/core';
 import { GeofenceService } from './geofence';
 import { VisitSyncService } from './visit-sync';
 import { AuthService } from '@blastoise/features-auth';
-import { NotificationService } from '@blastoise/data-frontend';
+import { NotificationService, VisitsLocalRepository } from '@blastoise/data-frontend';
 import {
   Visit,
   Venue,
   GeofenceEvent,
   GeofenceTransition,
 } from '@blastoise/shared';
-import { roundTimestampToISO } from '@blastoise/shared';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
@@ -21,6 +20,7 @@ export class VisitTrackerService {
   private readonly authService = inject(AuthService);
   private readonly visitSyncService = inject(VisitSyncService);
   private readonly notificationService = inject(NotificationService);
+  private readonly localRepository = inject(VisitsLocalRepository);
 
   // Active visits (in progress)
   private readonly activeVisitsSignal = signal<Map<string, Visit>>(new Map());
@@ -55,6 +55,9 @@ export class VisitTrackerService {
     // Build venues map for quick lookup
     this.venuesMap.clear();
     venues.forEach((venue) => this.venuesMap.set(venue.id, venue));
+
+    // Restore any active visits from local storage before starting
+    await this.restoreActiveVisitsFromStorage();
 
     // Start geofence tracking
     await this.geofenceService.startTracking(venues);
@@ -103,6 +106,9 @@ export class VisitTrackerService {
    * Use this when app returns from background
    */
   async resumeTracking(): Promise<void> {
+    // Restore active visits from local storage (handles app restart scenarios)
+    await this.restoreActiveVisitsFromStorage();
+
     // Resume geofence tracking
     await this.geofenceService.resumeTracking();
 
@@ -115,9 +121,45 @@ export class VisitTrackerService {
   }
 
   /**
+   * Restore active visits from IndexedDB to in-memory state
+   * Called on app startup/resume to ensure visits can be properly closed
+   */
+  private async restoreActiveVisitsFromStorage(): Promise<void> {
+    const userId = this.authService.getUserId();
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const activeVisitsFromStorage = await this.localRepository.findActiveVisits(userId);
+
+      if (activeVisitsFromStorage.length > 0) {
+        const currentActiveVisits = this.activeVisitsSignal();
+        const updatedActiveVisits = new Map(currentActiveVisits);
+
+        for (const visit of activeVisitsFromStorage) {
+          if (!updatedActiveVisits.has(visit.venue_id)) {
+            updatedActiveVisits.set(visit.venue_id, visit);
+            console.log(
+              `Restored active visit for venue ${visit.venue_id} from local storage (id: ${visit.id})`
+            );
+          }
+        }
+
+        this.activeVisitsSignal.set(updatedActiveVisits);
+        console.log(
+          `Restored ${activeVisitsFromStorage.length} active visit(s) from local storage`
+        );
+      }
+    } catch (error) {
+      console.error('Error restoring active visits from storage:', error);
+    }
+  }
+
+  /**
    * Handle geofence transition events
    */
-  private handleGeofenceTransition(transition: GeofenceTransition): void {
+  private async handleGeofenceTransition(transition: GeofenceTransition): Promise<void> {
     // Track all geofence events
     this.detectionMetrics.totalGeofenceEvents++;
 
@@ -132,16 +174,16 @@ export class VisitTrackerService {
     }
 
     if (transition.event === GeofenceEvent.ENTER) {
-      this.handleArrival(venue, transition);
+      await this.handleArrival(venue, transition);
     } else if (transition.event === GeofenceEvent.EXIT) {
-      this.handleDeparture(venue, transition);
+      await this.handleDeparture(venue, transition);
     }
   }
 
   /**
-   * Handle arrival at venue (T086: Implement arrival detection)
+   * Handle arrival at venue
    */
-  private handleArrival(venue: Venue, transition: GeofenceTransition): void {
+  private async handleArrival(venue: Venue, transition: GeofenceTransition): Promise<void> {
     const userId = this.authService.getUserId();
 
     if (!userId) {
@@ -149,10 +191,26 @@ export class VisitTrackerService {
       return;
     }
 
-    // Check if already have an active visit for this venue
+    // Check if already have an active visit for this venue in memory
     const activeVisits = this.activeVisitsSignal();
     if (activeVisits.has(venue.id)) {
-      console.log(`Already have active visit for venue ${venue.id}`);
+      console.log(`Already have active visit for venue ${venue.id} (in memory)`);
+      return;
+    }
+
+    // CRITICAL: Also check IndexedDB for active visits (handles app restart scenarios)
+    const existingActiveVisit = await this.localRepository.findActiveVisitByVenue(
+      userId,
+      venue.id
+    );
+    if (existingActiveVisit) {
+      console.log(
+        `Already have active visit for venue ${venue.id} in local storage (id: ${existingActiveVisit.id})`
+      );
+      // Restore to in-memory map
+      const updatedActiveVisits = new Map(activeVisits);
+      updatedActiveVisits.set(venue.id, existingActiveVisit);
+      this.activeVisitsSignal.set(updatedActiveVisits);
       return;
     }
 
@@ -170,8 +228,8 @@ export class VisitTrackerService {
       this.recentDepartures.delete(venue.id);
     }
 
-    // Create new visit with rounded timestamp (T088: Timestamp rounding)
-    const arrivalTime = roundTimestampToISO(transition.timestamp, 15);
+    // Create new visit with exact timestamp
+    const arrivalTime = new Date(transition.timestamp).toISOString();
 
     const visit: Visit = {
       id: crypto.randomUUID(),
@@ -213,22 +271,37 @@ export class VisitTrackerService {
   }
 
   /**
-   * Handle departure from venue (T087: Implement departure detection)
+   * Handle departure from venue
    */
-  private handleDeparture(
+  private async handleDeparture(
     venue: Venue,
     transition: GeofenceTransition
-  ): void {
+  ): Promise<void> {
+    const userId = this.authService.getUserId();
     const activeVisits = this.activeVisitsSignal();
-    const activeVisit = activeVisits.get(venue.id);
+    let activeVisit = activeVisits.get(venue.id);
+
+    // CRITICAL: If not in memory, check IndexedDB (handles app restart scenarios)
+    if (!activeVisit && userId) {
+      activeVisit = await this.localRepository.findActiveVisitByVenue(
+        userId,
+        venue.id
+      ) || undefined;
+
+      if (activeVisit) {
+        console.log(
+          `Found active visit for venue ${venue.id} in local storage (id: ${activeVisit.id})`
+        );
+      }
+    }
 
     if (!activeVisit) {
-      console.warn(`No active visit found for venue ${venue.id}`);
+      console.warn(`No active visit found for venue ${venue.id} (checked memory and local storage)`);
       return;
     }
 
-    // Update visit with rounded departure time (T088: Timestamp rounding)
-    const departureTime = roundTimestampToISO(transition.timestamp, 15);
+    // Update visit with exact departure time
+    const departureTime = new Date(transition.timestamp).toISOString();
     const arrivalMs = new Date(activeVisit.arrival_time).getTime();
     const departureMs = new Date(departureTime).getTime();
     const durationMinutes = Math.round((departureMs - arrivalMs) / (1000 * 60));
@@ -241,7 +314,7 @@ export class VisitTrackerService {
       updated_at: new Date().toISOString(),
     };
 
-    // Remove from active visits
+    // Remove from active visits (in memory)
     const updatedActiveVisits = new Map(activeVisits);
     updatedActiveVisits.delete(venue.id);
     this.activeVisitsSignal.set(updatedActiveVisits);
@@ -316,7 +389,7 @@ export class VisitTrackerService {
       return null;
     }
 
-    const departureTime = roundTimestampToISO(new Date(), 15);
+    const departureTime = new Date().toISOString();
     const arrivalMs = new Date(activeVisit.arrival_time).getTime();
     const departureMs = new Date(departureTime).getTime();
     const durationMinutes = Math.round((departureMs - arrivalMs) / (1000 * 60));
@@ -362,7 +435,7 @@ export class VisitTrackerService {
       return null;
     }
 
-    const arrivalTime = roundTimestampToISO(new Date(), 15);
+    const arrivalTime = new Date().toISOString();
 
     const visit: Visit = {
       id: crypto.randomUUID(),

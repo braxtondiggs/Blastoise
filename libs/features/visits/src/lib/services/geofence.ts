@@ -12,7 +12,7 @@ import { Venue } from '@blastoise/shared';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-const DEFAULT_GEOFENCE_RADIUS_METERS = 50; // 50 meters - tighter radius to avoid overlapping venues
+const DEFAULT_GEOFENCE_RADIUS_METERS = 30; // 30 meters - tight radius to avoid detecting nearby venues
 const DWELL_TIME_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes minimum dwell time
 const LOCATION_UPDATE_INTERVAL_MS = 30 * 1000; // 30 seconds
 const HIGH_ACCURACY = true;

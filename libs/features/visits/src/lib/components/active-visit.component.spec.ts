@@ -9,18 +9,14 @@ describe('ActiveVisit Component', () => {
   const mockVenue: Venue = {
     id: 'venue-1',
     name: 'Test Brewery',
-    type: 'brewery',
-    address: {
-      street: '123 Main St',
-      city: 'Portland',
-      state: 'OR',
-      postal_code: '97201',
-      country: 'USA',
-    },
-    location: {
-      latitude: 45.5231,
-      longitude: -122.6765,
-    },
+    venue_type: 'brewery',
+    source: 'manual',
+    city: 'Portland',
+    state: 'OR',
+    country: 'USA',
+    postal_code: '97201',
+    latitude: 45.5231,
+    longitude: -122.6765,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

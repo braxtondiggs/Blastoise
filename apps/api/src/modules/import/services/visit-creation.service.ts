@@ -1,12 +1,11 @@
 /**
  * VisitCreationService
- * Creates visits from imported Timeline data with privacy-preserving timestamp rounding
+ * Creates visits from imported Timeline data
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { roundTimestampToISO } from '@blastoise/shared';
 import { Visit } from '../../../entities/visit.entity';
 
 @Injectable()
@@ -19,16 +18,8 @@ export class VisitCreationService {
   ) {}
 
   /**
-   * Round timestamp to nearest 15 minutes (privacy protection)
-   * Delegates to shared utility function
-   */
-  roundTimestampTo15Minutes(timestamp: string): string {
-    return roundTimestampToISO(timestamp, 15);
-  }
-
-  /**
    * Detect duplicate visit within 15-minute window
-   * Checks if a visit already exists for the same venue and time window
+   * Uses a single SQL query with time range filtering instead of fetching all visits
    */
   async detectDuplicateVisit(
     userId: string,
@@ -36,26 +27,29 @@ export class VisitCreationService {
     arrivalTime: string
   ): Promise<boolean> {
     try {
-      // Round arrival time to 15-minute window
-      const roundedArrival = this.roundTimestampTo15Minutes(arrivalTime);
+      const arrivalDate = new Date(arrivalTime);
+      const windowMs = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-      // Query for existing visits for this user and venue
-      const existingVisits = await this.visitRepository.find({
-        where: { user_id: userId, venue_id: venueId },
-        take: 100,
-      });
+      // Calculate time window bounds
+      const windowStart = new Date(arrivalDate.getTime() - windowMs);
+      const windowEnd = new Date(arrivalDate.getTime() + windowMs);
 
-      for (const visit of existingVisits) {
-        const visitArrivalStr = visit.arrival_time instanceof Date
-          ? visit.arrival_time.toISOString()
-          : visit.arrival_time;
-        const visitRoundedArrival = this.roundTimestampTo15Minutes(visitArrivalStr);
-        if (visitRoundedArrival === roundedArrival) {
-          this.logger.debug(
-            `Duplicate visit detected: venue=${venueId}, time=${roundedArrival}`
-          );
-          return true;
-        }
+      // Single query with time range filter - much more efficient than N+1
+      const duplicateCount = await this.visitRepository
+        .createQueryBuilder('visit')
+        .where('visit.user_id = :userId', { userId })
+        .andWhere('visit.venue_id = :venueId', { venueId })
+        .andWhere('visit.arrival_time BETWEEN :windowStart AND :windowEnd', {
+          windowStart,
+          windowEnd,
+        })
+        .getCount();
+
+      if (duplicateCount > 0) {
+        this.logger.debug(
+          `Duplicate visit detected: venue=${venueId}, time=${arrivalTime}`
+        );
+        return true;
       }
 
       return false;
@@ -75,16 +69,12 @@ export class VisitCreationService {
     arrivalTime: string,
     departureTime: string
   ): Promise<Visit> {
-    // Round timestamps to 15 minutes for privacy
-    const roundedArrival = this.roundTimestampTo15Minutes(arrivalTime);
-    const roundedDeparture = this.roundTimestampTo15Minutes(departureTime);
-
     try {
       const visit = this.visitRepository.create({
         user_id: userId,
         venue_id: venueId,
-        arrival_time: new Date(roundedArrival),
-        departure_time: new Date(roundedDeparture),
+        arrival_time: new Date(arrivalTime),
+        departure_time: new Date(departureTime),
         is_active: false, // Imported visits are always complete
         source: 'google_import',
         imported_at: new Date(),

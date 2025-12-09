@@ -39,8 +39,11 @@ export class VenuesService {
 
     const queryBuilder = this.venueRepository.createQueryBuilder('venue');
 
+    // Always exclude closed venues
+    queryBuilder.where('venue.is_closed = :isClosed', { isClosed: false });
+
     if (dto.query) {
-      queryBuilder.where('venue.name ILIKE :query', { query: `%${dto.query}%` });
+      queryBuilder.andWhere('venue.name ILIKE :query', { query: `%${dto.query}%` });
     }
 
     if (dto.type) {
@@ -129,7 +132,9 @@ export class VenuesService {
       .andWhere('venue.longitude BETWEEN :minLng AND :maxLng', {
         minLng: longitude - radiusDegrees,
         maxLng: longitude + radiusDegrees,
-      });
+      })
+      // Exclude closed venues
+      .andWhere('venue.is_closed = :isClosed', { isClosed: false });
 
     if (type) {
       queryBuilder.andWhere('venue.venue_type = :type', { type });
@@ -182,17 +187,17 @@ export class VenuesService {
       }),
     ]);
 
-    // Process Open Brewery DB results
-    if (breweryDbResults.length > 0) {
-      this.logger.log(`Found ${breweryDbResults.length} venues from Open Brewery DB`);
-      const venues = await this.saveBreweryDbResults(breweryDbResults);
-      savedVenues.push(...venues);
-    }
-
-    // Process OpenStreetMap results (may include venues not in Open Brewery DB)
+    // Process OpenStreetMap results FIRST (these are more reliable/current)
     if (osmResults.length > 0) {
       this.logger.log(`Found ${osmResults.length} venues from OpenStreetMap`);
       const venues = await this.saveOsmResults(osmResults);
+      savedVenues.push(...venues);
+    }
+
+    // Process Open Brewery DB results - cross-reference with OSM to filter closed venues
+    if (breweryDbResults.length > 0) {
+      this.logger.log(`Found ${breweryDbResults.length} venues from Open Brewery DB`);
+      const venues = await this.saveBreweryDbResults(breweryDbResults, osmResults);
       savedVenues.push(...venues);
     }
 
@@ -202,17 +207,46 @@ export class VenuesService {
 
   /**
    * Save Open Brewery DB results to database
+   * Cross-references with OSM results to filter out likely closed venues
    */
-  private async saveBreweryDbResults(results: BreweryDbResult[]): Promise<Venue[]> {
+  private async saveBreweryDbResults(
+    results: BreweryDbResult[],
+    osmResults: OsmVenueResult[]
+  ): Promise<Venue[]> {
     const savedVenues: Venue[] = [];
 
     for (const brewery of results) {
       try {
+        // Skip if no valid coordinates
+        if (!brewery.latitude || !brewery.longitude) {
+          this.logger.debug(`Skipping "${brewery.name}" - no coordinates`);
+          continue;
+        }
+
+        const breweryLat = parseFloat(brewery.latitude);
+        const breweryLon = parseFloat(brewery.longitude);
+
+        // Cross-reference with OSM: if venue is NOT in OSM, it may be closed
+        // Check if any OSM venue is within 100m with similar name
+        const isInOsm = this.isVenueInOsmResults(
+          brewery.name,
+          breweryLat,
+          breweryLon,
+          osmResults
+        );
+
+        if (!isInOsm) {
+          this.logger.warn(
+            `Skipping "${brewery.name}" - not found in OpenStreetMap (likely closed)`
+          );
+          continue;
+        }
+
         // Check if venue already exists (by external ID or name + location)
         const existing = await this.findExistingVenue(
           brewery.name,
-          parseFloat(brewery.latitude),
-          parseFloat(brewery.longitude),
+          breweryLat,
+          breweryLon,
           brewery.id
         );
 
@@ -222,11 +256,11 @@ export class VenuesService {
           continue;
         }
 
-        // Create new venue
+        // Create new venue (verified to exist in OSM)
         const venue = this.venueRepository.create({
           name: brewery.name,
-          latitude: parseFloat(brewery.latitude),
-          longitude: parseFloat(brewery.longitude),
+          latitude: breweryLat,
+          longitude: breweryLon,
           venue_type: 'brewery',
           address: brewery.address_1,
           city: brewery.city,
@@ -234,17 +268,129 @@ export class VenuesService {
           source_id: brewery.id,
           source: 'brewerydb',
           metadata: brewery.website_url ? { website: brewery.website_url } : undefined,
+          last_verified_at: new Date(), // Mark as verified since it's in OSM
         });
 
         const saved = await this.venueRepository.save(venue);
         savedVenues.push(saved);
-        this.logger.debug(`Saved new venue: ${brewery.name}`);
+        this.logger.debug(`Saved new venue: ${brewery.name} (verified in OSM)`);
       } catch (error) {
         this.logger.error(`Failed to save venue "${brewery.name}": ${error}`);
       }
     }
 
     return savedVenues;
+  }
+
+  /**
+   * Check if a venue from BreweryDB exists in OSM results
+   * Uses Levenshtein distance for fuzzy name matching and proximity check (within 200m)
+   */
+  private isVenueInOsmResults(
+    name: string,
+    latitude: number,
+    longitude: number,
+    osmResults: OsmVenueResult[]
+  ): boolean {
+    const PROXIMITY_THRESHOLD_KM = 0.2; // 200 meters
+    const SIMILARITY_THRESHOLD = 0.75; // 75% similarity required
+
+    // Normalize name for comparison (only remove legal suffixes, keep core business name)
+    const normalizedName = this.normalizeVenueName(name);
+
+    for (const osmVenue of osmResults) {
+      const distance = this.calculateHaversineDistance(
+        latitude,
+        longitude,
+        osmVenue.latitude,
+        osmVenue.longitude
+      );
+
+      // Check proximity first (must be within 200m)
+      if (distance > PROXIMITY_THRESHOLD_KM) {
+        continue;
+      }
+
+      // Check name similarity using Levenshtein distance
+      const osmNormalizedName = this.normalizeVenueName(osmVenue.name);
+
+      // Exact match after normalization
+      if (normalizedName === osmNormalizedName) {
+        return true;
+      }
+
+      // Calculate similarity using Levenshtein distance
+      const similarity = this.calculateStringSimilarity(normalizedName, osmNormalizedName);
+      if (similarity >= SIMILARITY_THRESHOLD) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Normalize venue name for comparison
+   * Only removes legal suffixes and punctuation, keeps core business name words intact
+   */
+  private normalizeVenueName(name: string): string {
+    return name
+      .toLowerCase()
+      // Only remove legal/business suffixes, NOT descriptive words like "brewing" or "brewery"
+      .replace(/\b(llc|inc|incorporated|corp|corporation|co\.|ltd|limited)\b/gi, '')
+      // Remove punctuation but keep alphanumeric and spaces
+      .replace(/[^a-z0-9\s]/g, '')
+      // Normalize whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Calculate string similarity using Levenshtein distance
+   * Returns a value between 0 (completely different) and 1 (identical)
+   */
+  private calculateStringSimilarity(str1: string, str2: string): number {
+    const len1 = str1.length;
+    const len2 = str2.length;
+
+    if (len1 === 0 && len2 === 0) return 1;
+    if (len1 === 0 || len2 === 0) return 0;
+
+    const distance = this.levenshteinDistance(str1, str2);
+    const maxLen = Math.max(len1, len2);
+
+    return 1 - distance / maxLen;
+  }
+
+  /**
+   * Calculate Levenshtein distance between two strings
+   * Uses dynamic programming with space optimization
+   */
+  private levenshteinDistance(str1: string, str2: string): number {
+    const len1 = str1.length;
+    const len2 = str2.length;
+
+    // Use two rows instead of full matrix for space efficiency
+    let prevRow = Array.from({ length: len2 + 1 }, (_, i) => i);
+    let currRow = new Array(len2 + 1);
+
+    for (let i = 1; i <= len1; i++) {
+      currRow[0] = i;
+
+      for (let j = 1; j <= len2; j++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        currRow[j] = Math.min(
+          prevRow[j] + 1,      // deletion
+          currRow[j - 1] + 1,  // insertion
+          prevRow[j - 1] + cost // substitution
+        );
+      }
+
+      // Swap rows
+      [prevRow, currRow] = [currRow, prevRow];
+    }
+
+    return prevRow[len2];
   }
 
   /**

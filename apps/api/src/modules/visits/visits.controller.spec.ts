@@ -66,7 +66,7 @@ describe('VisitsController', () => {
 
     const result = await controller.findAll(mockUser as any, '2', '2');
 
-    expect(service.findAll).toHaveBeenCalledWith('user-1', 2, 2);
+    expect(service.findAll).toHaveBeenCalledWith('user-1', 2, 2, undefined);
     expect(result.data?.[0].synced).toBe(true);
     expect(result.metadata?.pagination).toMatchObject({
       page: 2,

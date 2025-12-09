@@ -16,12 +16,27 @@ describe('VenuesService', () => {
     findOne: jest.fn(),
     createQueryBuilder: jest.fn(),
   } as any;
+  const cacheService = {
+    getDiscoverySearch: jest.fn(),
+    cacheDiscoverySearch: jest.fn(),
+  } as any;
+  const breweryDbService = {
+    discoverNearby: jest.fn(),
+  } as any;
+  const overpassApiService = {
+    discoverNearby: jest.fn(),
+  } as any;
 
   let service: VenuesService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new VenuesService(repository);
+    service = new VenuesService(
+      repository,
+      cacheService,
+      breweryDbService,
+      overpassApiService
+    );
   });
 
   it('finds venue by id or throws', async () => {
@@ -49,7 +64,10 @@ describe('VenuesService', () => {
       limit: '10',
     });
 
-    expect(qb.where).toHaveBeenCalledWith('venue.name ILIKE :query', {
+    expect(qb.where).toHaveBeenCalledWith('venue.is_closed = :isClosed', {
+      isClosed: false,
+    });
+    expect(qb.andWhere).toHaveBeenCalledWith('venue.name ILIKE :query', {
       query: '%brew%',
     });
     expect(qb.andWhere).toHaveBeenCalledWith('venue.venue_type = :type', {
@@ -68,6 +86,10 @@ describe('VenuesService', () => {
       { id: 'far', latitude: 50, longitude: -80 } as any,
     ]);
     repository.createQueryBuilder.mockReturnValue(qb);
+    cacheService.getDiscoverySearch.mockResolvedValue({
+      searched_at: new Date().toISOString(),
+      result_count: 0,
+    });
 
     const results = await service.findNearby({
       latitude: 40,

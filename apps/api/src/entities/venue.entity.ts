@@ -61,6 +61,15 @@ export class Venue {
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, unknown>;
 
+  @Column({ type: 'boolean', default: false })
+  is_closed!: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  closed_at?: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  last_verified_at?: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

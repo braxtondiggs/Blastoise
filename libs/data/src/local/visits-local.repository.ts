@@ -64,6 +64,29 @@ export class VisitsLocalRepository {
   }
 
   /**
+   * Find all active visits (is_active: true) for a user
+   */
+  async findActiveVisits(userId: string): Promise<Visit[]> {
+    const userVisits = await this.findByUserId(userId);
+    return userVisits.filter((v) => v.is_active === true && !v.departure_time);
+  }
+
+  /**
+   * Find an active visit for a specific venue
+   */
+  async findActiveVisitByVenue(
+    userId: string,
+    venueId: string
+  ): Promise<Visit | null> {
+    const userVisits = await this.findByUserId(userId);
+    return (
+      userVisits.find(
+        (v) => v.venue_id === venueId && v.is_active === true && !v.departure_time
+      ) || null
+    );
+  }
+
+  /**
    * Get visits with pagination and sorting
    */
   async getVisits(options: {

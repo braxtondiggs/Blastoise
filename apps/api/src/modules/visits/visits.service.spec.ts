@@ -73,7 +73,7 @@ describe('VisitsService', () => {
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: 'user-1',
-        source: 'manual',
+        source: 'auto_detect',
         is_active: true,
         arrival_time: expect.any(Date),
       })
@@ -161,16 +161,18 @@ describe('VisitsService', () => {
       id: payload.venue_id,
       ...payload,
     }));
-    repository.save.mockImplementation(async (payloads) =>
-      (payloads as Visit[]).map((p, idx) => ({
-        ...p,
-        id: `visit-${idx + 1}`,
-      }))
-    );
+    let saveCall = 0;
+    repository.save.mockImplementation(async (payload) => {
+      saveCall += 1;
+      return {
+        ...(payload as Visit),
+        id: `visit-${saveCall}`,
+      };
+    });
 
     const result = await service.batchSync('user-1', { visits });
 
-    expect(repository.save).toHaveBeenCalled();
+    expect(repository.save).toHaveBeenCalledTimes(2);
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({
       id: 'visit-1',
