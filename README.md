@@ -137,7 +137,6 @@ npx nx affected:build --base=origin/main
 ### Privacy by Design
 
 - **No GPS Coordinates Stored**: Only venue IDs are stored, never raw location data
-- **Timestamp Rounding**: All timestamps rounded to 15 minutes to prevent timing attacks
 - **On-Device Processing**: Geofence logic runs entirely on the device
 - **Optional Authentication**: Anonymous usage supported with local-only storage
 - **Secure Token Storage**: Refresh tokens stored in httpOnly cookies, access tokens in memory only

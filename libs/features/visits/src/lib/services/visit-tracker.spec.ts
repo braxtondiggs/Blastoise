@@ -3,6 +3,7 @@ import { VisitTrackerService } from './visit-tracker';
 import { GeofenceService } from './geofence';
 import { VisitSyncService } from './visit-sync';
 import { AuthService } from '@blastoise/features-auth';
+import { NotificationService, VisitsLocalRepository } from '@blastoise/data-frontend';
 import {
   Venue,
   GeofenceEvent,
@@ -10,7 +11,7 @@ import {
   Visit,
 } from '@blastoise/shared';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
-import { take, filter } from 'rxjs/operators';
+import { take, filter, skip } from 'rxjs/operators';
 
 // Mock Services
 class MockGeofenceService {
@@ -69,11 +70,60 @@ class MockAuthService {
   }
 }
 
+class MockNotificationService {
+  async notifyVisitDetected(_venueName: string, _venueId: string): Promise<void> {
+    // Mock - do nothing
+  }
+
+  async notifyVisitEnded(_venueName: string, _durationMinutes: number, _visitId: string): Promise<void> {
+    // Mock - do nothing
+  }
+}
+
+class MockVisitsLocalRepository {
+  private visits: Visit[] = [];
+
+  async save(visit: Visit): Promise<void> {
+    const index = this.visits.findIndex(v => v.id === visit.id);
+    if (index >= 0) {
+      this.visits[index] = visit;
+    } else {
+      this.visits.push(visit);
+    }
+  }
+
+  async findActiveVisits(_userId: string): Promise<Visit[]> {
+    return this.visits.filter(v => v.is_active === true && !v.departure_time);
+  }
+
+  async findActiveVisitByVenue(_userId: string, venueId: string): Promise<Visit | null> {
+    return this.visits.find(
+      v => v.venue_id === venueId && v.is_active === true && !v.departure_time
+    ) || null;
+  }
+
+  async findByUserId(_userId: string): Promise<Visit[]> {
+    return this.visits;
+  }
+
+  // Test helper to add visits
+  addVisit(visit: Visit): void {
+    this.visits.push(visit);
+  }
+
+  // Test helper to clear visits
+  clear(): void {
+    this.visits = [];
+  }
+}
+
 describe('VisitTrackerService', () => {
   let service: VisitTrackerService;
   let mockGeofenceService: MockGeofenceService;
   let mockVisitSyncService: MockVisitSyncService;
   let mockAuthService: MockAuthService;
+  let mockNotificationService: MockNotificationService;
+  let mockLocalRepository: MockVisitsLocalRepository;
 
   const mockVenue: Venue = {
     id: 'venue-1',
@@ -93,6 +143,8 @@ describe('VisitTrackerService', () => {
     mockGeofenceService = new MockGeofenceService();
     mockVisitSyncService = new MockVisitSyncService();
     mockAuthService = new MockAuthService();
+    mockNotificationService = new MockNotificationService();
+    mockLocalRepository = new MockVisitsLocalRepository();
 
     TestBed.resetTestingModule();
 
@@ -102,6 +154,8 @@ describe('VisitTrackerService', () => {
         { provide: GeofenceService, useValue: mockGeofenceService },
         { provide: VisitSyncService, useValue: mockVisitSyncService },
         { provide: AuthService, useValue: mockAuthService },
+        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: VisitsLocalRepository, useValue: mockLocalRepository },
       ],
     }).compileComponents();
 
@@ -145,7 +199,7 @@ describe('VisitTrackerService', () => {
       expect(visitEvent.visit.departure_time).toBeUndefined();
     });
 
-    it('should round arrival timestamp to nearest 15 minutes (privacy)', async () => {
+    it('should store exact arrival timestamp without rounding', async () => {
       mockAuthService.setUserId('test-user-123');
 
       await service.startTracking([mockVenue]);
@@ -165,11 +219,11 @@ describe('VisitTrackerService', () => {
 
       const visitEvent = await visitEventPromise;
 
-      // Arrival time should be rounded to 14:30:00
+      // Arrival time should match the provided timestamp (no rounding)
       const arrivalTime = new Date(visitEvent.visit.arrival_time);
-      expect(arrivalTime.getMinutes()).toBe(30);
-      expect(arrivalTime.getSeconds()).toBe(0);
-      expect(arrivalTime.getMilliseconds()).toBe(0);
+      expect(arrivalTime.getMinutes()).toBe(37);
+      expect(arrivalTime.getSeconds()).toBe(23);
+      expect(arrivalTime.getMilliseconds()).toBe(456);
     });
 
     it('should add visit to active visits map on arrival', async () => {
@@ -239,7 +293,7 @@ describe('VisitTrackerService', () => {
 
       // Now emit EXIT
       const exitEventPromise = firstValueFrom(
-        service.getVisitEvents().pipe(take(1))
+        service.getVisitEvents().pipe(skip(1), take(1))
       );
 
       const exitTransition: GeofenceTransition = {
@@ -261,7 +315,7 @@ describe('VisitTrackerService', () => {
       expect(exitEvent.visit.duration_minutes).toBeDefined();
     });
 
-    it('should round departure timestamp to nearest 15 minutes', async () => {
+    it('should use exact departure timestamp without rounding', async () => {
       mockAuthService.setUserId('test-user-123');
 
       await service.startTracking([mockVenue]);
@@ -280,7 +334,7 @@ describe('VisitTrackerService', () => {
 
       // Emit EXIT with precise timestamp
       const exitEventPromise = firstValueFrom(
-        service.getVisitEvents().pipe(take(1))
+        service.getVisitEvents().pipe(skip(1), take(1))
       );
 
       const exitTransition: GeofenceTransition = {
@@ -295,11 +349,9 @@ describe('VisitTrackerService', () => {
 
       const exitEvent = await exitEventPromise;
 
-      // Departure time should be rounded to 15:45:00
+      // Departure time should match the provided timestamp (no rounding)
       const departureTime = new Date(exitEvent.visit.departure_time!);
-      expect(departureTime.getMinutes()).toBe(45);
-      expect(departureTime.getSeconds()).toBe(0);
-      expect(departureTime.getMilliseconds()).toBe(0);
+      expect(departureTime.toISOString()).toBe('2025-01-15T15:52:47.789Z');
     });
 
     it('should calculate duration correctly on departure', async () => {
@@ -316,12 +368,15 @@ describe('VisitTrackerService', () => {
         accuracy: 10,
       };
 
+      const enterEventPromise = firstValueFrom(service.getVisitEvents());
       mockGeofenceService.emitTransition(enterTransition);
-      await firstValueFrom(service.getVisitEvents());
+      // Allow async handlers to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await enterEventPromise;
 
       // Departure at 15:45 (1h 15m later)
       const exitEventPromise = firstValueFrom(
-        service.getVisitEvents().pipe(take(1))
+        service.getVisitEvents().pipe(skip(1), take(1))
       );
 
       const exitTransition: GeofenceTransition = {
@@ -333,6 +388,8 @@ describe('VisitTrackerService', () => {
       };
 
       mockGeofenceService.emitTransition(exitTransition);
+      // Allow async handlers to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const exitEvent = await exitEventPromise;
 
@@ -354,12 +411,17 @@ describe('VisitTrackerService', () => {
         accuracy: 10,
       };
 
+      const enterEventPromise = firstValueFrom(service.getVisitEvents());
       mockGeofenceService.emitTransition(enterTransition);
-      await firstValueFrom(service.getVisitEvents());
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await enterEventPromise;
 
       expect(service.hasActiveVisits()).toBe(true);
 
       // Emit EXIT
+      const exitEventPromise = firstValueFrom(
+        service.getVisitEvents().pipe(skip(1), take(1))
+      );
       const exitTransition: GeofenceTransition = {
         venue_id: mockVenue.id,
         event: GeofenceEvent.EXIT,
@@ -369,7 +431,8 @@ describe('VisitTrackerService', () => {
       };
 
       mockGeofenceService.emitTransition(exitTransition);
-      await firstValueFrom(service.getVisitEvents().pipe(take(1)));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await exitEventPromise;
 
       expect(service.hasActiveVisits()).toBe(false);
       expect(service.getActiveVisit(mockVenue.id)).toBeUndefined();
@@ -435,8 +498,11 @@ describe('VisitTrackerService', () => {
   });
 
   describe('Manual Visit Management', () => {
-    it('should allow manually creating a visit', () => {
+    it('should allow manually creating a visit', async () => {
       mockAuthService.setUserId('test-user-123');
+
+      // Need to start tracking to register venues
+      await service.startTracking([mockVenue]);
 
       const visit = service.createManualVisit(mockVenue.id);
 
@@ -460,8 +526,10 @@ describe('VisitTrackerService', () => {
         accuracy: 10,
       };
 
+      const enterEventPromise = firstValueFrom(service.getVisitEvents());
       mockGeofenceService.emitTransition(enterTransition);
-      await firstValueFrom(service.getVisitEvents());
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await enterEventPromise;
 
       expect(service.hasActiveVisits()).toBe(true);
 

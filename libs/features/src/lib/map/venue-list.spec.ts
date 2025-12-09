@@ -12,54 +12,42 @@ describe('VenueList Component', () => {
     {
       id: 'venue-1',
       name: 'Deschutes Brewery',
-      type: 'brewery',
-      address: {
-        street: '901 SW Simpson Ave',
-        city: 'Bend',
-        state: 'OR',
-        postal_code: '97702',
-        country: 'USA',
-      },
-      location: {
-        latitude: 44.0521,
-        longitude: -121.3153,
-      },
+      venue_type: 'brewery',
+      source: 'manual',
+      city: 'Bend',
+      state: 'OR',
+      country: 'USA',
+      postal_code: '97702',
+      latitude: 44.0521,
+      longitude: -121.3153,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
     {
       id: 'venue-2',
       name: 'Willamette Valley Vineyards',
-      type: 'winery',
-      address: {
-        street: '8800 Enchanted Way SE',
-        city: 'Turner',
-        state: 'OR',
-        postal_code: '97392',
-        country: 'USA',
-      },
-      location: {
-        latitude: 44.8429,
-        longitude: -122.9507,
-      },
+      venue_type: 'winery',
+      source: 'manual',
+      city: 'Turner',
+      state: 'OR',
+      country: 'USA',
+      postal_code: '97392',
+      latitude: 44.8429,
+      longitude: -122.9507,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
     {
       id: 'venue-3',
       name: '10 Barrel Brewing',
-      type: 'brewery',
-      address: {
-        street: '1135 NW Galveston Ave',
-        city: 'Bend',
-        state: 'OR',
-        postal_code: '97703',
-        country: 'USA',
-      },
-      location: {
-        latitude: 44.0583,
-        longitude: -121.3219,
-      },
+      venue_type: 'brewery',
+      source: 'manual',
+      city: 'Bend',
+      state: 'OR',
+      country: 'USA',
+      postal_code: '97703',
+      latitude: 44.0583,
+      longitude: -121.3219,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -90,7 +78,7 @@ describe('VenueList Component', () => {
 
       const filtered = spectator.component.filteredVenues();
       expect(filtered.length).toBe(2);
-      expect(filtered.every((v) => v.type === 'brewery')).toBe(true);
+      expect(filtered.every((v) => v.venue_type === 'brewery')).toBe(true);
     });
 
     it('should filter venues by type - wineries only', () => {
@@ -99,7 +87,7 @@ describe('VenueList Component', () => {
 
       const filtered = spectator.component.filteredVenues();
       expect(filtered.length).toBe(1);
-      expect(filtered[0].type).toBe('winery');
+      expect(filtered[0].venue_type).toBe('winery');
     });
 
     it('should show all venues when filter is "all"', () => {
@@ -144,7 +132,7 @@ describe('VenueList Component', () => {
 
       const filtered = spectator.component.filteredVenues();
       expect(filtered.length).toBe(2);
-      expect(filtered.every((v) => v.address.city === 'Bend')).toBe(true);
+      expect(filtered.every((v) => v.city === 'Bend')).toBe(true);
     });
 
     it('should be case-insensitive', () => {
@@ -220,9 +208,9 @@ describe('VenueList Component', () => {
       spectator.detectChanges();
 
       const sorted = spectator.component.filteredVenues();
-      expect(sorted[0].type).toBe('brewery');
-      expect(sorted[1].type).toBe('brewery');
-      expect(sorted[2].type).toBe('winery');
+      expect(sorted[0].venue_type).toBe('brewery');
+      expect(sorted[1].venue_type).toBe('brewery');
+      expect(sorted[2].venue_type).toBe('winery');
     });
 
     it('should handle venues without distance data', () => {

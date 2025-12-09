@@ -25,10 +25,41 @@ import type { Venue } from '@blastoise/shared';
 })
 export class VenueList {
   // Inputs
-  @Input() venues: Venue[] = [];
-  @Input() visitedVenueIds: string[] = [];
-  @Input() distances: Map<string, number> = new Map();
-  @Input() loading = false;
+  private _venues: Venue[] = [];
+  @Input() set venues(value: Venue[]) {
+    this._venues = value ?? [];
+    this.triggerRecompute();
+  }
+  get venues(): Venue[] {
+    return this._venues;
+  }
+
+  private _visitedVenueIds: string[] = [];
+  @Input() set visitedVenueIds(value: string[]) {
+    this._visitedVenueIds = value ?? [];
+    this.triggerRecompute();
+  }
+  get visitedVenueIds(): string[] {
+    return this._visitedVenueIds;
+  }
+
+  private _distances: Map<string, number> = new Map();
+  @Input() set distances(value: Map<string, number>) {
+    this._distances = value ?? new Map();
+    this.triggerRecompute();
+  }
+  get distances(): Map<string, number> {
+    return this._distances;
+  }
+
+  private _loading = false;
+  @Input() set loading(value: boolean) {
+    this._loading = value ?? false;
+    this.triggerRecompute();
+  }
+  get loading(): boolean {
+    return this._loading;
+  }
 
   // Outputs
   @Output() venueSelected = new EventEmitter<Venue>();
@@ -37,18 +68,31 @@ export class VenueList {
   readonly sortBy = signal<'name' | 'distance' | 'type'>('distance');
   readonly filterType = signal<'all' | 'brewery' | 'winery'>('all');
   readonly searchQuery = signal('');
+  private readonly recomputeTrigger = signal(0);
 
   // Computed venues list (sorted and filtered)
   readonly filteredVenues = computed(() => {
-    let filtered = [...this.venues];
+    this.recomputeTrigger();
+    let filtered = [...this._venues];
 
     // Apply search filter
     const query = this.searchQuery().toLowerCase();
     if (query) {
-      filtered = filtered.filter((v) =>
-        v.name.toLowerCase().includes(query) ||
-        (v.city && v.city.toLowerCase().includes(query))
-      );
+      const normalize = (value: string) =>
+        value
+          .toLowerCase()
+          .replace(/brewery/g, 'brew')
+          .replace(/brewing/g, 'brew');
+      const normalizedQuery = normalize(query);
+
+      filtered = filtered.filter((v) => {
+        const normalizedName = normalize(v.name);
+        const normalizedCity = v.city ? normalize(v.city) : '';
+        return (
+          normalizedName.includes(normalizedQuery) ||
+          normalizedCity.includes(normalizedQuery)
+        );
+      });
     }
 
     // Apply type filter
@@ -64,7 +108,7 @@ export class VenueList {
         case 'name':
           return a.name.localeCompare(b.name);
         case 'distance':
-          { const distA = this.distances.get(a.id) || Infinity;
+        { const distA = this.distances.get(a.id) || Infinity;
           const distB = this.distances.get(b.id) || Infinity;
           return distA - distB; }
         case 'type':
@@ -78,6 +122,10 @@ export class VenueList {
   });
 
   readonly isEmpty = computed(() => this.filteredVenues().length === 0);
+
+  private triggerRecompute(): void {
+    this.recomputeTrigger.update((v) => v + 1);
+  }
 
   /**
    * Check if venue has been visited

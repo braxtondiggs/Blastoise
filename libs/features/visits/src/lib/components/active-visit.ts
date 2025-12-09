@@ -56,8 +56,8 @@ export class ActiveVisitComponent implements OnInit, OnDestroy {
     // Calculate initial duration
     this.updateDuration();
 
-    // Update duration every minute
-    interval(60000) // 60 seconds
+    // Update duration every second for responsive UI and tests
+    interval(1000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.updateDuration();
@@ -78,29 +78,25 @@ export class ActiveVisitComponent implements OnInit, OnDestroy {
     const arrivalTime = new Date(this.visit.arrival_time).getTime();
     const currentTime = Date.now();
     const durationMs = currentTime - arrivalTime;
-    const durationMinutes = Math.floor(durationMs / (1000 * 60));
+    const durationMinutes = durationMs / (1000 * 60);
 
     this.currentDuration.set(durationMinutes);
   }
 
   /**
    * Format duration as human-readable string
-   * Examples: "5 minutes", "1 hour 30 minutes", "2 hours"
+   * Examples: "5m", "1h 30m", "2h"
    */
   private formatDuration(minutes: number): string {
-    if (minutes < 60) {
-      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    const roundedMinutes = Math.floor(minutes);
+
+    if (roundedMinutes < 60) {
+      return `${roundedMinutes}m`;
     }
 
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+    const hours = Math.floor(roundedMinutes / 60);
+    const remainingMinutes = roundedMinutes % 60;
 
-    if (remainingMinutes === 0) {
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
-    }
-
-    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} ${
-      remainingMinutes === 1 ? 'minute' : 'minutes'
-    }`;
+    return `${hours}h ${remainingMinutes}m`;
   }
 }

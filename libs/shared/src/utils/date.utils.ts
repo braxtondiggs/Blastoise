@@ -1,32 +1,7 @@
 /**
  * Date Utilities
- * Functions for date manipulation and timestamp rounding (privacy protection)
+ * Functions for date manipulation and formatting
  */
-
-/**
- * Round timestamp to nearest interval (for privacy)
- * Default: 15 minutes
- */
-export function roundTimestamp(
-  timestamp: Date | string,
-  intervalMinutes = 15
-): Date {
-  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-  const ms = date.getTime();
-  const intervalMs = intervalMinutes * 60 * 1000;
-  const rounded = Math.round(ms / intervalMs) * intervalMs;
-  return new Date(rounded);
-}
-
-/**
- * Round timestamp to ISO string
- */
-export function roundTimestampToISO(
-  timestamp: Date | string,
-  intervalMinutes = 15
-): string {
-  return roundTimestamp(timestamp, intervalMinutes).toISOString();
-}
 
 /**
  * Get date only (YYYY-MM-DD) from timestamp

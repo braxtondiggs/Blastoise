@@ -8,7 +8,7 @@ import {
   Coordinates,
   GeolocationPosition,
 } from '@blastoise/shared';
-import { firstValueFrom, take } from 'rxjs';
+import { firstValueFrom, take, filter } from 'rxjs';
 
 // Mock GeolocationProvider
 class MockGeolocationProvider extends GeolocationProvider {
@@ -96,11 +96,13 @@ describe('GeofenceService', () => {
   });
 
   beforeEach(() => {
+    localStorage.clear();
     spectator = createService();
   });
 
   afterEach(() => {
     spectator.service.stopTracking();
+    localStorage.clear();
   });
 
   describe('Permission Management', () => {
@@ -141,7 +143,9 @@ describe('GeofenceService', () => {
       await spectator.service.startTracking([mockVenue]);
 
       const transitionsPromise = firstValueFrom(
-        spectator.service.getGeofenceTransitions().pipe(take(1))
+        spectator.service
+          .getGeofenceTransitions()
+          .pipe(filter((t) => t.event === GeofenceEvent.ENTER), take(1))
       );
 
       // ~22m from venue center (37.7749, -122.4194)
@@ -190,7 +194,9 @@ describe('GeofenceService', () => {
       const futureTime = Date.now() + elevenMinutesMs;
 
       const exitPromise = firstValueFrom(
-        spectator.service.getGeofenceTransitions().pipe(take(1))
+        spectator.service
+          .getGeofenceTransitions()
+          .pipe(filter((t) => t.event === GeofenceEvent.EXIT), take(1))
       );
 
       const outsideCoords: Coordinates = {
@@ -265,9 +271,12 @@ describe('GeofenceService', () => {
       const fiveMinutesLater = 1000000 + 5 * 60 * 1000;
 
       let exitEmitted = false;
-      const subscription = spectator.service.getGeofenceTransitions().subscribe(() => {
-        exitEmitted = true;
-      });
+      const subscription = spectator.service
+        .getGeofenceTransitions()
+        .pipe(filter((t) => t.event === GeofenceEvent.EXIT))
+        .subscribe(() => {
+          exitEmitted = true;
+        });
 
       const outsideCoords: Coordinates = {
         latitude: 37.776,
@@ -298,7 +307,9 @@ describe('GeofenceService', () => {
       const tenMinutesLater = enterTime + 10 * 60 * 1000;
 
       const exitPromise = firstValueFrom(
-        spectator.service.getGeofenceTransitions().pipe(take(1))
+        spectator.service
+          .getGeofenceTransitions()
+          .pipe(filter((t) => t.event === GeofenceEvent.EXIT), take(1))
       );
 
       const outsideCoords: Coordinates = {

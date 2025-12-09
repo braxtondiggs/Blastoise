@@ -23,6 +23,9 @@ export interface Venue {
   google_place_id?: string; // Google Place ID from Timeline data (T015)
   verification_tier?: VerificationTier; // Import verification method (T015)
   metadata?: Record<string, unknown>; // Additional info (website, phone, hours, etc.)
+  is_closed?: boolean; // True if venue is permanently closed
+  closed_at?: string; // ISO 8601 timestamp when closure was detected
+  last_verified_at?: string; // ISO 8601 timestamp of last verification
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
 }

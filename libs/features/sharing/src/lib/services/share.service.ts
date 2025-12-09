@@ -139,18 +139,13 @@ export class ShareService {
    * This is a client-side check, but the real privacy protection happens on backend
    */
   validateSharedData(data: SharedVisitData): boolean {
-    // Ensure no user_id or precise coordinates
+    // Ensure no user_id, emails, or precise coordinates appear anywhere in the payload
     const dataString = JSON.stringify(data);
 
-    // Check for patterns that might indicate leaked user data
+    // Quick string-based checks to catch obvious leaks
     const sensitivePatterns = [
       /user_id/i,
       /user\.id/i,
-      /latitude/i,
-      /longitude/i,
-      /coordinates/i,
-      /location\.lat/i,
-      /location\.lng/i,
       /@[\w.]+/i, // Email patterns
     ];
 
@@ -159,6 +154,12 @@ export class ShareService {
         console.error('Shared data contains sensitive information!', pattern);
         return false;
       }
+    }
+
+    // Deep scan for geolocation fields (lat/lng/coordinates) nested anywhere
+    if (this.containsGeoCoordinates(data)) {
+      console.error('Shared data contains sensitive information!', 'coordinates');
+      return false;
     }
 
     // Verify required anonymized fields are present
@@ -170,6 +171,34 @@ export class ShareService {
     );
 
     return hasRequiredFields;
+  }
+
+  /**
+   * Recursively check objects/arrays for geo-related keys
+   */
+  private containsGeoCoordinates(value: unknown): boolean {
+    if (value === null || typeof value !== 'object') {
+      return false;
+    }
+
+    if (Array.isArray(value)) {
+      return value.some((item) => this.containsGeoCoordinates(item));
+    }
+
+    return Object.entries(value).some(([key, val]) => {
+      const normalized = key.toLowerCase();
+      if (
+        normalized === 'latitude' ||
+        normalized === 'longitude' ||
+        normalized === 'lat' ||
+        normalized === 'lng' ||
+        normalized === 'coordinates'
+      ) {
+        return true;
+      }
+
+      return this.containsGeoCoordinates(val);
+    });
   }
 
   /**

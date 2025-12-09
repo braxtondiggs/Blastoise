@@ -1,8 +1,9 @@
 import { createServiceFactory, SpectatorService, SpyObject } from '@ngneat/spectator/jest';
 import { VenueSearchService, ProximitySearchParams } from './venue-search.service';
 import { VenuesApiService } from '@blastoise/data';
+import { NotificationService } from '@blastoise/data-frontend';
 import { of, throwError } from 'rxjs';
-import type { Venue } from '@blastoise/shared';
+import type { Venue, ApiResponse } from '@blastoise/shared';
 
 /**
  * Tests for text search, proximity search, caching, and distance calculations
@@ -15,54 +16,42 @@ describe('VenueSearchService', () => {
     {
       id: 'venue-1',
       name: 'Deschutes Brewery',
-      type: 'brewery',
-      address: {
-        street: '901 SW Simpson Ave',
-        city: 'Bend',
-        state: 'OR',
-        postal_code: '97702',
-        country: 'USA',
-      },
-      location: {
-        latitude: 44.0521,
-        longitude: -121.3153,
-      },
+      venue_type: 'brewery',
+      source: 'manual',
+      city: 'Bend',
+      state: 'OR',
+      country: 'USA',
+      postal_code: '97702',
+      latitude: 44.0521,
+      longitude: -121.3153,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
     {
       id: 'venue-2',
       name: 'Willamette Valley Vineyards',
-      type: 'winery',
-      address: {
-        street: '8800 Enchanted Way SE',
-        city: 'Turner',
-        state: 'OR',
-        postal_code: '97392',
-        country: 'USA',
-      },
-      location: {
-        latitude: 44.8429,
-        longitude: -122.9507,
-      },
+      venue_type: 'winery',
+      source: 'manual',
+      city: 'Turner',
+      state: 'OR',
+      country: 'USA',
+      postal_code: '97392',
+      latitude: 44.8429,
+      longitude: -122.9507,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
     {
       id: 'venue-3',
       name: '10 Barrel Brewing',
-      type: 'brewery',
-      address: {
-        street: '1135 NW Galveston Ave',
-        city: 'Bend',
-        state: 'OR',
-        postal_code: '97703',
-        country: 'USA',
-      },
-      location: {
-        latitude: 44.0583,
-        longitude: -121.3219,
-      },
+      venue_type: 'brewery',
+      source: 'manual',
+      city: 'Bend',
+      state: 'OR',
+      country: 'USA',
+      postal_code: '97703',
+      latitude: 44.0583,
+      longitude: -121.3219,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -70,7 +59,7 @@ describe('VenueSearchService', () => {
 
   const createService = createServiceFactory({
     service: VenueSearchService,
-    mocks: [VenuesApiService],
+    mocks: [VenuesApiService, NotificationService],
   });
 
   beforeEach(() => {
@@ -84,7 +73,11 @@ describe('VenueSearchService', () => {
 
   describe('Text Search', () => {
     it('should search venues by text query', (done) => {
-      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+      const searchResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: [mockVenues[0]],
+      };
+      venuesApi.search.mockReturnValue(of(searchResponse));
 
       spectator.service.searchByText('Deschutes');
 
@@ -99,7 +92,11 @@ describe('VenueSearchService', () => {
     });
 
     it('should debounce search queries', (done) => {
-      venuesApi.search.mockReturnValue(of(mockVenues));
+      const searchResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: mockVenues,
+      };
+      venuesApi.search.mockReturnValue(of(searchResponse));
 
       // Rapid fire searches
       spectator.service.searchByText('D');
@@ -126,7 +123,11 @@ describe('VenueSearchService', () => {
     });
 
     it('should cache search results', (done) => {
-      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+      const searchResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: [mockVenues[0]],
+      };
+      venuesApi.search.mockReturnValue(of(searchResponse));
 
       // First search
       spectator.service.searchByText('Deschutes');
@@ -163,7 +164,11 @@ describe('VenueSearchService', () => {
     });
 
     it('should clear search results', (done) => {
-      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+      const searchResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: [mockVenues[0]],
+      };
+      venuesApi.search.mockReturnValue(of(searchResponse));
 
       spectator.service.searchByText('Deschutes');
 
@@ -187,18 +192,22 @@ describe('VenueSearchService', () => {
         radius: 10,
       };
 
-      venuesApi.findNearby.mockReturnValue(of(mockVenues));
+      const proximityResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: mockVenues,
+      };
+      venuesApi.nearby.mockReturnValue(of(proximityResponse));
 
       spectator.service.searchByProximity(proximityParams);
 
       // Wait for debounce (500ms)
       setTimeout(() => {
-        expect(venuesApi.findNearby).toHaveBeenCalledWith(
-          proximityParams.latitude,
-          proximityParams.longitude,
-          proximityParams.radius,
-          undefined
-        );
+        expect(venuesApi.nearby).toHaveBeenCalledWith({
+          latitude: proximityParams.latitude,
+          longitude: proximityParams.longitude,
+          radius_km: proximityParams.radius,
+          venue_type: undefined,
+        });
         expect(spectator.service.proximityResults().length).toBe(3);
         expect(spectator.service.isSearching()).toBe(false);
         done();
@@ -213,17 +222,21 @@ describe('VenueSearchService', () => {
         type: 'brewery',
       };
 
-      venuesApi.findNearby.mockReturnValue(of([mockVenues[0], mockVenues[2]]));
+      const proximityResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: [mockVenues[0], mockVenues[2]],
+      };
+      venuesApi.nearby.mockReturnValue(of(proximityResponse));
 
       spectator.service.searchByProximity(proximityParams);
 
       setTimeout(() => {
-        expect(venuesApi.findNearby).toHaveBeenCalledWith(
-          proximityParams.latitude,
-          proximityParams.longitude,
-          proximityParams.radius,
-          'brewery'
-        );
+        expect(venuesApi.nearby).toHaveBeenCalledWith({
+          latitude: proximityParams.latitude,
+          longitude: proximityParams.longitude,
+          radius_km: proximityParams.radius,
+          venue_type: 'brewery',
+        });
         expect(spectator.service.proximityResults().length).toBe(2);
         done();
       }, 550);
@@ -236,13 +249,17 @@ describe('VenueSearchService', () => {
         radius: 10,
       };
 
-      venuesApi.findNearby.mockReturnValue(of(mockVenues));
+      const proximityResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: mockVenues,
+      };
+      venuesApi.nearby.mockReturnValue(of(proximityResponse));
 
       // First search
       spectator.service.searchByProximity(proximityParams);
 
       setTimeout(() => {
-        expect(venuesApi.findNearby).toHaveBeenCalledTimes(1);
+        expect(venuesApi.nearby).toHaveBeenCalledTimes(1);
 
         // Clear and search again
         spectator.service.clearSearch();
@@ -250,7 +267,7 @@ describe('VenueSearchService', () => {
 
         setTimeout(() => {
           // Should use cache
-          expect(venuesApi.findNearby).toHaveBeenCalledTimes(1);
+          expect(venuesApi.nearby).toHaveBeenCalledTimes(1);
           expect(spectator.service.proximityResults().length).toBe(3);
           done();
         }, 550);
@@ -264,7 +281,7 @@ describe('VenueSearchService', () => {
         radius: 10,
       };
 
-      venuesApi.findNearby.mockReturnValue(throwError(() => new Error('Proximity search failed')));
+      venuesApi.nearby.mockReturnValue(throwError(() => new Error('Proximity search failed')));
 
       spectator.service.searchByProximity(proximityParams);
 
@@ -277,7 +294,11 @@ describe('VenueSearchService', () => {
     });
 
     it('should debounce proximity searches', (done) => {
-      venuesApi.findNearby.mockReturnValue(of(mockVenues));
+      const proximityResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: mockVenues,
+      };
+      venuesApi.nearby.mockReturnValue(of(proximityResponse));
 
       // Rapid fire proximity searches
       spectator.service.searchByProximity({
@@ -298,8 +319,13 @@ describe('VenueSearchService', () => {
 
       setTimeout(() => {
         // Should only call API once
-        expect(venuesApi.findNearby).toHaveBeenCalledTimes(1);
-        expect(venuesApi.findNearby).toHaveBeenCalledWith(44.0521, -121.3153, 10, undefined);
+        expect(venuesApi.nearby).toHaveBeenCalledTimes(1);
+        expect(venuesApi.nearby).toHaveBeenCalledWith({
+          latitude: 44.0521,
+          longitude: -121.3153,
+          radius_km: 10,
+          venue_type: undefined,
+        });
         done();
       }, 550);
     });
@@ -355,8 +381,16 @@ describe('VenueSearchService', () => {
 
   describe('Cache Management', () => {
     it('should clear all caches', (done) => {
-      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
-      venuesApi.findNearby.mockReturnValue(of(mockVenues));
+      const searchResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: [mockVenues[0]],
+      };
+      const proximityResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: mockVenues,
+      };
+      venuesApi.search.mockReturnValue(of(searchResponse));
+      venuesApi.nearby.mockReturnValue(of(proximityResponse));
 
       // Populate both caches
       spectator.service.searchByText('Deschutes');
@@ -384,7 +418,11 @@ describe('VenueSearchService', () => {
     });
 
     it('should provide cache statistics', (done) => {
-      venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+      const searchResponse: ApiResponse<Venue[]> = {
+        success: true,
+        data: [mockVenues[0]],
+      };
+      venuesApi.search.mockReturnValue(of(searchResponse));
 
       const initialStats = spectator.service.getCacheStats();
       expect(initialStats.searchCacheSize).toBe(0);
@@ -411,7 +449,11 @@ describe('VenueSearchService', () => {
         expect(spectator.service.error()).toBe('Failed to search venues');
 
         // Second search succeeds
-        venuesApi.search.mockReturnValue(of([mockVenues[0]]));
+        const recoveryResponse: ApiResponse<Venue[]> = {
+          success: true,
+          data: [mockVenues[0]],
+        };
+        venuesApi.search.mockReturnValue(of(recoveryResponse));
         spectator.service.searchByText('test2');
 
         setTimeout(() => {
