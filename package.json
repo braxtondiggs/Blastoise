@@ -97,7 +97,7 @@
     "zone.js": "^0.15.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^20.0.0",
+    "@angular-devkit/build-angular": "^20.3.9",
     "@angular-devkit/core": "^20.0.0",
     "@angular-devkit/schematics": "^20.0.0",
     "@angular-eslint/eslint-plugin": "^20.0.0",
@@ -108,7 +108,7 @@
     "@angular/compiler-cli": "^20.0.0",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.0.0",
-    "@nestjs/cli": "^11.0.11",
+    "@nestjs/cli": "^11.0.16",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
     "@ngneat/spectator": "^22.1.0",
